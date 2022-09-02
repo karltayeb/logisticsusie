@@ -27,3 +27,23 @@ sim_ser_with_covariates <- function(n=1000, p=50, N=1, idx=1){
   )
   return(data)
 }
+
+
+sim_susie <- function(n=1000, p=50, L=3, N=1){
+  mix <- exp(- 0.1 * outer(seq(p), seq(p), '-')**2)
+  X <- matrix(rnorm(n*p), nrow=n) %*% mix  # mix so that there are correlated features
+  X <- X[, sample(p)]  # permute so that adjacent columns aren't very correlated
+  Z <- matrix(rep(1, n), nrow=n)
+
+  beta <- 1.
+  logits <- rowSums(X[, 1:L])
+  p <- sigmoid(logits)
+  y <- rbinom(n, N, p)
+
+  data <- list(
+    X = X, Z=Z, y=y, N=N, logits=logits
+  )
+  return(data)
+}
+
+

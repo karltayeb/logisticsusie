@@ -71,13 +71,13 @@
 #' Compute expected value of coefficients beta under approximate posterior
 #' @param fit Binomial SER object
 #' @return Return E[\beta]
-Ebeta.binser <- function(fit){
-  b <- drop(.get_alpha(fit) * .get_mu(fit))
+Ebeta.binser <- function(fit, idx=NULL){
+  b <- drop(.get_alpha(fit, idx) * .get_mu(fit, idx))
   return(b)
 }
 
 #' KL(q(b, \omega) || p(\beta, \omega))
-.compute_binomial_ser_kl<- function(alpha, pi, mu, var, mu0, var0){
+.compute_ser_kl <- function(alpha, pi, mu, var, mu0, var0){
   kl <- categorical_kl(alpha, pi)
   kl <- kl + sum(alpha * normal_kl(
     mu, var, mu0, var0))
@@ -87,9 +87,9 @@ Ebeta.binser <- function(fit){
 #' compute_kl.binser
 #' Compute KL divergence between approximate posterior and prior
 #' @param fit Binomial SER object
-#' @return Return KL(q(\beta, \omega) || p(\beta, \omega))
+#' @return Return KL(q(\beta) || p(\beta))
 compute_kl.binser <- function(fit){
-  return(.compute_binomial_ser_kl(
+  return(.compute_ser_kl(
     .get_alpha(fit),
     .get_pi(fit),
     .get_mu(fit),
@@ -100,18 +100,18 @@ compute_kl.binser <- function(fit){
 }
 
 #' fixed effects, intercept, shift
-compute_Zd.binser <- function(fit){
-  Zd <- drop(fit$data$Z %*% .get_delta(fit)) + fit$hypers$shift
+compute_Zd.binser <- function(fit, idx=NULL, shift=0){
+  Zd <- drop(fit$data$Z %*% .get_delta(fit, idx)) + shift
   return(Zd)
 }
 
-#' predict.binser
+#' compute_Xb.binser
 #' Compute expected predicted log odds
 #' @param fit Binomial SER object
 #' @return Return E[Xb]
-predict.binser <- function(fit){
-  Xb <- drop(fit$data$X %*% Ebeta.binser(fit))
-  Zd <- compute_Zd.binser(fit)
+compute_Xb.binser <- function(fit, idx=NULL, shift=0){
+  Xb <- drop(fit$data$X %*% Ebeta.binser(fit, idx))
+  Zd <- compute_Zd.binser(fit, idx, shift)
   Xb <- Xb + Zd
   return(Xb)
 }
@@ -120,11 +120,11 @@ predict.binser <- function(fit){
 #' Compute second moments of predicted log odds
 #' @param fit Binomial SER object
 #' @return Return E[Xb]
-compute_Xb2.binser <- function(fit){
-  Xb <- drop(fit$data$X %*% Ebeta.binser(fit))
-  Zd <- compute_Zd.binser(fit)
+compute_Xb2.binser <- function(fit, idx=NULL, shift=0){
+  Xb <- drop(fit$data$X %*% Ebeta.binser(fit, idx))
+  Zd <- compute_Zd.binser(fit, idx, shift)
 
-  b2 <- .get_alpha(fit) * (.get_mu(fit)^2 + .get_var(fit))
+  b2 <- .get_alpha(fit, idx) * (.get_mu(fit, idx)^2 + .get_var(fit, idx))
   Xb2 <- drop(fit$data$X^2 %*% b2)
 
   Xb2 <- Xb2 + 2*Xb*Zd + Zd^2
@@ -146,9 +146,9 @@ compute_omega <- function(fit){
 #' Compute a scaled posterior mean
 #' TODO: add support for non-zero prior mean
 #' @param fit a SER object
-compute_nu.binser <- function(fit){
+compute_nu.binser <- function(fit, idx=NULL, shift=0){
   kappa <- compute_kappa(fit)
-  Zd <- compute_Zd.binser(fit)
+  Zd <- compute_Zd.binser(fit, idx, shift)
   omega <- compute_omega(fit)
   tmp <- kappa - omega * Zd
   nu <- drop(tmp %*% fit$data$X)
@@ -172,10 +172,10 @@ update_xi.binser <- function(fit){
 }
 
 #' update intercept and fixed effect covariates
-update_delta.binser <- function(fit){
+update_delta.binser <- function(fit, idx=NULL, shift=0){
   Z <- fit$data$Z
   omega <- compute_omega(fit)
-  Xb <- fit$data$X %*% Ebeta.binser(fit) + fit$hypers$shift
+  Xb <- fit$data$X %*% Ebeta.binser(fit, idx) + shift
   kappa <- compute_kappa(fit)
   delta <- solve((omega * t(Z)) %*% Z, t(Z) %*% (kappa - omega*Xb))
   return(delta)
@@ -199,18 +199,18 @@ update_delta.binser <- function(fit){
 }
 
 #' update q(b)
-update_b.binser <- function(fit){
-  nu <- compute_nu.binser(fit)
-  tau <- (1 / .get_var0(fit)) + fit$params$tau
-  post <- .update_b_ser(nu, tau, .get_pi(fit))
+update_b.binser <- function(fit, idx=NULL, shift=0){
+  nu <- compute_nu.binser(fit, idx, shift)
+  tau <- (1 / .get_var0(fit, idx)) + fit$params$tau
+  post <- .update_b_ser(nu, tau, .get_pi(fit, idx))
   return(post)
 }
 
 
 #' Variational M step for updating sigma0
 #' Optimize ELBO wrt to prior effect standard deviation
-update_sigma0.binser <- function(fit){
-  b2 <- .get_alpha(fit) * (.get_mu(fit)^2 + .get_var(fit))
+update_sigma0.binser <- function(fit, idx=NULL){
+  b2 <- .get_alpha(fit, idx) * (.get_mu(fit, idx)^2 + .get_var(fit, idx))
   sigma0 <- sqrt(sum(b2))
   return(sigma0)
 }
@@ -221,7 +221,7 @@ update_sigma0.binser <- function(fit){
 #' NOTE: this only works when xi is updated!
 jj_bound.binser <- function(fit){
   xi <- fit$params$xi
-  Xb <- predict.binser(fit)
+  Xb <- compute_Xb.binser(fit)
   kappa <- compute_kappa(fit)
   n <- fit$data$N
 
@@ -236,7 +236,7 @@ jj_bound.binser <- function(fit){
 #' More explicit, only works for Bernoulli observations
 jj_bound.logistic <- function(fit){
   xi <- fit$params$xi
-  Xb <- predict.binser(fit)
+  Xb <- compute_Xb.binser(fit)
   kappa <- compute_kappa(fit)
 
   Xb2 <- compute_Xb2.binser(fit)
@@ -294,7 +294,12 @@ fit.binser <- function(
     maxiter=10,
     tol=1e-3,
     fit_intercept=TRUE,
-    fit_prior_variance=TRUE){
+    fit_prior_variance=TRUE,
+    shift = NULL){
+
+  if(is.null(shift)){
+    shift <- fit$hypers$shift
+  }
 
   if(is.null(fit)){
     fit <- init.binser(data)

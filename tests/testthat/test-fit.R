@@ -55,9 +55,8 @@ for(i in seq(1, 10)){
 test_ser_N_with_shift <- function(N=1, shift_col=1, fit_intercept=T, fit_prior_variance=T){
   data <- sim_ser(N = N)
   fit <- init.binser(data)
-  fit$hypers$shift <- data$X[,shift_col]
-
-  fit <- fit.binser(fit=fit, maxiter = 100, tol=1e-5, fit_intercept = T, fit_prior_variance = T)
+  shift <- data$X[,shift_col]
+  fit <- fit.binser(fit=fit, maxiter = 100, tol=1e-5, fit_intercept = T, fit_prior_variance = T, shift=shift)
   return(list(
     fit = fit,
     monotone = .monotone(fit$elbo)
@@ -86,8 +85,7 @@ for(i in seq(1, 10)){
 test_ser_N_with_constant_shift <- function(N=1, shift=1){
   data <- sim_ser(N = N)
   fit <- init.binser(data)
-  fit$hypers$shift <- shift
-  fit <- fit.binser(fit=fit, maxiter = 100, tol=1e-5, fit_intercept = T, fit_prior_variance = T)
+  fit <- fit.binser(fit=fit, maxiter = 100, tol=1e-5, fit_intercept = T, fit_prior_variance = T, shift=shift)
   return(list(
     fit = fit,
     monotone = .monotone(fit$elbo)
@@ -107,6 +105,33 @@ for(i in seq(1, 10)){
   })
 }
 
+
+##
+# Fit SuSiE tests
+##
+
+test_susie_N <- function(N=1){
+  data <- sim_susie(N = N)
+  fit <- fit.binsusie(data, maxiter = 100, tol=1e-5)
+  return(list(
+    fit = fit,
+    monotone = .monotone(fit$elbo)
+  ))
+}
+
+testthat::test_that("Bernoulli SuSiE Monotone", {
+  for(i in seq(20)){
+    testthat::expect_true(test_susie_N(1)$monotone)
+  }
+})
+
+
+for(i in seq(1, 10)){
+  test_name <- paste('Binomial SuSiE Monotone: N = ', i)
+  testthat::test_that(test_name, {
+    testthat::expect_true(test_susie_N(i)$monotone)
+  })
+}
 
 
 
