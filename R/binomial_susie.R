@@ -152,6 +152,15 @@ init.binsusie <- function(data, L=5){
 }
 
 
+iter.binsusie <- function(fit, fit_intercept=TRUE, fit_prior_variance=TRUE){
+  # update b
+  fit <- update_b.binsusie(fit, fit_intercept, fit_prior_variance)
+  # update xi
+  fit$params$xi <- update_xi.binsusie(fit)
+  fit$params$tau <- compute_tau(fit)
+  return(fit)
+}
+
 #' Fit the binomial single effect regression
 fit.binsusie <- function(
     data,
@@ -163,13 +172,7 @@ fit.binsusie <- function(
   fit <- init.binsusie(data)
 
   for(i in 1:maxiter){
-    # update b
-    fit <- update_b.binsusie(fit, fit_intercept, fit_prior_variance)
-
-    # update xi
-    fit$params$xi <- update_xi.binsusie(fit)
-    fit$params$tau <- compute_tau(fit)
-
+    fit <- iter.binsusie(fit, fit_intercept, fit_prior_variance)
     # update elbo
     fit$elbo <- c(fit$elbo, compute_elbo.binsusie(fit))
     if (.converged(fit, tol)){
