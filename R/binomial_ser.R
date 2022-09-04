@@ -287,6 +287,27 @@ init.binser <- function(data){
   return(fit.init)
 }
 
+iter.binser <- function(fit, fit_intercept=TRUE, fit_prior_variance=TRUE){
+  # update b
+  post <- update_b.binser(fit)
+  fit$params$mu <- post$mu
+  fit$params$var <- post$var
+  fit$params$alpha <- post$alpha
+
+  # update intercept/fixed effect covariates
+  if(fit_intercept){
+    fit$params$delta <- update_delta.binser(fit)
+  }
+  if(fit_prior_variance){
+    fit$hypers$sigma0 <- update_sigma0.binser(fit)
+  }
+
+  # update xi
+  fit$params$xi <- update_xi.binser(fit)
+  fit$params$tau <- compute_tau(fit)
+
+  return(fit)
+}
 
 #' Fit the binomial single effect regression
 fit.binser <- function(
@@ -306,23 +327,7 @@ fit.binser <- function(
   }
 
   for(i in 1:maxiter){
-    # update b
-    post <- update_b.binser(fit)
-    fit$params$mu <- post$mu
-    fit$params$var <- post$var
-    fit$params$alpha <- post$alpha
-
-    # update intercept/fixed effect covariates
-    if(fit_intercept){
-      fit$params$delta <- update_delta.binser(fit)
-    }
-    if(fit_prior_variance){
-      fit$hypers$sigma0 <- update_sigma0.binser(fit)
-    }
-
-    # update xi
-    fit$params$xi <- update_xi.binser(fit)
-    fit$params$tau <- compute_tau(fit)
+    fit <- iter.binser(fit)
 
     # update elbo
     fit$elbo <- c(fit$elbo, compute_elbo.binser(fit))
