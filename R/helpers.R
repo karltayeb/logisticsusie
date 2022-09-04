@@ -8,6 +8,10 @@ sigmoid <- function(x){
 
 logSumExp <- matrixStats::logSumExp
 
+softmax <- function(x){
+  return(exp(x - logSumExp(x)))
+}
+
 #' polya Gamma Mean
 #' Compute the mean of a Polya Gamma RV w ~ PG(b, c)
 #'  @param b a PG parameter
@@ -56,6 +60,16 @@ pg_kl <- function(b, c){
 categorical_kl <- function(alpha, pi) {
   idx <- alpha > 1 / (length(alpha) * 1e3)
   sum((alpha * (log(alpha) - log(pi))), na.rm=TRUE)
+}
+
+
+#' Categorical Entropy
+#' Compute entropy of Categorical(pi) = -E[log p]
+#' @param pi vector of probabilities that sum to 1
+#' @return Return entropy -Elog(x)
+categorical_entropy <- function(pi) {
+  idx <- pi > 1 / (length(pi) * 1e3)
+  entropy <- -1 * sum(pi * log(pi), na.rm=TRUE)
 }
 
 .monotone <- function(v){
