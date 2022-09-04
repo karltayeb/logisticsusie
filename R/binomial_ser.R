@@ -3,6 +3,10 @@
 # Single Effect Regression
 ###
 
+###
+# L-indexed getters
+###
+
 #' idx is for indexing when we run susie
 .get_alpha <- function(fit, idx=NULL){
   if(is.null(idx)){
@@ -66,6 +70,38 @@
   }
   return(var0)
 }
+
+###
+# K-indexed getters
+###
+
+.get_y <- function(fit, kidx=NULL){
+  if(is.null(kidx)){
+    y <- fit$data$y
+  } else{
+    y <- fit$data$y[, kidx]
+  }
+  return(y)
+}
+
+.get_N <- function(fit, kidx=NULL){
+  if(is.null(kidx)){
+    N <- fit$data$N
+  } else{
+    N <- fit$data$N[, kidx]
+  }
+  return(N)
+}
+
+.get_xi <- function(fit, kidx=NULL){
+  if(is.null(kidx)){
+    xi <- fit$params$xi
+  } else{
+    xi <- fit$params$xi[, kidx]
+  }
+  return(xi)
+}
+
 
 #' Ebeta.binser
 #' Compute expected value of coefficients beta under approximate posterior
@@ -132,22 +168,22 @@ compute_Xb2.binser <- function(fit, idx=NULL, shift=0){
 }
 
 #' Compute E[y - N/2]
-compute_kappa <- function(fit){
-  kappa <- fit$data$y - 0.5 * fit$data$N
+compute_kappa <- function(fit, kidx=NULL){
+  kappa <- .get_y(fit, kidx) - 0.5 * fit$data$N
   return(kappa)
 }
 
 #' Compute E[w] where w are the PG random variables in the augmented model
-compute_omega <- function(fit){
-  omega <- pg_mean(fit$data$N, fit$params$xi)
+compute_omega <- function(fit, kidx=NULL){
+  omega <- pg_mean(.get_N(fit, kidx), .get_xi(fit, kidx))
   return(omega)
 }
 
 #' Compute a scaled posterior mean
 #' TODO: add support for non-zero prior mean
 #' @param fit a SER object
-compute_nu.binser <- function(fit, idx=NULL, shift=0){
-  kappa <- compute_kappa(fit)
+compute_nu.binser <- function(fit, idx=NULL, kidx=NULL, shift=0){
+  kappa <- compute_kappa(fit, kidx)
   Zd <- compute_Zd.binser(fit, idx, shift)
   omega <- compute_omega(fit)
   tmp <- kappa - omega * Zd
@@ -172,11 +208,11 @@ update_xi.binser <- function(fit){
 }
 
 #' update intercept and fixed effect covariates
-update_delta.binser <- function(fit, idx=NULL, shift=0){
+update_delta.binser <- function(fit, idx=NULL, kidx=NULL, shift=0){
   Z <- fit$data$Z
   omega <- compute_omega(fit)
   Xb <- fit$data$X %*% Ebeta.binser(fit, idx) + shift
-  kappa <- compute_kappa(fit)
+  kappa <- compute_kappa(fit, kidx)
   delta <- solve((omega * t(Z)) %*% Z, t(Z) %*% (kappa - omega*Xb))
   return(delta)
 }
@@ -199,8 +235,8 @@ update_delta.binser <- function(fit, idx=NULL, shift=0){
 }
 
 #' update q(b)
-update_b.binser <- function(fit, idx=NULL, shift=0){
-  nu <- compute_nu.binser(fit, idx, shift)
+update_b.binser <- function(fit, idx=NULL, kidx=NULL, shift=0){
+  nu <- compute_nu.binser(fit, idx, kidx, shift)
   tau <- (1 / .get_var0(fit, idx)) + fit$params$tau
   post <- .update_b_ser(nu, tau, .get_pi(fit, idx))
   return(post)
@@ -219,10 +255,10 @@ update_sigma0.binser <- function(fit, idx=NULL){
 #' Compute E[p(z, w| b) - q(w)], which is the same as
 #' the bound on the logistic function proposed by Jaakkola and Jordan
 #' NOTE: this only works when xi is updated!
-jj_bound.binser <- function(fit){
-  xi <- fit$params$xi
+jj_bound.binser <- function(fit, kidx=NULL){
+  xi <- .get_xi(fit,)
   Xb <- compute_Xb.binser(fit)
-  kappa <- compute_kappa(fit)
+  kappa <- compute_kappa(fit, kidx)
   n <- fit$data$N
 
   Xb2 <- compute_Xb2.binser(fit)
@@ -234,10 +270,10 @@ jj_bound.binser <- function(fit){
 
 
 #' More explicit, only works for Bernoulli observations
-jj_bound.logistic <- function(fit){
-  xi <- fit$params$xi
+jj_bound.logistic <- function(fit, kidx=NULL){
+  xi <- .get_xi(fit, kidx)
   Xb <- compute_Xb.binser(fit)
-  kappa <- compute_kappa(fit)
+  kappa <- compute_kappa(fit, kidx)
 
   Xb2 <- compute_Xb2.binser(fit)
   omega <- compute_omega(fit)
