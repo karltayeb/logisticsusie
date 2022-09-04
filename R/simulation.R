@@ -55,3 +55,14 @@ sim_twococomo <- function(n=1000, p=50, L=3, N=1){
   return(sim)
 }
 
+
+sim_mococomo <- function(n=1000, p=50, L=3, N=1){
+  sim <- sim_susie(n, p, L, N)
+  sim$scales <- cumprod(c(1, rep(sqrt(2), 5)))
+  sim$beta <- rnorm(n) * sim$y * sample(sim$scales, size=n, replace = T)
+  sim$se <- 0.1 + rgamma(n, shape=0.5)
+  sim$betahat <- sim$beta + rnorm(n) * sim$se
+  return(sim)
+}
+
+

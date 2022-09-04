@@ -14,16 +14,12 @@
 #' to marginal probilities p(z =k) k = 1... K
 #' @param pi_tilde vector of conditional probabilities (except for last one p(z=K | Z >=K) = 1)
 #' @return pi a vector of probabilities summing to one
-pi_tilde2pi <- function(pi_tilde){
+.pi_tilde2pi <- function(pi_tilde){
   gamma <- purrr::accumulate(pi_tilde, .accumulate_gamma)
   pi <-  c(gamma[1], tail(gamma, -1) - head(gamma, -1), 1 - tail(gamma, 1))
   return(pi)
 }
 
-
-prior_mixture_weights.mococomo <- function(fit){
-  return(0)
-}
 
 #' Predict to log pi
 #' Convert K-1 log odds to a K vector of log probabilities
@@ -46,6 +42,15 @@ prior_mixture_weights.mococomo <- function(fit){
 #' For each data point return covariate-dependent prior mixture probabilities
 #' @param fit a MoCoCoMo fit object
 #' @return an n x K matrix of log prior probabilities for each data point
+
+.compute_prior_assignment <- function(xb){
+  .predict2logpi(xb)
+}
+
+.compute_prior_assignment2 <- function(xb){
+  log(.pi_tilde2pi(sigmoid(xb)))
+}
+
 compute_prior_assignment <- function(fit, log=TRUE){
   # TODO alias compute_Xb with predict so that it works with other functions?
   # TODO make sure GLM predict outputs log-odds scale?
@@ -53,6 +58,17 @@ compute_prior_assignment <- function(fit, log=TRUE){
   res <- do.call(rbind, apply(Xb, 1, .predict2logpi, simplify = F))  # N x K
 
   if(!log){res <- exp(res)}  # exponentiate if log=FALSE
+  return(res)
+}
+
+
+compute_prior_assignment2 <- function(fit, log=TRUE){
+  # TODO alias compute_Xb with predict so that it works with other functions?
+  # TODO make sure GLM predict outputs log-odds scale?
+  pi_tilde <- do.call(cbind, purrr::map(fit$logreg_list, ~sigmoid(compute_Xb.binsusie(.x))))  # N x K-1
+  res <- do.call(rbind, apply(pi_tilde, 1, .pi_tilde2pi, simplify = F))  # N x K
+
+  if(log){res <- log(res)}  # exponentiate if log=FALSE
   return(res)
 }
 
@@ -75,7 +91,7 @@ compute_data_loglikelihood <- function(fit){
 #' @return an n x K matrix of log posterior probabilities for each data point
 compute_posterior_assignment <- function(fit, log=TRUE){
   logpi <- compute_prior_assignment(fit, log=TRUE)
-  data_loglik <- compute_data_loglikelihood(fit)
+  data_loglik <- fit$data_loglik
 
   # normalize
   res <- do.call(
@@ -87,10 +103,11 @@ compute_posterior_assignment <- function(fit, log=TRUE){
   return(res)
 }
 
+
 compute_elbo.mococomo <- function(fit){
   # TODO: do we want to just store post_assignment after each update?
   post_assignment <- fit$post_assignment
-  data_loglik <- compute_data_loglikelihood(fit)
+  data_loglik <- fit$data_loglik
 
   ll <- sum(post_assignment * data_loglik)
   assignment_entropy <- sum(apply(post_assignment, 1, categorical_entropy))
@@ -141,6 +158,10 @@ init.mococomo <- function(data){
     post_assignment=Y,
     N=N
   )
+
+  # only need to do this once when component probabilities are fixed
+  fit$data_loglik <- compute_data_loglikelihood(fit)
+  return(fit)
 }
 
 
@@ -159,7 +180,7 @@ iter.mococomo <- function(fit, update_assignment=T, update_logreg=T){
       logreg <- fit$logreg_list[[k]]
       # pass assignments to logreg
       logreg$data$y <- fit$post_assignment[, k]
-      logreg$data$N <- N[, k]
+      logreg$data$N <- fit$N[, k]
 
       # update logreg
       logreg_list[[k]] <- iter.binsusie(logreg)
@@ -181,15 +202,15 @@ fit.mococomo <- function(data, maxiter=100, tol=1e-3){
     fit <- iter.mococomo(fit, is.even(i), is.odd(i))
     fit$elbo <- c(fit$elbo, compute_elbo.mococomo(fit))
 
-    print(paste('ua:', is.even(i), 'ul:', is.odd(i), 'elbo: ', tail(fit$elbo, 1)))
+    print(paste('asgn:', is.even(i), 'logreg:', is.odd(i), 'elbo: ', tail(fit$elbo, 1)))
     if (.converged(fit, tol)){
-      #break
+      break
     }
   }
   return(fit)
 }
 
-
+#
 # data <- sim_twococomo()
 # fit <- fit.mococomo(data, maxiter=20)
 # plot(fit$elbo)
