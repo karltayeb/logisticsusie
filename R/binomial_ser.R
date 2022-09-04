@@ -268,6 +268,20 @@ jj_bound.binser <- function(fit, kidx=NULL){
   return(bound)
 }
 
+explicit_elbo.binser <- function(fit){
+  Xb <- compute_Xb.binser(fit)
+  kappa <- compute_kappa(fit)
+  xi <- .get_xi(fit)
+  n <- fit$data$N
+
+  Xb2 <- compute_Xb2.binser(fit)
+  omega <- compute_omega(fit)
+
+  ll <- -n * log(2) + kappa * Xb - 0.5*Xb2*omega
+  kl <- pg_kl(n, xi)
+
+  return(ll - kl)
+}
 
 #' More explicit, only works for Bernoulli observations
 jj_bound.logistic <- function(fit, kidx=NULL){
