@@ -120,7 +120,7 @@ test_susie_N <- function(N=1){
 }
 
 testthat::test_that("Bernoulli SuSiE Monotone", {
-  for(i in seq(20)){
+  for(i in seq(5)){
     testthat::expect_true(test_susie_N(1)$monotone)
   }
 })
@@ -134,57 +134,23 @@ for(i in seq(1, 10)){
 }
 
 
+###
+# Two component covariate moderated
+###
 
-# DEbug
-if(F){
-  # failing case
-  set.seed(3)
-  test_ser_N_with_shift()$fit$elbo
-
-  # isolate
-  set.seed(3)
-  data <- sim_ser(N = N)
-  fit <- init.binser(data)
-  fit$hypers$shift <- data$X[,shift_col]
-  fit <- fit.binser(fit=fit, maxiter = 2, tol=1e-5, fit_intercept = F, fit_prior_variance = F)
-  fit$elbo
-
-  post <- update_b.binser(fit)
-
-  old_mu <- fit$params$mu
-  old_var <- fit$params$var
-  old_alpha <- fit$params$alpha
-  old_jj <- jj_bound.binser(fit)
-
-
-  new_mu <- post$mu
-  new_var <- post$var
-  new_alpha <- post$alpha
-
-  fit$params$mu <- post$mu
-  fit$params$var <- post$var
-
-  new_jj <- jj_bound.binser(fit)
-
-  sum(old_alpha * normal_kl(
-    old_mu, old_var, 0, 1))
-
-  sum(old_alpha * normal_kl(
-    new_mu, new_var, 0, 1))
-
-
-  fit$params$mu <- post$mu
-  fit$params$var <- post$var
-  fit$elbo <- c(fit$elbo, compute_elbo.binser(fit))
-  fit$elbo
-
-  fit$params$alpha <- post$alpha
-  fit$elbo <- c(fit$elbo, compute_elbo.binser(fit))
-  fit$elbo
-
-  # update xi
-  fit$params$xi <- update_xi.binser(fit)
-  fit$params$tau <- compute_tau(fit)
-  fit$elbo <- c(fit$elbo, compute_elbo.binser(fit))
-  fit$elbo
+test_twococomo_N <- function(N=1){
+  data <- sim_twococomo(N = N)
+  fit <- fit.twococomo(data)
+  return(list(
+    fit = fit,
+    monotone = .monotone(fit$elbo)
+  ))
 }
+
+
+testthat::test_that("Two CoCoMo Monotone", {
+  for(i in seq(5)){
+    testthat::expect_true(test_twococomo_N(1)$monotone)
+  }
+})
+
