@@ -154,3 +154,26 @@ testthat::test_that("Two CoCoMo Monotone", {
   }
 })
 
+
+
+###
+# More component covariate moderated
+###
+
+test_mococomo_N <- function(N=1){
+  data <- sim_mococomo(N = N)
+  fit <- fit.mococomo(data)
+  return(list(
+    fit = fit,
+    monotone = .monotone(fit$elbo)
+  ))
+}
+
+
+testthat::test_that("More CoCoMo Monotone", {
+  for(i in seq(5)){
+    testthat::expect_true(test_mococomo_N(1)$monotone)
+  }
+})
+
+
