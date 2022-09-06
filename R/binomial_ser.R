@@ -183,11 +183,14 @@ compute_omega <- function(fit, kidx=NULL){
 #' TODO: add support for non-zero prior mean
 #' @param fit a SER object
 compute_nu.binser <- function(fit, idx=NULL, kidx=NULL, shift=0){
+  mu0 <- .get_mu0(fit, idx=idx)
+  tau0 <- 1./.get_var0(fit, idx=idx)
+
   kappa <- compute_kappa(fit, kidx)
   Zd <- compute_Zd.binser(fit, idx, shift)
   omega <- compute_omega(fit)
   tmp <- kappa - omega * Zd
-  nu <- drop(tmp %*% fit$data$X)
+  nu <- drop(tmp %*% fit$data$X) + (mu0 * tau0)
   return(nu)
 }
 
@@ -237,7 +240,8 @@ update_delta.binser <- function(fit, idx=NULL, kidx=NULL, shift=0){
 #' update q(b)
 update_b.binser <- function(fit, idx=NULL, kidx=NULL, shift=0){
   nu <- compute_nu.binser(fit, idx, kidx, shift)
-  tau <- (1 / .get_var0(fit, idx)) + fit$params$tau
+  tau0 <- 1 / .get_var0(fit, idx)
+  tau <- tau0 + fit$params$tau
   post <- .update_b_ser(nu, tau, .get_pi(fit, idx))
   return(post)
 }
@@ -247,7 +251,9 @@ update_b.binser <- function(fit, idx=NULL, kidx=NULL, shift=0){
 #' Optimize ELBO wrt to prior effect standard deviation
 update_sigma0.binser <- function(fit, idx=NULL){
   b2 <- .get_alpha(fit, idx) * (.get_mu(fit, idx)^2 + .get_var(fit, idx))
-  sigma0 <- sqrt(sum(b2))
+  b <- Ebeta.binser(fit, idx)
+  mu0 <- .get_mu0(fit, idx)
+  sigma0 <- sqrt(sum(b2 - 2*b*mu0) + mu0^2)
   return(sigma0)
 }
 
@@ -297,13 +303,16 @@ jj_bound.logistic <- function(fit, kidx=NULL){
 
 
 compute_elbo.binser <- function(fit){
-  jj <- sum(jj_bound.binser(fit))
-  kl <- compute_kl.binser(fit)
+  jj <- sum(jj_bound.binser(fit))  # E[p(y | w, b)] - KL[q(b) || p(b)]
+  kl <- compute_kl.binser(fit)  # KL[q(b) || p(b)]
   return(jj-kl)
 }
 
 
 #' initialize SER
+#' @param data a list containing X, Z, y
+#' @param mu0 prior effect mean
+#' @param simga0 prior effect standard deviation
 init.binser <- function(data){
   n <- nrow(data$X)
   p <- ncol(data$X)  # number of covariates to select
@@ -322,7 +331,7 @@ init.binser <- function(data){
   hypers <- list(
     pi = rep(1, p)/p,  # categorical probability of nonzero effect
     mu0 = 0,  # prior mean of effect
-    sigma0 = 1.,  # prior variance of effect, TODO: include as init arg
+    sigma0 = 1,  # prior variance of effect, TODO: include as init arg
     shift = 0
   )
 

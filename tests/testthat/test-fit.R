@@ -107,6 +107,43 @@ for(i in seq(1, 10)){
 
 
 ##
+# SER with non-zero mu0
+##
+test_ser_mu0_sigma0 <- function(N=1, mu0=0, sigma0=1, fit_prior_variance=T){
+  set.seed(1)
+  data <- sim_ser(N = N)
+  fit <- init.binser(data)
+  fit$hypers$sigma0 =  sigma0
+  fit$hypers$mu0 = mu0
+
+  tol = 1e-3
+  for(i in 1:1000){
+    fit <- iter.binser(fit,fit_intercept = T, fit_prior_variance = T)
+
+    # update elbo
+    fit$elbo <- c(fit$elbo, compute_elbo.binser(fit))
+    if (.converged(fit, tol)){
+      break
+    }
+  }
+  .monotone(fit$elbo)
+
+  fit$elbo
+  fit$params$mu
+  return(list(
+    fit = fit,
+    monotone = .monotone(fit$elbo)
+  ))
+}
+
+for(i in seq(1, 10)){
+  test_name <- paste('SER ELBO monotone w/ mu0 != 0')
+  testthat::test_that(test_name, {
+    testthat::expect_true(test_ser_mu0_sigma0(1, runif(1, -100, 100), 0.5)$monotone)
+  })
+}
+
+##
 # Fit SuSiE tests
 ##
 
@@ -162,7 +199,7 @@ testthat::test_that("Two CoCoMo Monotone", {
 
 test_mococomo_N <- function(N=1){
   data <- sim_mococomo(N = N)
-  fit <- fit.mococomo(data)
+  fit <- fit.mococomo(data, maxiter = 1000)
   return(list(
     fit = fit,
     monotone = .monotone(fit$elbo)
