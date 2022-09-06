@@ -261,6 +261,7 @@ update_sigma0.binser <- function(fit, idx=NULL){
 #' Compute E[p(z, w| b) - q(w)], which is the same as
 #' the bound on the logistic function proposed by Jaakkola and Jordan
 #' NOTE: this only works when xi is updated!
+#' @returns a vector of length N with the lower bound for each data point
 jj_bound.binser <- function(fit, kidx=NULL){
   xi <- .get_xi(fit,)
   Xb <- compute_Xb.binser(fit)
