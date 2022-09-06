@@ -32,7 +32,7 @@ convolved_logpdf.point <- function(dist, betahat, se){
 
 compute_post_assignment <- function(fit){
   # ln p(z=1)/p(z=0)
-  logit_pi <- compute_Xb.binsusie(fit$logreg)
+  logit_pi <- compute_Xb.binsusie(fit)
   f0_loglik <- convolved_logpdf.point(fit$f0, fit$data$betahat, fit$data$se)
   f1_loglik <- convolved_logpdf.normal(fit$f1, fit$data$betahat, fit$data$se)
   logits <- f1_loglik - f0_loglik + logit_pi
@@ -41,7 +41,7 @@ compute_post_assignment <- function(fit){
 }
 
 compute_assignment_entropy <- function(fit){
-  p <- fit$post_assignment
+  p <- fit$data$y
   entropy = - 1 * (p * log(p) + (1-p) * log(1-p))
   return(entropy)
 }
@@ -51,14 +51,14 @@ compute_assignment_entropy <- function(fit){
 loglik.twococomo <- function(fit){
   f0_loglik <- convolved_logpdf.point(fit$f0, fit$data$betahat, fit$data$se)
   f1_loglik <- convolved_logpdf.normal(fit$f1, fit$data$betahat, fit$data$se)
-  loglik <- (1 - fit$post_assignment) * f0_loglik + fit$post_assignment * f1_loglik
+  loglik <- (1 - fit$data$y) * f0_loglik + fit$data$y * f1_loglik
   return(loglik)
 }
 
 compute_elbo.twococomo <- function(fit){
   data_loglik <- sum(loglik.twococomo(fit))
   assignment_entropy <- sum(compute_assignment_entropy(fit), na.rm = TRUE)
-  logreg_elbo <- compute_elbo.binsusie(fit$logreg)
+  logreg_elbo <- compute_elbo.binsusie(fit)
   elbo <- data_loglik + assignment_entropy + logreg_elbo
   return(elbo)
 }
@@ -74,34 +74,22 @@ init.twococomo <- function(data){
   f0_loglik <- convolved_logpdf.point(f0, data$betahat, data$se)
   f1_loglik <- convolved_logpdf.normal(f1, data$betahat, data$se)
   logits <- f1_loglik - f0_loglik + 0  # TODO: set default prior odds to something other than 0
-  post_assignment <- sigmoid(logits)
 
+  data$y <- sigmoid(logits)  # initialize component assignment
+  fit <- init.binsusie(data)
 
-  # initialize logistic regression
-  logreg_data <- list(
-    y = post_assignment,
-    X = data$X,
-    Z = data$Z,
-    N = data$N
-  )
-  logreg <- fit.binsusie(logreg_data, maxiter = 2)
+  # add 2como specific attributes
+  fit$f0 <- f0
+  fit$f1 <- f1
 
-  fit <- list(
-    data = data,
-    f0=f0,
-    f1=f1,
-    post_assignment = post_assignment,
-    logreg = logreg,
-    elbo = c(-Inf)
-  )
   return(fit)
 }
 
 iter.twococomo <- function(fit){
-  # update mixture model
-  fit$post_assignment <- compute_post_assignment(fit)
-  fit$logreg$data$y <- fit$post_assignment
-  fit$logreg <- iter.binsusie(fit$logreg)
+  # update assignments
+  fit$data$y <- compute_post_assignment(fit)
+  # update SuSiE
+  fit <- iter.binsusie(fit)
 
   # TODO: update mixture components
 
