@@ -171,6 +171,44 @@ for(i in seq(1, 10)){
 }
 
 
+
+##
+# SuSiE with non-zero mu0
+##
+test_susie_mu0_sigma0 <- function(N=1, mu0=0, sigma0=1, fit_prior_variance=T){
+  set.seed(1)
+  data <- sim_susie(N = N)
+  fit <- init.binsusie(data)
+  fit$hypers$sigma0 =  rep(sigma0, length(fit$hypers$sigma0))
+  fit$hypers$mu0 = rep(mu0, length(fit$hypers$mu0))
+
+  tol = 1e-3
+  for(i in 1:1000){
+    fit <- iter.binsusie(fit)
+
+    # update elbo
+    fit$elbo <- c(fit$elbo, compute_elbo.binsusie(fit))
+    if (.converged(fit, tol)){
+      break
+    }
+  }
+  .monotone(fit$elbo)
+
+  fit$elbo
+  fit$params$mu
+  return(list(
+    fit = fit,
+    monotone = .monotone(fit$elbo)
+  ))
+}
+
+for(i in seq(1, 10)){
+  test_name <- paste('SuSiE ELBO monotone w/ mu0 != 0')
+  testthat::test_that(test_name, {
+    testthat::expect_true(test_susie_mu0_sigma0(1, runif(1, -100, 100), 0.5)$monotone)
+  })
+}
+
 ###
 # Two component covariate moderated
 ###
@@ -190,7 +228,6 @@ testthat::test_that("Two CoCoMo Monotone", {
     testthat::expect_true(test_twococomo_N(1)$monotone)
   }
 })
-
 
 
 ###
