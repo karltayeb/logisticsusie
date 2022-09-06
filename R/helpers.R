@@ -89,3 +89,8 @@ categorical_entropy <- function(pi) {
   }
   return(is.converged)
 }
+
+
+rowCumSum <- function(X){
+  do.call(rbind, apply(X, 1, cumsum, simplify = F))
+}
