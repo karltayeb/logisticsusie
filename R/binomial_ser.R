@@ -76,29 +76,30 @@
 ###
 
 .get_y <- function(fit, kidx=NULL){
-  if(is.null(kidx)){
+  if(is.null(fit$kidx)){
     y <- fit$data$y
   } else{
-    y <- fit$data$y[, kidx]
+    y <- fit$data$y[, fit$kidx]
   }
   return(y)
 }
 
 .get_N <- function(fit, kidx=NULL){
-  if(is.null(kidx)){
+  if(is.null(fit$kidx)){
     N <- fit$data$N
   } else{
-    N <- fit$data$N[, kidx]
+    N <- fit$data$N[, fit$kidx]
   }
   return(N)
 }
 
 .get_xi <- function(fit, kidx=NULL){
-  if(is.null(kidx)){
-    xi <- fit$params$xi
-  } else{
-    xi <- fit$params$xi[, kidx]
-  }
+  # if(is.null(fit$kidx)){
+  #   xi <- fit$params$xi
+  # } else{
+  #   xi <- fit$params$xi[, fit$kidx]
+  # }
+  xi <- fit$params$xi
   return(xi)
 }
 
@@ -169,7 +170,7 @@ compute_Xb2.binser <- function(fit, idx=NULL, shift=0){
 
 #' Compute E[y - N/2]
 compute_kappa <- function(fit, kidx=NULL){
-  kappa <- .get_y(fit, kidx) - 0.5 * fit$data$N
+  kappa <- .get_y(fit, kidx) - 0.5 * .get_N(fit, kidx)
   return(kappa)
 }
 

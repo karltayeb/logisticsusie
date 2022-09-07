@@ -9,8 +9,8 @@
 
 #' Expected linear prediction
 compute_Xb.binsusie <- function(fit){
-  Xb <- drop(fit$data$X %*% colSums(fit$params$alpha * fit$params$mu))
-  Zd <- drop(fit$data$Z %*% colSums(fit$params$delta))
+  Xb <- drop(fit$data$X %*% colSums(.get_alpha(fit) * .get_mu(fit)))
+  Zd <- drop(fit$data$Z %*% colSums(.get_delta(fit)))
   return(Xb + Zd)
 }
 
@@ -20,9 +20,9 @@ compute_Xb2.binsusie <- function(fit){
   B <- .get_alpha(fit) * .get_mu(fit)
   XB <- fit$data$X %*% t(B)
   Xb <- rowSums(XB)
-  Zd <- drop(fit$data$Z %*% colSums(fit$params$delta))
+  Zd <- drop(fit$data$Z %*% colSums(.get_delta(fit)))
 
-  B2 <- fit$params$alpha * (fit$params$mu^2 + fit$params$var)
+  B2 <- .get_alpha(fit) * (.get_mu(fit)^2 + .get_var(fit))
   b2 <- colSums(B2)
 
   Xb2 <- fit$data$X^2 %*% b2 + Xb**2 - rowSums(XB^2)
@@ -50,10 +50,10 @@ compute_kl.binsusie <- function(fit){
 #' the bound on the logistic function proposed by Jaakkola and Jordan
 #' NOTE: this only works when xi is updated!
 jj_bound.binsusie <- function(fit){
-  xi <- fit$params$xi
+  xi <- .get_xi(fit)
   Xb <- compute_Xb.binsusie(fit)
   kappa <- compute_kappa(fit)
-  n <- fit$data$N
+  n <- .get_N(fit)
 
   Xb2 <- compute_Xb2.binsusie(fit)
   omega <- compute_omega(fit)
@@ -66,7 +66,7 @@ jj_bound.binsusie <- function(fit){
 compute_elbo.binsusie <- function(fit){
   jj <- sum(jj_bound.binsusie(fit))
   kl <- compute_kl.binsusie(fit)
-  return(jj-kl)
+  return(jj - kl)
 }
 
 ###
@@ -139,7 +139,7 @@ update_xi.binsusie <- function(fit){
 }
 
 #' initialize SER
-init.binsusie <- function(data, L=5){
+init.binsusie <- function(data, L=5, kidx=NULL){
   n <- nrow(data$X)
   p <- ncol(data$X)
   p2 <- ncol(data$Z)
@@ -154,6 +154,7 @@ init.binsusie <- function(data, L=5){
     hypers = hypers,
     elbos = c(-Inf)
   )
+  fit.init$kidx <- kidx
   fit.init$params$tau <- compute_tau(fit.init)
   return(fit.init)
 }
@@ -174,9 +175,9 @@ fit.binsusie <- function(
     maxiter=10,
     tol=1e-3,
     fit_intercept=TRUE,
-    fit_prior_variance=TRUE){
+    fit_prior_variance=TRUE, kidx=NULL){
 
-  fit <- init.binsusie(data)
+  fit <- init.binsusie(data, kidx=kidx)
 
   for(i in 1:maxiter){
     fit <- iter.binsusie(fit, fit_intercept, fit_prior_variance)
