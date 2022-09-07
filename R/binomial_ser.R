@@ -267,7 +267,7 @@ jj_bound.binser <- function(fit, kidx=NULL){
   xi <- .get_xi(fit,)
   Xb <- compute_Xb.binser(fit)
   kappa <- compute_kappa(fit, kidx)
-  n <- fit$data$N
+  n <- .get_N(fit)
 
   Xb2 <- compute_Xb2.binser(fit)
   omega <- compute_omega(fit)
@@ -280,7 +280,7 @@ explicit_elbo.binser <- function(fit){
   Xb <- compute_Xb.binser(fit)
   kappa <- compute_kappa(fit)
   xi <- .get_xi(fit)
-  n <- fit$data$N
+  n <- .get_N(fit)
 
   Xb2 <- compute_Xb2.binser(fit)
   omega <- compute_omega(fit)
