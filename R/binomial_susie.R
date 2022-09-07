@@ -115,6 +115,29 @@ update_xi.binsusie <- function(fit){
 # Fitting
 ###
 
+.init.susie.params <- function(n, p, p2, L){
+  params <- list(
+    alpha = matrix(rep(1, p*L)/p, nrow=L),
+    mu = matrix(rep(0, L*p), nrow=L),
+    var = matrix(rep(1, L*p), nrow=L),
+    delta = matrix(rep(0, p2*L, nrow=L)),
+    xi = rep(1e-3, n),
+    tau = 0 # initialized at end of this function
+  )
+  return(params)
+}
+
+.init.susie.hypers <- function(n, p, L){
+  hypers <- list(
+    L = L,
+    pi = matrix(rep(1, p*L)/p, nrow=L),  # categorical probability of nonzero effect
+    mu0 = rep(0, L),  # prior mean of effect
+    sigma0 = rep(1, L),  # prior variance of effect, TODO: include as init arg,
+    shift = rep(0, n)
+  )
+  return(hypers)
+}
+
 #' initialize SER
 init.binsusie <- function(data, L=5){
   n <- nrow(data$X)
