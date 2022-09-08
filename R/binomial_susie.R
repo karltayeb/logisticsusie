@@ -286,7 +286,10 @@ binsusie <- function(X,
   }
 
   # post-processing
+  fit$sets <- binsusie_get_cs(fit, n_purity = as.integer(ncol(X) / 2))
+  fit$pip <- binsusie_get_pip(fit)
 
+  class(fit) <- c("binsusie", "susie")
   # 1. compute credible sets
   return(fit)
 }

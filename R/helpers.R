@@ -2,13 +2,13 @@
 #' sigmoid function coverts log-odds to probability
 #' @param x Log odds
 #' @return Returns the probability
-sigmoid <- function(x){
+sigmoid <- function(x) {
   return(1 / (1 + exp(-x)))
 }
 
 logSumExp <- matrixStats::logSumExp
 
-softmax <- function(x){
+softmax <- function(x) {
   return(exp(x - logSumExp(x)))
 }
 
@@ -17,12 +17,12 @@ softmax <- function(x){
 #'  @param b a PG parameter
 #'  @param c a PG parameter
 #'  @return E[w] the mean of w ~ PG(b, c)
-pg_mean <- function(b, c){
-  mu = 0.5 * b/c * tanh(c/2)
+pg_mean <- function(b, c) {
+  mu <- 0.5 * b / c * tanh(c / 2)
 
   # deal with case of c = 0 mean is b/4
   idx <- is.na(mu)
-  mu[idx] <- b[idx]/4
+  mu[idx] <- b[idx] / 4
   return(mu)
 }
 
@@ -37,8 +37,8 @@ pg_mean <- function(b, c){
 #' @param mu0 second mean parameter
 #' @param var0 second variance parameter
 #' @return KL(N(mu, var) || N(mu0, var0))
-normal_kl <- function(mu, var, mu0=0., var0=1.){
-  kl <-0.5 * (log(var0) - log(var) + var/var0 + (mu - mu0)^2/var0 - 1)
+normal_kl <- function(mu, var, mu0 = 0., var0 = 1.) {
+  kl <- 0.5 * (log(var0) - log(var) + var / var0 + (mu - mu0)^2 / var0 - 1)
   return(kl)
 }
 
@@ -47,8 +47,8 @@ normal_kl <- function(mu, var, mu0=0., var0=1.){
 #' @param b first mean parameter of
 #' @param c fist variance parameter
 #' @return Return KL-divergence KL(PG(b, c) || N(b, 0))
-pg_kl <- function(b, c){
-  kl = -0.5 * c^2 * pg_mean(b, c) + b * log(cosh(c/2))
+pg_kl <- function(b, c) {
+  kl <- -0.5 * c^2 * pg_mean(b, c) + b * log(cosh(c / 2))
   return(kl)
 }
 
@@ -59,7 +59,7 @@ pg_kl <- function(b, c){
 #' @return Return KL-divergence KL(Categorical(alpha) || Categorical(pi))
 categorical_kl <- function(alpha, pi) {
   idx <- alpha > 1 / (length(alpha) * 1e3)
-  sum((alpha * (log(alpha) - log(pi))), na.rm=TRUE)
+  sum((alpha * (log(alpha) - log(pi))), na.rm = TRUE)
 }
 
 
@@ -69,28 +69,71 @@ categorical_kl <- function(alpha, pi) {
 #' @return Return entropy -Elog(x)
 categorical_entropy <- function(pi) {
   idx <- pi > 1 / (length(pi) * 1e3)
-  entropy <- -1 * sum(pi * log(pi), na.rm=TRUE)
+  entropy <- -1 * sum(pi * log(pi), na.rm = TRUE)
 }
 
-.monotone <- function(v){
-  return(all(tail(v, -1) - head(v, -1) >=0))
+.monotone <- function(v) {
+  return(all(tail(v, -1) - head(v, -1) >= 0))
 }
 
 #' helper function gets difference in ELBO between iterations
-.diff <- function(fit){
+.diff <- function(fit) {
   return(diff(tail(fit$elbo, 2)))
 }
 
 #' check if ELBO is converged to some tolerance threshold
-.converged <- function(fit, tol=1e-3){
+.converged <- function(fit, tol = 1e-3) {
   is.converged <- F
-  if((length(fit$elbo) > 1) & .diff(fit) <= tol){
+  if ((length(fit$elbo) > 1) & .diff(fit) <= tol) {
     is.converged <- T
   }
   return(is.converged)
 }
 
 
-rowCumSum <- function(X){
+rowCumSum <- function(X) {
   do.call(rbind, apply(X, 1, cumsum, simplify = F))
+}
+
+
+#' Get Credible Sets
+#' Wraps susieR::susie_get_cs
+#' @export
+binsusie_get_cs <- function(fit,
+                            coverage = 0.95,
+                            min_abs_corr = 0.5,
+                            dedup = TRUE,
+                            squared = FALSE,
+                            check_symmetric = TRUE,
+                            n_purity = 100) {
+  res <- list(
+    X = fit$data$X,
+    alpha = fit$params$alpha,
+    V = fit$hypers$prior_variance
+  )
+  cs <- susieR::susie_get_cs(res,
+    X = fit$data$X,
+    coverage = coverage,
+    min_abs_corr = min_abs_corr,
+    dedup = dedup,
+    squared = squared,
+    check_symmetric = check_symmetric,
+    n_purity = n_purity
+  )
+  return(cs)
+}
+
+
+#' @export
+binsusie_get_pip <- function(fit, prune_by_cs = FALSE, prior_tol = 1e-09) {
+  # TODO: filter out components that don't need to be included (see Gao's suggestion)
+  return(susieR::susie_get_pip(fit$params$alpha))
+}
+
+
+#' @export
+binsusie_plot <- function(fit, y = "PIP") {
+  res <- with(fit, list(alpha = params$alpha, pip = pip, sets = sets))
+  class(res) <- "susie"
+  susieR::susie_plot(res, y)
 }
