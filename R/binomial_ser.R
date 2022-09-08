@@ -104,11 +104,11 @@
 }
 
 
-#' Ebeta.binser
-#' Compute expected value of coefficients beta under approximate posterior
+#' Get Binomial SER coefficients
+#' Extract regression coefficients from binomial SER fit
 #' @param fit Binomial SER object
 #' @return Return E[\beta]
-Ebeta.binser <- function(fit, idx=NULL){
+coef.binser <- function(fit, idx=NULL){
   b <- drop(.get_alpha(fit, idx) * .get_mu(fit, idx))
   return(b)
 }
@@ -147,7 +147,7 @@ compute_Zd.binser <- function(fit, idx=NULL, shift=0){
 #' @param fit Binomial SER object
 #' @return Return E[Xb]
 compute_Xb.binser <- function(fit, idx=NULL, shift=0){
-  Xb <- drop(fit$data$X %*% Ebeta.binser(fit, idx))
+  Xb <- drop(fit$data$X %*% coef.binser(fit, idx))
   Zd <- compute_Zd.binser(fit, idx, shift)
   Xb <- Xb + Zd
   return(Xb)
@@ -158,7 +158,7 @@ compute_Xb.binser <- function(fit, idx=NULL, shift=0){
 #' @param fit Binomial SER object
 #' @return Return E[Xb]
 compute_Xb2.binser <- function(fit, idx=NULL, shift=0){
-  Xb <- drop(fit$data$X %*% Ebeta.binser(fit, idx))
+  Xb <- drop(fit$data$X %*% coef.binser(fit, idx))
   Zd <- compute_Zd.binser(fit, idx, shift)
 
   b2 <- .get_alpha(fit, idx) * (.get_mu(fit, idx)^2 + .get_var(fit, idx))
@@ -215,7 +215,7 @@ update_xi.binser <- function(fit){
 update_delta.binser <- function(fit, idx=NULL, kidx=NULL, shift=0){
   Z <- fit$data$Z
   omega <- compute_omega(fit)
-  Xb <- fit$data$X %*% Ebeta.binser(fit, idx) + shift
+  Xb <- fit$data$X %*% coef.binser(fit, idx) + shift
   kappa <- compute_kappa(fit, kidx)
   delta <- solve((omega * t(Z)) %*% Z, t(Z) %*% (kappa - omega*Xb))
   return(delta)
@@ -252,7 +252,7 @@ update_b.binser <- function(fit, idx=NULL, kidx=NULL, shift=0){
 #' Optimize ELBO wrt to prior effect standard deviation
 update_sigma0.binser <- function(fit, idx=NULL){
   b2 <- .get_alpha(fit, idx) * (.get_mu(fit, idx)^2 + .get_var(fit, idx))
-  b <- Ebeta.binser(fit, idx)
+  b <- coef.binser(fit, idx)
   mu0 <- .get_mu0(fit, idx)
   sigma0 <- sqrt(sum(b2 - 2*b*mu0) + mu0^2)
   return(sigma0)
@@ -333,8 +333,7 @@ init.binser <- function(data){
   hypers <- list(
     pi = rep(1, p)/p,  # categorical probability of nonzero effect
     mu0 = 0,  # prior mean of effect
-    sigma0 = 1,  # prior variance of effect, TODO: include as init arg
-    shift = 0
+    sigma0 = 1  # prior variance of effect, TODO: include as init arg
   )
 
   # TODO: check that data has y, N, X, Z
@@ -342,7 +341,7 @@ init.binser <- function(data){
     data = data,
     params = params,
     hypers = hypers,
-    elbos = c(-Inf)
+    elbo = c(-Inf)
   )
   fit.init$params$tau <- compute_tau(fit.init)
   return(fit.init)
@@ -379,18 +378,21 @@ fit.binser <- function(
     fit_prior_variance=TRUE,
     shift = NULL){
 
+  # no shift
   if(is.null(shift)){
-    shift <- fit$hypers$shift
+    shift <- 0
   }
 
+  # initialize model if no provided
   if(is.null(fit)){
     fit <- init.binser(data)
   }
 
+  # iteration loop
   for(i in 1:maxiter){
     fit <- iter.binser(fit)
 
-    # update elbo
+    # compute elbo -- TODO: do we want to record every time?
     fit$elbo <- c(fit$elbo, compute_elbo.binser(fit))
     if (.converged(fit, tol)){
       break

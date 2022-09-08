@@ -7,6 +7,16 @@
 # Computations
 ##
 
+
+#' Get Binomial SER coefficients
+#' Extract regression coefficients from binomial SER fit
+#' @param fit Binomial SER object
+#' @return Return E[\beta]
+coef.binsusie <- function(fit, idx=NULL){
+  b <- colSums(.get_alpha(fit, idx) * .get_mu(fit, idx))
+  return(b)
+}
+
 #' Expected linear prediction
 compute_Xb.binsusie <- function(fit){
   Xb <- drop(fit$data$X %*% colSums(.get_alpha(fit) * .get_mu(fit)))
