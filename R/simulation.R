@@ -1,3 +1,5 @@
+#' @export
+
 sim_ser <- function(n=1000, p=50, N=1, idx=1){
   mix <- exp(- 0.1 * outer(seq(p), seq(p), '-')**2)
   X <- matrix(rnorm(n*p), nrow=n) %*% mix
@@ -14,6 +16,7 @@ sim_ser <- function(n=1000, p=50, N=1, idx=1){
 }
 
 #' simulate SER with 3 covariates
+#' @export
 sim_ser_with_covariates <- function(n=1000, p=50, N=1, idx=1){
   mix <- exp(- 0.1 * outer(seq(p), seq(p), '-')**2)
   X <- matrix(rnorm(n*p), nrow=n) %*% mix
@@ -27,7 +30,7 @@ sim_ser_with_covariates <- function(n=1000, p=50, N=1, idx=1){
   )
   return(data)
 }
-
+#' @export
 
 sim_susie <- function(n=1000, p=50, L=3, N=1){
   mix <- exp(- 0.1 * outer(seq(p), seq(p), '-')**2)
@@ -46,22 +49,25 @@ sim_susie <- function(n=1000, p=50, L=3, N=1){
   return(data)
 }
 
-
+#' @export
 sim_twococomo <- function(n=1000, p=50, L=3, N=1){
   sim <- sim_susie(n, p, L, N)
   sim$beta <- rnorm(n) * sim$y
   sim$se <- 0.1 + rgamma(n, shape=0.5)
   sim$betahat <- sim$beta + rnorm(n) * sim$se
+
+  class(sim) <- "data_mococomo"
   return(sim)
 }
 
-
+#' @export
 sim_mococomo <- function(n=1000, p=50, L=3, N=1){
   sim <- sim_susie(n, p, L, N)
   sim$scales <- cumprod(c(1, rep(sqrt(2), 5)))
   sim$beta <- rnorm(n) * sim$y * sample(sim$scales, size=n, replace = T)
   sim$se <- 0.1 + rgamma(n, shape=0.5)
   sim$betahat <- sim$beta + rnorm(n) * sim$se
+  class(sim) <- "data_mococomo"
   return(sim)
 }
 
