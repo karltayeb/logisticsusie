@@ -222,6 +222,28 @@ fit.binsusie <- function(data,
   return(fit)
 }
 
+binsusie_wrapup <- function(fit) {
+  # TODO put back into original X scale
+  X <- fit$data$X
+  res <- list(
+    alpha = fit$params$alpha,
+    mu = fit$params$mu,
+    mu2 = fit$params$mu^2 + fit$params$var
+  )
+
+  res <- c(fit, res)
+  class(res) <- "susie"
+  colnames(res$alpha) <- colnames(X)
+  colnames(res$mu) <- colnames(X)
+
+  res$pip <- susieR::susie_get_pip(res)
+  names(res$pip) <- colnames(X)
+
+  res$sets <- susieR::susie_get_cs(res, X = X)
+  res$intercept <- colSums(res$params$delta)[1]
+  return(res)
+}
+
 #' @param X a n x p matrix of covariates
 #' @param y an n vector of integer counts, bernoulli/binomial observations
 #' @param N the number of binomial trials, defaults to 1, may be a scalar or vector of length n
@@ -285,9 +307,7 @@ binsusie <- function(X,
     }
   }
 
-  # post-processing
-  fit$sets <- binsusie_get_cs(fit, n_purity = as.integer(ncol(X) / 2))
-  fit$pip <- binsusie_get_pip(fit)
+  fit <- binsusie_wrapup(fit)
 
   class(fit) <- c("binsusie", "susie")
   # 1. compute credible sets
