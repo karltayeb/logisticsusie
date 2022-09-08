@@ -246,6 +246,8 @@ binsusie_wrapup <- function(fit) {
   return(res)
 }
 
+#' Binomial SuSiE
+#' Fit Binomial SuSiE via coordinate ascent variational inference
 #' @param X a n x p matrix of covariates
 #' @param y an n vector of integer counts, bernoulli/binomial observations
 #' @param N the number of binomial trials, defaults to 1, may be a scalar or vector of length n
@@ -256,6 +258,7 @@ binsusie_wrapup <- function(fit) {
 #' @param intercept
 #' @param estimate_prior_variance
 #' @param s_init a logistic susie object to initialize with, NOTE if non-null, we ignore `prior_mean`, `prior_variance`, and `prior_weights`
+#' @param returns a fit Binomial SuSiE model, which is compatable with summary functions from `susieR` package
 #' @export
 binsusie <- function(X,
                      y,
