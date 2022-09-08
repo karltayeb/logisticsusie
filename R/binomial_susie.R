@@ -35,7 +35,7 @@ compute_Xb2.binsusie <- function(fit) {
   B2 <- .get_alpha(fit) * (.get_mu(fit)^2 + .get_var(fit))
   b2 <- colSums(B2)
 
-  Xb2 <- fit$data$X^2 %*% b2 + Xb**2 - rowSums(XB^2)
+  Xb2 <- fit$data$X2 %*% b2 + Xb**2 - rowSums(XB^2)
   Xb2 <- drop(Xb2 + 2 * Xb * Zd + Zd^2)
   return(Xb2)
 }
@@ -180,6 +180,8 @@ init.binsusie <- function(data, L = 5, prior_mean = 0, prior_variance = 1, prior
 
   params <- .init.binsusie.params(n, p, p2, L)
   hypers <- .init.binsusie.hypers(n, p, L, prior_mean, prior_variance, prior_weights)
+
+  data$X2 <- data$X^2
 
   # TODO: check that data has y, N, X, Z
   fit.init <- list(

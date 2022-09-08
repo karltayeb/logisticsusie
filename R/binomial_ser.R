@@ -163,7 +163,7 @@ compute_Xb2.binser <- function(fit, idx = NULL, shift = 0) {
   Zd <- compute_Zd.binser(fit, idx, shift)
 
   b2 <- .get_alpha(fit, idx) * (.get_mu(fit, idx)^2 + .get_var(fit, idx))
-  Xb2 <- drop(fit$data$X^2 %*% b2)
+  Xb2 <- drop(fit$data$X2 %*% b2)
 
   Xb2 <- Xb2 + 2 * Xb * Zd + Zd^2
   return(Xb2)
@@ -200,7 +200,7 @@ compute_nu.binser <- function(fit, idx = NULL, kidx = NULL, shift = 0) {
 #' use this immediately after updating xi
 compute_tau <- function(fit) {
   omega <- compute_omega(fit)
-  tau <- drop(omega %*% fit$data$X^2)
+  tau <- drop(omega %*% fit$data$X2)
   return(tau)
 }
 
@@ -336,6 +336,8 @@ init.binser <- function(data) {
     prior_mean = 0, # prior mean of effect
     prior_variance = 1 # prior variance of effect, TODO: include as init arg
   )
+
+  data$X2 <- data$X^2
 
   # TODO: check that data has y, N, X, Z
   fit.init <- list(
