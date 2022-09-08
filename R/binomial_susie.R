@@ -137,32 +137,59 @@ update_xi.binsusie <- function(fit){
   return(params)
 }
 
-.init.binsusie.hypers <- function(n, p, L){
+.init.binsusie.hypers <- function(n, p, L, prior_mean, prior_variance, prior_weights){
+
+  stopifnot("`prior_mean` must be scalar of length L`"=length(prior_mean) %in% c(1, L))
+  if(length(prior_mean) == 1){
+    prior_mean <- rep(prior_mean, L)
+  }
+  stopifnot("`prior_variance` must be scalar of length L`"=length(prior_variance) %in% c(1, L))
+  if(length(prior_variance) == 1){
+    prior_variance <- rep(prior_variance, L)
+  }
+
+  if(is.null(prior_weights)){
+    prior_weights <- matrix(rep(1/p, p*L), nrow=L)
+  } else if(is.matrix(prior_weights)){
+    stopifnot("`prior weights must be a L x p matrix or p vector" = all(dim(prior_weights) == c(L, p)))
+    stopifnot("`prior weights must sum to one" = all(rowSums(prior_weights)==1))
+  } else{
+    stopifnot("`prior weights must be a L x p matrix or p vector" = length(prior_weights) == p)
+    stopifnot("`prior weights must sum to one" = sum(prior_weights) == 1)
+    prior_weights <- matrix(rep(prior_weights, L), nrow = L, byrow = T)
+  }
+
   hypers <- list(
     L = L,
-    pi = matrix(rep(1, p*L)/p, nrow=L),  # categorical probability of nonzero effect
-    mu0 = rep(0, L),  # prior mean of effect
-    sigma0 = rep(1, L),  # prior variance of effect, TODO: include as init arg,
-    shift = rep(0, n)
+    pi = prior_weights,  # categorical probability of nonzero effect
+    mu0 = prior_mean,  # prior mean of effect
+    sigma0 = prior_variance  # prior variance of effect, TODO: include as init arg,
   )
   return(hypers)
 }
 
 #' initialize SER
-init.binsusie <- function(data, L=5, kidx=NULL){
+init.binsusie <- function(
+    data, L=5, prior_mean=0, prior_variance = 1, prior_weights=NULL, kidx=NULL){
+
   n <- nrow(data$X)
   p <- ncol(data$X)
+
+  # set Z if not provided
+  if(is.null(data$Z)){
+    data$Z <- matrix(rep(1, n), nrow = n)
+  }
   p2 <- ncol(data$Z)
 
   params <- .init.binsusie.params(n, p, p2, L)
-  hypers <- .init.binsusie.hypers(n, p, L)
+  hypers <- .init.binsusie.hypers(n, p, L, prior_mean, prior_variance, prior_weights)
 
   # TODO: check that data has y, N, X, Z
   fit.init <- list(
     data = data,
     params = params,
     hypers = hypers,
-    elbos = c(-Inf)
+    elbo = c(-Inf)
   )
   fit.init$kidx <- kidx
   fit.init$params$tau <- compute_tau(fit.init)
