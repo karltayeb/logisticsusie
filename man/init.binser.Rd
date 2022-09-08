@@ -9,7 +9,7 @@ init.binser(data)
 \arguments{
 \item{data}{a list containing X, Z, y}
 
-\item{mu0}{prior effect mean}
+\item{prior_mean}{prior effect mean}
 
 \item{simga0}{prior effect standard deviation}
 }

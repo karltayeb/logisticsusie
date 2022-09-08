@@ -4,7 +4,7 @@
 \alias{.compute_ser_kl}
 \title{KL(q(b, \omega) || p(\beta, \omega))}
 \usage{
-.compute_ser_kl(alpha, pi, mu, var, mu0, var0)
+.compute_ser_kl(alpha, pi, mu, var, prior_mean, var0)
 }
 \description{
 KL(q(b, \omega) || p(\beta, \omega))
