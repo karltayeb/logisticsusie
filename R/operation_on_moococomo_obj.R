@@ -317,6 +317,11 @@ post_mean_sd.mococomo <- function(fit){
   out <- do.call(rbind,
                  lapply( 1: length(fit$data$betahat),
                          function(i)cal_ind_moment12 (fit, t_post_var,i) ))
+   out <-data.frame(mean= do.call(c,out[,1]),
+                    sd =do.call(c,out[,2])
+                    ) #could be skip for speed
+
+
 
   return(out)
 

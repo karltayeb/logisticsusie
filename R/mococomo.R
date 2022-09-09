@@ -22,6 +22,14 @@
 #' #get posterior quantitoes
 #' est<- post_mean_sd.mococomo (fit)
 #' head(est)
+#' plot( est$mean, data$se)
+#'
+#' #comparison with ash
+#'
+#' t_ash <- ash(sim $betahat, sim $se, mixcompdist = "normal")
+#' post_mean_ash <- t_ash$result$PosteriorMean
+#' plot(est$mean, post_mean_ash)
+#'
 
 fit.mococomo <- function(data, maxiter = 100, tol = 1e-3) {
 
