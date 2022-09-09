@@ -79,4 +79,32 @@ cal_expected_factor <- function( cEBMF.obj,k){
 }
 
 
-post_mean.mococomo (fit , t_data)
+post_mean_sd.mococomo <- function(fit , t_data){
+  cal_ind_var <-  function(i){
+    do.call( c,
+             lapply( 1 : length(fit$f_list),
+                     function(k)
+                       1/((1/ fit$data$se[i]^2)+ 1/fit$f_list[[k]]$var)
+             )
+    )
+  }
+
+
+
+post_sds <-   do.call(rbind, lapply( 1: length(fit$data$betahat), function(i)cal_ind_var(i) ))
+
+cal_ind_postmean  <-  function(i){
+  Reduce('+', lapply (1: length(fit$f_list),
+                      function(k)  fit$post_assignment[i,k]*
+                        (post_sds[k]/ fit$data$se[i]^2 )*
+                        (  fit$data$betahat[i]+fit$f_list[[k]]$mu)
+  )
+  )
+}
+ post_beta <-     do.call(c, lapply( 1: length(fit$data$betahat), function(i)cal_ind_postmean(i) ))
+
+
+plot(post_beta, fit$data$betahat)
+  abline(a=0,b=1)
+
+}

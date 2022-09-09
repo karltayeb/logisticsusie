@@ -64,19 +64,6 @@ binsusie_get_cs <- function(fit,
 }
 
 
-#' @export
-binsusie_get_pip <- function(fit, prune_by_cs = FALSE, prior_tol = 1e-09) {
-  # TODO: filter out components that don't need to be included (see Gao's suggestion)
-  return(susieR::susie_get_pip(fit$params$alpha))
-}
-
-
-#' @export
-binsusie_plot <- function(fit, y = "PIP") {
-  res <- with(fit, list(alpha = params$alpha, pip = pip, sets = sets))
-  class(res) <- "susie"
-  susieR::susie_plot(res, y)
-}
 
 
 

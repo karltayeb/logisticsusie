@@ -18,6 +18,10 @@
 #' fit <- fit.mococomo(data, maxiter=20)
 #' plot(fit$elbo)
 #' .monotone(fit$elbo)
+#'
+#' #get posterior quantitoes
+#' est<- post_mean_sd.mococomo (fit)
+#' head(est)
 
 fit.mococomo <- function(data, maxiter = 100, tol = 1e-3) {
 

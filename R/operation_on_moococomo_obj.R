@@ -243,3 +243,81 @@ iter.mococomo <- function(fit, update_assignment = T, update_logreg = T) {
   return(fit)
 }
 
+
+
+#'@title Compute individual posterior variance from marginal normal mean model
+#'@description internal function to compute posterior mean and sds
+
+
+t_ind_var.mococomo <-  function( fit, i){
+  do.call( c,
+           lapply( 1 : length(fit$f_list),
+                   function(k)
+                     1/((1/ fit$data$se[i]^2)+ 1/fit$f_list[[k]]$var)
+           )
+  )
+}
+
+
+#'@title Compute individual posterior first and second moment
+#'@description Compute individual posterior first and second moment
+#'
+#' # TODO: currently only for center prior
+#'@param fit a mococomo object
+#'@param  t_ind_var output of t_ind_var (using same mocomo object!)
+#'@param i individual of interest
+#'@exemple
+#'t_post_var <-   do.call(rbind,
+#'                        lapply( 1:length(fit$data$betahat),
+#'                                function(i)t_ind_var.mococomo(fit, i)
+#'                        )
+#')
+#'
+#'
+#'post_beta <-     do.call(c, lapply( 1: length(fit$data$betahat), function(i)cal_ind_postmean(fit, t_post_var,i,) ))
+
+cal_ind_moment12  <-  function( fit,t_post_var,i){
+
+
+  temp <- do.call(c,
+                  lapply (1: length(fit$f_list),
+                          function(k) (t_post_var[i,k]/ fit$data$se[i]^2 )*
+                          (  fit$data$betahat[i] )
+                          )
+                 )
+
+  ind_mean  <- sum( fit$post_assignment[i, ]*temp)
+  ind_second_moment <- sum( fit$post_assignment[i,]*(t_post_var[i, ] + temp^2 ))
+
+  ind_var <- ind_second_moment-ind_mean^2
+
+  return(list(mean=ind_mean,
+              sd= sqrt(ind_var)))
+}
+
+
+
+
+
+#'@title Compute individual posterior mean and sd under mococomo model
+#'@description Compute individual posterior mean and sd under mococomo model
+#'
+#' # TODO: allow using new observation from another data set (e.g. testing)
+#'@param fit a mococomo object
+#'@exemple
+#'see \link{\code{fit.mococomo}}
+
+post_mean_sd.mococomo <- function(fit){
+
+  t_post_var <- do.call(rbind,
+                        lapply( 1:length(fit$data$betahat),
+                                function(i)t_ind_var.mococomo(fit, i)
+                        )
+  )
+  out <- do.call(rbind,
+                 lapply( 1: length(fit$data$betahat),
+                         function(i)cal_ind_moment12 (fit, t_post_var,i) ))
+
+  return(out)
+
+}

@@ -4,7 +4,7 @@
 
 
 ###
-# Computations
+# Computations ----
 ##
 
 
@@ -80,7 +80,7 @@ compute_elbo.binsusie <- function(fit) {
 }
 
 ###
-# Updates
+#Updates ----
 ###
 
 
@@ -122,7 +122,7 @@ update_xi.binsusie <- function(fit) {
 }
 
 ###
-# Fitting
+# Fitting ----
 ###
 
 .init.binsusie.params <- function(n, p, p2, L) {
@@ -244,6 +244,22 @@ binsusie_wrapup <- function(fit) {
   res$sets <- susieR::susie_get_cs(res, X = X)
   res$intercept <- colSums(res$params$delta)[1]
   return(res)
+}
+
+# help -----
+
+#' @export
+binsusie_get_pip <- function(fit, prune_by_cs = FALSE, prior_tol = 1e-09) {
+  # TODO: filter out components that don't need to be included (see Gao's suggestion)
+  return(susieR::susie_get_pip(fit$params$alpha))
+}
+
+
+#' @export
+binsusie_plot <- function(fit, y = "PIP") {
+  res <- with(fit, list(alpha = params$alpha, pip = pip, sets = sets))
+  class(res) <- "susie"
+  susieR::susie_plot(res, y)
 }
 
 #' Binomial SuSiE

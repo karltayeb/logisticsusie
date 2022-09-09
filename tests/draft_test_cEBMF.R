@@ -1,7 +1,7 @@
 library(flashr)
-rm(list = ls())
+#rm(list = ls())
 library(logisticsusie)  #Simulate data under the mococomo model
-sim  <- sim_twococomo(n=50)
+sim  <- sim_twococomo(n=1000)
 #preparing the data
 data1 <-set_data_mococomo(betahat = sim$betahat,
                           se = sim$se ,
