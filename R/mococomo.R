@@ -22,7 +22,7 @@
 #' #get posterior quantitoes
 #' est<- post_mean_sd.mococomo (fit)
 #' head(est)
-#' plot( est$mean, data$se)
+#'  plot( est$mean, data$betahat)
 #'
 #' #comparison with ash
 #'
@@ -31,11 +31,11 @@
 #' plot(est$mean, post_mean_ash)
 #'
 
-fit.mococomo <- function(data, maxiter = 100, tol = 1e-3) {
+fit.mococomo <- function(data, maxiter = 100, tol = 1e-3,max_class,  mult = 2) {
 
   if(!(class(data)=="data_mococomo"))
   {stop("Please provide object of class data_mococomo")}
-  fit <- init.mococomo(data)
+  fit <- init.mococomo(data,max_class, gridmult )
   fit$elbo <- compute_elbo.mococomo(fit)
   for (i in 1:maxiter) {
     fit <- iter.mococomo(fit, is.even(i), is.odd(i))

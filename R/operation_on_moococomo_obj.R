@@ -169,14 +169,18 @@ compute_elbo.mococomo <- function(fit) {
   N <- 1. - cumY + Y
 }
 
-init.mococomo <- function(data) {
+init.mococomo <- function(data,max_class,  mult =  2) {
   data$X2 <- data$X^2
 
   # TODO check input data has X, Z, betahat, se, etc.
   #### We can force the user to input data as being from a certain  class generarted by a set_data  function
   # w
   # scale mixture of normals w/ zero mean-- TODO: make this initializable
-  scales <- cumprod(c(1., rep(sqrt(2), 5)))
+
+
+
+  scales <- autoselect.mococomo(data)
+  #scales <- cumprod(c(1., rep(sqrt(2), 5)))
   f_list <- purrr::map(scales, ~ list(mu = 0, var = .x^2))
 
   K <- length(scales)
@@ -326,3 +330,44 @@ post_mean_sd.mococomo <- function(fit){
   return(out)
 
 }
+
+
+
+
+
+#adapted from autoselect.mxisqp
+# try to select a default range for the sigmaa values
+# that should be used, based on the values of betahat and sebetahat
+# mode is the location about which inference is going to be centered
+# gridmult is the multiplier by which the sds differ across the grid
+
+autoselect.mococomo = function(data,max_class,  mult =  2 ){
+
+
+  betahat = data$betahat
+  sebetahat = data$se
+
+
+  sigmaamin = min(sebetahat)/10 #so that the minimum is small compared with measurement precision
+  if(all(betahat^2<=sebetahat^2)){
+    sigmaamax = 8*sigmaamin #to deal with the occassional odd case where this could happen; 8 is arbitrary
+  }else{
+    sigmaamax = 2*sqrt(max(betahat^2-sebetahat^2)) #this computes a rough largest value you'd want to use, based on idea that sigmaamax^2 + sebetahat^2 should be at least betahat^2
+  }
+
+  if(mult==0){
+    return(c(0,sigmaamax/2))
+  }else{
+    npoint = ceiling(log2(sigmaamax/sigmaamin)/log2(mult))
+    out <- mult^((-npoint):0) * sigmaamax
+    if (!missing(max_class))
+    {
+      if(length(out)> max_class)
+         {
+           out <- seq(min(out), max(out), length.out=max_class)
+          }
+    }
+    return(out )
+  }
+}
+
