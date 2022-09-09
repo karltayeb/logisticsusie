@@ -82,7 +82,7 @@ binsusie_plot <- function(fit, y = "PIP") {
 
 
 
-# impliment normal and point mass component distributions
+# implement normal and point mass component distributions
 
 .clamp <- function(v, .upper = 100, .lower = -100) {
   return(pmax(.lower, pmin(v, .upper)))

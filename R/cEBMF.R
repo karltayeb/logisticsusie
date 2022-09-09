@@ -32,6 +32,7 @@ update_cEBMF <-  function(cEBMF.obj, k)
                               se      = l_k$s_i,
                               X       = cEBMF.obj$X_l )
   t_fit <- fit.mococomo(t_data)
+  l_i_fit <- post_mean.mococomo (fit , t_data)
 
 }
 
@@ -78,4 +79,4 @@ cal_expected_factor <- function( cEBMF.obj,k){
 }
 
 
-
+post_mean.mococomo (fit , t_data)
