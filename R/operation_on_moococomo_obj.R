@@ -253,7 +253,7 @@ t_ind_var.mococomo <-  function( fit, i){
   do.call( c,
            lapply( 1 : length(fit$f_list),
                    function(k)
-                     1/((1/ fit$data$se[i]^2)+ 1/fit$f_list[[k]]$var)
+                     1/((1/ fit$data$se[i]^2)+ (1/fit$f_list[[k]]$var))
            )
   )
 }
