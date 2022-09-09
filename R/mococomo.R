@@ -29,7 +29,7 @@
 #' t_ash <- ash(sim $betahat, sim $se, mixcompdist = "normal")
 #' post_mean_ash <- t_ash$result$PosteriorMean
 #' plot(est$mean, post_mean_ash)
-#'
+#' # TODO make a more convincing exemple
 
 fit.mococomo <- function(data, maxiter = 100, tol = 1e-3,max_class,  mult = 2) {
 

@@ -13,10 +13,10 @@ init_cEBMF <- function(Y, X_l,X_f,K=1, type_noise='column_wise' )
   cEBMF.obj <- list(
     Y          = Y,
     Y_fit      = 0*Y,
-    loading    =  matrix(rnorm(K*nrow(Y)),nrow=nrow(Y), ncol=K), #first moment
-    factor     =  matrix( rnorm(K*ncol(Y)),nrow=ncol(Y), ncol=K),
-    loading2   =  matrix(1,nrow=nrow(Y), ncol=K),#second moment
-    factor2    =  matrix( 1,nrow=ncol(Y), ncol=K),
+    loading    = matrix(1,nrow=nrow(Y), ncol=K), #first moment
+    factor     = matrix(1,nrow=ncol(Y), ncol=K),
+    loading2   = matrix(1,nrow=nrow(Y), ncol=K),#second moment
+    factor2    = matrix( 1,nrow=ncol(Y), ncol=K),
     tau        = matrix(1, ncol = ncol(Y), nrow=nrow(Y)),
     X_l        = X_l,
     X_f        = X_f,
@@ -117,7 +117,7 @@ cal_fitted_value.cEBMF <- function(cEBMF.obj)
 }
 
 
-cal_expected_residuals.cEBMF <- function(cEBMF)
+cal_expected_residuals.cEBMF <- function(cEBMF.obj)
 {
   prod_square_firstmom <-   Reduce("+",
                               lapply( 1:cEBMF.obj$K,
