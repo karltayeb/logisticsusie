@@ -9,11 +9,11 @@
 #' @export
 #' @example
 #' see \link{\code{fit.mococomo}}
-set_data_mococomo <- function (beta, se, X, ... ){
+set_data_mococomo <- function (betahat, se, X, ... ){
 
-  if( !is.numeric( beta))
+  if( !is.numeric( betahat))
   {
-    stop("beta should be numercial vector")
+    stop("betahat should be numercial vector")
   }
   if( !is.numeric( se))
   {
@@ -23,9 +23,9 @@ set_data_mococomo <- function (beta, se, X, ... ){
   {
     stop("X should be numercial vector")
   }
-  if( !is.matrix( beta))
+  if( !is.matrix(X))
   {
-    stop("Xshould be a matrix")
+    stop("X should be a matrix")
   }
   if( ! (sum(c(length(se)==length(betahat), length(se)==nrow(X)))==2  ))
   {
@@ -33,8 +33,9 @@ set_data_mococomo <- function (beta, se, X, ... ){
     }
 
 
-  dat <-  list(betahat= beta,
+  dat <-  list(betahat= betahat,
                se=se ,
                X=X)
-  class(data) <- "data_mococomo"
+  class(dat) <- "data_mococomo"
+  return(dat)
 }

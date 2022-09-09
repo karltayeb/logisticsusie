@@ -11,9 +11,9 @@
 #' #Simulate data under the mococomo model
 #' sim  <- sim_twococomo()
 #' #preparing the data
-#' data <-  set_data(betahat = data$betahat,
-#'                        se = data$se ,
-#'                        X  = data$X)
+#' data <- set_data_mococomo(betahat = sim$betahat,
+#'                                se = sim$se ,
+#'                                 X = sim$X)
 #' #fit mococomo model
 #' fit <- fit.mococomo(data, maxiter=20)
 #' plot(fit$elbo)
@@ -22,6 +22,7 @@
 fit.mococomo <- function(data, maxiter = 100, tol = 1e-3) {
 
   if(!(class(data)=="data_mococomo"))
+  {stop("Please provide object of class data_mococomo")}
   fit <- init.mococomo(data)
   fit$elbo <- compute_elbo.mococomo(fit)
   for (i in 1:maxiter) {
