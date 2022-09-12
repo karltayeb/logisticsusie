@@ -99,10 +99,10 @@ compute_data_loglikelihood <- function(fit) {
 #'  @param c a PG parameter
 #'  @return E[w] the mean of w ~ PG(b, c)
 pg_mean <- function(b, c) {
-  mu <- 0.5 * b / c * tanh(c / 2)
+  mu <- Matrix::drop(0.5 * b / c * tanh(c / 2))
 
   # deal with case of c = 0 mean is b/4
-  idx <- is.na(mu)
+  idx <- is.na(mu) # does indexing work form matrix entries?
   mu[idx] <- b[idx] / 4
   return(mu)
 }

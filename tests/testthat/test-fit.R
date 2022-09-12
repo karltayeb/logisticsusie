@@ -49,7 +49,6 @@ for (i in seq(1, 10)) {
   })
 }
 
-
 #' Includes one column of X as a fixed shift
 #' So if shift_col = 1, there is basically no effect to estimate
 #' If shift_col \neq 1, there are two effects to estimate
@@ -172,17 +171,24 @@ for (i in seq(1, 10)) {
 }
 
 
+##
+# Fit SuSiE tests
+##
 
-testthat::test_that("Test alternate sim params", {
-  sim <- sim_twococomo(n = 5000, p = 150)
-  z <- with(sim, betahat / se)
-  thresh <- 2
-  y <- as.integer(abs(z) > thresh)
-  data <- list(X = sim$X, Z = sim$Z, y = sim$y, N = 1)
-  fit <- fit.binsusie(data)
-  fit2 <- binsusie(data$X, data$y, data$N)
+test_susie_sparse <- function(N = 1) {
+  data <- sim_susie_sparse(N = N)
+  fit <- fit.binsusie(data, maxiter = 100, tol = 1e-5)
+  return(list(
+    fit = fit,
+    monotone = .monotone(fit$elbo)
+  ))
+}
+
+testthat::test_that("Bernoulli SuSiE Monotone (SPARSE)", {
+  for (i in seq(5)) {
+    testthat::expect_true(test_susie_sparse(1)$monotone)
+  }
 })
-
 
 ##
 # SuSiE with non-zero mu0

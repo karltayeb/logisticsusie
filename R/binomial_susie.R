@@ -29,13 +29,13 @@ compute_Xb.binsusie <- function(fit) {
 compute_Xb2.binsusie <- function(fit) {
   B <- .get_alpha(fit) * .get_mu(fit)
   XB <- fit$data$X %*% t(B)
-  Xb <- rowSums(XB)
+  Xb <- Matrix::rowSums(XB)
   Zd <- drop(fit$data$Z %*% colSums(.get_delta(fit)))
 
   B2 <- .get_alpha(fit) * (.get_mu(fit)^2 + .get_var(fit))
   b2 <- colSums(B2)
 
-  Xb2 <- fit$data$X2 %*% b2 + Xb**2 - rowSums(XB^2)
+  Xb2 <- fit$data$X2 %*% b2 + Xb**2 - Matrix::rowSums(XB^2)
   Xb2 <- drop(Xb2 + 2 * Xb * Zd + Zd^2)
   return(Xb2)
 }
@@ -80,7 +80,7 @@ compute_elbo.binsusie <- function(fit) {
 }
 
 ###
-#Updates ----
+# Updates ----
 ###
 
 
@@ -89,7 +89,7 @@ update_b.binsusie <- function(fit, fit_intercept = TRUE, fit_prior_variance = TR
   shift <- compute_Xb.binsusie(fit)
   for (l in seq(fit$hypers$L)) {
     # remove current effect estimate
-    shift <- shift - compute_Xb.binser(fit, idx = l)
+    shift <- Matrix::drop(shift - compute_Xb.binser(fit, idx = l))
 
     # update SER
     post_l <- update_b.binser(fit, idx = l, shift = shift)
@@ -151,7 +151,7 @@ update_xi.binsusie <- function(fit) {
     prior_weights <- matrix(rep(1 / p, p * L), nrow = L)
   } else if (is.matrix(prior_weights)) {
     stopifnot("`prior weights must be a L x p matrix or p vector" = all(dim(prior_weights) == c(L, p)))
-    stopifnot("`prior weights must sum to one" = all(rowSums(prior_weights) == 1))
+    stopifnot("`prior weights must sum to one" = all(Matrix::rowSums(prior_weights) == 1))
   } else {
     stopifnot("`prior weights must be a L x p matrix or p vector" = length(prior_weights) == p)
     stopifnot("`prior weights must sum to one" = sum(prior_weights) == 1)

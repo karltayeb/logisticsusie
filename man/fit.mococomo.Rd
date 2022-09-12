@@ -4,7 +4,7 @@
 \alias{fit.mococomo}
 \title{Fucntion implementating the mococomo mode}
 \usage{
-fit.mococomo(data, maxiter = 100, tol = 0.001)
+fit.mococomo(data, maxiter = 100, tol = 0.001, max_class, mult = 2)
 }
 \arguments{
 \item{data}{an object of class data_mococomo  see \link{\code{set_data_mococomo}}}

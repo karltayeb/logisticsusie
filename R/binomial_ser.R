@@ -109,7 +109,7 @@
 #' @param fit Binomial SER object
 #' @return Return E[\beta]
 coef.binser <- function(fit, idx = NULL) {
-  b <- drop(.get_alpha(fit, idx) * .get_mu(fit, idx))
+  b <- Matrix::drop(.get_alpha(fit, idx) * .get_mu(fit, idx))
   return(b)
 }
 
@@ -139,7 +139,7 @@ compute_kl.binser <- function(fit) {
 
 #' fixed effects, intercept, shift
 compute_Zd.binser <- function(fit, idx = NULL, shift = 0) {
-  Zd <- drop(fit$data$Z %*% .get_delta(fit, idx)) + shift
+  Zd <- Matrix::drop(fit$data$Z %*% .get_delta(fit, idx)) + shift
   return(Zd)
 }
 
@@ -148,7 +148,7 @@ compute_Zd.binser <- function(fit, idx = NULL, shift = 0) {
 #' @param fit Binomial SER object
 #' @return Return E[Xb]
 compute_Xb.binser <- function(fit, idx = NULL, shift = 0) {
-  Xb <- drop(fit$data$X %*% coef.binser(fit, idx))
+  Xb <- Matrix::drop(fit$data$X %*% coef.binser(fit, idx))
   Zd <- compute_Zd.binser(fit, idx, shift)
   Xb <- Xb + Zd
   return(Xb)
@@ -159,11 +159,11 @@ compute_Xb.binser <- function(fit, idx = NULL, shift = 0) {
 #' @param fit Binomial SER object
 #' @return Return E[Xb]
 compute_Xb2.binser <- function(fit, idx = NULL, shift = 0) {
-  Xb <- drop(fit$data$X %*% coef.binser(fit, idx))
+  Xb <- Matrix::drop(fit$data$X %*% coef.binser(fit, idx))
   Zd <- compute_Zd.binser(fit, idx, shift)
 
   b2 <- .get_alpha(fit, idx) * (.get_mu(fit, idx)^2 + .get_var(fit, idx))
-  Xb2 <- drop(fit$data$X2 %*% b2)
+  Xb2 <- Matrix::drop(fit$data$X2 %*% b2)
 
   Xb2 <- Xb2 + 2 * Xb * Zd + Zd^2
   return(Xb2)
@@ -192,7 +192,7 @@ compute_nu.binser <- function(fit, idx = NULL, kidx = NULL, shift = 0) {
   Zd <- compute_Zd.binser(fit, idx, shift)
   omega <- compute_omega(fit)
   tmp <- kappa - omega * Zd
-  nu <- drop(tmp %*% fit$data$X) + (prior_mean * tau0)
+  nu <- Matrix::drop(tmp %*% fit$data$X) + (prior_mean * tau0)
   return(nu)
 }
 
@@ -200,7 +200,7 @@ compute_nu.binser <- function(fit, idx = NULL, kidx = NULL, shift = 0) {
 #' use this immediately after updating xi
 compute_tau <- function(fit) {
   omega <- compute_omega(fit)
-  tau <- drop(omega %*% fit$data$X2)
+  tau <- Matrix::drop(omega %*% fit$data$X2)
   return(tau)
 }
 
@@ -218,7 +218,7 @@ update_delta.binser <- function(fit, idx = NULL, kidx = NULL, shift = 0) {
   omega <- compute_omega(fit)
   Xb <- fit$data$X %*% coef.binser(fit, idx) + shift
   kappa <- compute_kappa(fit, kidx)
-  delta <- solve((omega * t(Z)) %*% Z, t(Z) %*% (kappa - omega * Xb))
+  delta <- Matrix::drop(Matrix::solve((omega * t(Z)) %*% Z, t(Z) %*% (kappa - omega * Xb)))
   return(delta)
 }
 
@@ -241,7 +241,7 @@ update_delta.binser <- function(fit, idx = NULL, kidx = NULL, shift = 0) {
 
 #' update q(b)
 update_b.binser <- function(fit, idx = NULL, kidx = NULL, shift = 0) {
-  nu <- compute_nu.binser(fit, idx, kidx, shift)
+  nu <- Matrix::drop(compute_nu.binser(fit, idx, kidx, shift))
   tau0 <- 1 / .get_var0(fit, idx)
   tau <- tau0 + fit$params$tau
   post <- .update_b_ser(nu, tau, .get_pi(fit, idx))

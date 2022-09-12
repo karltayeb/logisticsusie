@@ -4,7 +4,7 @@
 \alias{set_data_mococomo}
 \title{Prepraring data for mococomo fit}
 \usage{
-set_data_mococomo(beta, se, X, ...)
+set_data_mococomo(betahat, se, X, ...)
 }
 \arguments{
 \item{betahat}{numeric, vecotr of regression coefficients  list of containing the following element see}
