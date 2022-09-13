@@ -169,7 +169,7 @@ compute_elbo.mococomo <- function(fit) {
   N <- 1. - cumY + Y
 }
 
-init.mococomo <- function(data,max_class,  mult =  2) {
+init.mococomo <- function(data, max_class, mult = 2) {
   data$X2 <- data$X^2
 
   # TODO check input data has X, Z, betahat, se, etc.
@@ -180,8 +180,8 @@ init.mococomo <- function(data,max_class,  mult =  2) {
 
 
   scales <- autoselect.mococomo(data)
-  #scales <- cumprod(c(1., rep(sqrt(2), 5)))
-  f_list <- purrr::map(scales, ~ list(mu = 0, var = .x^2))
+  # scales <- cumprod(c(1., rep(sqrt(2), 5)))
+  f_list <- purrr::map(scales, ~ normal_component(mu = 0, var = .x^2))
 
   K <- length(scales)
   p <- ncol(data$X)
@@ -249,125 +249,132 @@ iter.mococomo <- function(fit, update_assignment = T, update_logreg = T) {
 
 
 
-#'@title Compute individual posterior variance from marginal normal mean model
-#'@description internal function to compute posterior mean and sds
+#' @title Compute individual posterior variance from marginal normal mean model
+#' @description internal function to compute posterior mean and sds
 
 
-t_ind_var.mococomo <-  function( fit, i){
-  do.call( c,
-           lapply( 1 : length(fit$f_list),
-                   function(k)
-                     1/((1/ fit$data$se[i]^2)+ (1/fit$f_list[[k]]$var))
-           )
+t_ind_var.mococomo <- function(fit, i) {
+  do.call(
+    c,
+    lapply(
+      1:length(fit$f_list),
+      function(k) {
+        1 / ((1 / fit$data$se[i]^2) + (1 / fit$f_list[[k]]$var))
+      }
+    )
   )
 }
 
 
-#'@title Compute individual posterior first and second moment
-#'@description Compute individual posterior first and second moment
+#' @title Compute individual posterior first and second moment
+#' @description Compute individual posterior first and second moment
 #'
 #' # TODO: currently only for center prior
-#'@param fit a mococomo object
-#'@param  t_ind_var output of t_ind_var (using same mocomo object!)
-#'@param i individual of interest
-#'@exemple
-#'t_post_var <-   do.call(rbind,
+#' @param fit a mococomo object
+#' @param  t_ind_var output of t_ind_var (using same mocomo object!)
+#' @param i individual of interest
+#' @exemple
+#' t_post_var <-   do.call(rbind,
 #'                        lapply( 1:length(fit$data$betahat),
 #'                                function(i)t_ind_var.mococomo(fit, i)
 #'                        )
-#')
+#' )
 #'
 #'
-#'post_beta <-     do.call(c, lapply( 1: length(fit$data$betahat), function(i)cal_ind_postmean(fit, t_post_var,i,) ))
+#' post_beta <-     do.call(c, lapply( 1: length(fit$data$betahat), function(i)cal_ind_postmean(fit, t_post_var,i,) ))
 
-cal_ind_moment12  <-  function( fit,t_post_var,i){
+cal_ind_moment12 <- function(fit, t_post_var, i) {
+  temp <- do.call(
+    c,
+    lapply(
+      1:length(fit$f_list),
+      function(k) {
+        (t_post_var[i, k] / fit$data$se[i]^2) *
+          (fit$data$betahat[i])
+      }
+    )
+  )
 
+  ind_mean <- sum(fit$post_assignment[i, ] * temp)
+  ind_second_moment <- sum(fit$post_assignment[i, ] * (t_post_var[i, ] + temp^2))
 
-  temp <- do.call(c,
-                  lapply (1: length(fit$f_list),
-                          function(k) (t_post_var[i,k]/ fit$data$se[i]^2 )*
-                          (  fit$data$betahat[i] )
-                          )
-                 )
+  ind_var <- ind_second_moment - ind_mean^2
 
-  ind_mean  <- sum( fit$post_assignment[i, ]*temp)
-  ind_second_moment <- sum( fit$post_assignment[i,]*(t_post_var[i, ] + temp^2 ))
-
-  ind_var <- ind_second_moment-ind_mean^2
-
-  return(list(mean=ind_mean,
-              sd= sqrt(ind_var)))
+  return(list(
+    mean = ind_mean,
+    sd = sqrt(ind_var)
+  ))
 }
 
 
 
 
 
-#'@title Compute individual posterior mean and sd under mococomo model
-#'@description Compute individual posterior mean and sd under mococomo model
+#' @title Compute individual posterior mean and sd under mococomo model
+#' @description Compute individual posterior mean and sd under mococomo model
 #'
 #' # TODO: allow using new observation from another data set (e.g. testing)
-#'@param fit a mococomo object
-#'@exemple
-#'see \link{\code{fit.mococomo}}
+#' @param fit a mococomo object
+#' @exemple
+#' see \link{\code{fit.mococomo}}
 
-post_mean_sd.mococomo <- function(fit){
-
-  t_post_var <- do.call(rbind,
-                        lapply( 1:length(fit$data$betahat),
-                                function(i)t_ind_var.mococomo(fit, i)
-                        )
+post_mean_sd.mococomo <- function(fit) {
+  t_post_var <- do.call(
+    rbind,
+    lapply(
+      1:length(fit$data$betahat),
+      function(i) t_ind_var.mococomo(fit, i)
+    )
   )
-  out <- do.call(rbind,
-                 lapply( 1: length(fit$data$betahat),
-                         function(i)cal_ind_moment12 (fit, t_post_var,i) ))
-   out <-data.frame(mean= do.call(c,out[,1]),
-                    sd =do.call(c,out[,2])
-                    ) #could be skip for speed
+  out <- do.call(
+    rbind,
+    lapply(
+      1:length(fit$data$betahat),
+      function(i) cal_ind_moment12(fit, t_post_var, i)
+    )
+  )
+  out <- data.frame(
+    mean = do.call(c, out[, 1]),
+    sd = do.call(c, out[, 2])
+  ) # could be skip for speed
 
 
 
   return(out)
-
 }
 
 
 
 
 
-#adapted from autoselect.mxisqp
+# adapted from autoselect.mxisqp
 # try to select a default range for the sigmaa values
 # that should be used, based on the values of betahat and sebetahat
 # mode is the location about which inference is going to be centered
 # gridmult is the multiplier by which the sds differ across the grid
 
-autoselect.mococomo = function(data,max_class,  mult =  2 ){
+autoselect.mococomo <- function(data, max_class, mult = 2) {
+  betahat <- data$betahat
+  sebetahat <- data$se
 
 
-  betahat = data$betahat
-  sebetahat = data$se
-
-
-  sigmaamin = min(sebetahat)/10 #so that the minimum is small compared with measurement precision
-  if(all(betahat^2<=sebetahat^2)){
-    sigmaamax = 8*sigmaamin #to deal with the occassional odd case where this could happen; 8 is arbitrary
-  }else{
-    sigmaamax = 2*sqrt(max(betahat^2-sebetahat^2)) #this computes a rough largest value you'd want to use, based on idea that sigmaamax^2 + sebetahat^2 should be at least betahat^2
+  sigmaamin <- min(sebetahat) / 10 # so that the minimum is small compared with measurement precision
+  if (all(betahat^2 <= sebetahat^2)) {
+    sigmaamax <- 8 * sigmaamin # to deal with the occassional odd case where this could happen; 8 is arbitrary
+  } else {
+    sigmaamax <- 2 * sqrt(max(betahat^2 - sebetahat^2)) # this computes a rough largest value you'd want to use, based on idea that sigmaamax^2 + sebetahat^2 should be at least betahat^2
   }
 
-  if(mult==0){
-    return(c(0,sigmaamax/2))
-  }else{
-    npoint = ceiling(log2(sigmaamax/sigmaamin)/log2(mult))
+  if (mult == 0) {
+    return(c(0, sigmaamax / 2))
+  } else {
+    npoint <- ceiling(log2(sigmaamax / sigmaamin) / log2(mult))
     out <- mult^((-npoint):0) * sigmaamax
-    if (!missing(max_class))
-    {
-      if(length(out)> max_class)
-         {
-           out <- seq(min(out), max(out), length.out=max_class)
-          }
+    if (!missing(max_class)) {
+      if (length(out) > max_class) {
+        out <- seq(min(out), max(out), length.out = max_class)
+      }
     }
-    return(out )
+    return(out)
   }
 }
-

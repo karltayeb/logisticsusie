@@ -49,7 +49,7 @@ sim_susie <- function(n = 1000, p = 50, L = 3, N = 1) {
   return(data)
 }
 
-sim_X_sparse <- function(n = 1000, p = 50, pi1 = 0.2, transition = 0.8) {
+sim_X_sparse <- function(n = 1000, p = 50, pi1 = 0.2, transition = 0.8, perm_cols = T) {
   X <- list()
   X[[1]] <- rbinom(n, 1, pi1)
   for (i in seq(2, p)) {
@@ -57,6 +57,10 @@ sim_X_sparse <- function(n = 1000, p = 50, pi1 = 0.2, transition = 0.8) {
     X[[i]] <- ifelse(rbinom(n, 1, transition) == 1, x, abs(x - 1))
   }
   X <- Matrix::Matrix(do.call(cbind, X), sparse = T)
+
+  if (perm_cols) {
+    X <- X[, sample(p)]
+  }
   return(X)
 }
 
@@ -64,7 +68,7 @@ sim_susie_sparse <- function(n = 1000, p = 50, L = 3, N = 1, pi1 = 0.2, transiti
   X <- sim_X_sparse(n, p, pi1, transition)
   Z <- matrix(rep(1, n), nrow = n)
 
-  beta <- 1.
+  beta <- 3.
   logits <- Matrix::rowSums(X[, 1:L])
   p <- sigmoid(logits)
   y <- rbinom(n, N, p)
@@ -89,7 +93,7 @@ sim_twococomo <- function(n = 1000, p = 50, L = 3, N = 1) {
 
 sim_twococomo_sparse <- function(n = 1000, p = 50, L = 3, N = 1) {
   sim <- sim_susie_sparse(n, p, L, N)
-  sim$beta <- rnorm(n) * sim$y
+  sim$beta <- 10 * rnorm(n) * sim$y
   sim$se <- 0.1 + rgamma(n, shape = 0.5)
   sim$betahat <- sim$beta + rnorm(n) * sim$se
 

@@ -48,20 +48,6 @@
 
 
 
-#' Convolved log density
-#' @param  dist is a list with parameters for the normal component
-#' @param betahat vector of oberveations
-#' @param se vector of standard errors of observations
-#' @return A vector of log densities log p(\hat\beta | se) = log N \hat\beta ; \mu, sigma^2 + se^2)
-convolved_logpdf.normal <- function(dist, betahat, se) {
-  sd <- sqrt(se^2 + dist$var)
-  logp <- dnorm(betahat, mean = dist$mu, sd = sd, log = TRUE)
-  logp <- .clamp(logp, 100, -100)
-  return(logp)
-}
-
-
-
 
 
 
@@ -74,7 +60,7 @@ compute_data_loglikelihood <- function(fit) {
   # compute loglikelihood of each data point under each component distribution
   # TODO: replace with generic convolved_logpdf function
   data_loglik <- do.call(cbind, purrr::map(
-    fit$f_list, ~ convolved_logpdf.normal(.x, fit$data$betahat, fit$data$se)
+    fit$f_list, ~ convolved_logpdf(.x, fit$data$betahat, fit$data$se)
   ))
   return(data_loglik)
 }

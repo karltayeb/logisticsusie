@@ -2,15 +2,6 @@
 
 
 
-convolved_logpdf.point <- function(dist, betahat, se) {
-  # return(dnorm(betahat, sd=se, log=T))
-  sd <- se
-  logp <- dnorm(betahat, mean = dist$mu, sd = sd, log = TRUE)
-  logp <- .clamp(logp, 1e3, -1e3)
-  return(logp)
-}
-
-
 #' Point Normal SuSiE
 #' Fits Point Normal SuSiE, observations are drawn from a two component mixture
 #' (point-mass at zero, normal).

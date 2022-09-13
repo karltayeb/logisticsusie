@@ -5,8 +5,8 @@
 compute_post_assignment <- function(fit) {
   # ln p(z=1)/p(z=0)
   logit_pi <- compute_Xb.binsusie(fit)
-  f0_loglik <- convolved_logpdf.point(fit$f0, fit$data$betahat, fit$data$se)
-  f1_loglik <- convolved_logpdf.normal(fit$f1, fit$data$betahat, fit$data$se)
+  f0_loglik <- convolved_logpdf(fit$f0, fit$data$betahat, fit$data$se)
+  f1_loglik <- convolved_logpdf(fit$f1, fit$data$betahat, fit$data$se)
   logits <- f1_loglik - f0_loglik + logit_pi
   post_assignment <- sigmoid(logits)
   return(post_assignment)
@@ -21,8 +21,8 @@ compute_assignment_entropy <- function(fit) {
 #' E[logp(y | f0, f1, z)]
 #'
 loglik.twococomo <- function(fit) {
-  f0_loglik <- convolved_logpdf.point(fit$f0, fit$data$betahat, fit$data$se)
-  f1_loglik <- convolved_logpdf.normal(fit$f1, fit$data$betahat, fit$data$se)
+  f0_loglik <- convolved_logpdf(fit$f0, fit$data$betahat, fit$data$se)
+  f1_loglik <- convolved_logpdf(fit$f1, fit$data$betahat, fit$data$se)
   loglik <- (1 - fit$data$y) * f0_loglik + fit$data$y * f1_loglik
   return(loglik)
 }
@@ -40,20 +40,20 @@ init.twococomo <- function(data, L = 5, prior_mean = 0, prior_variance = 1, prio
   data$X2 <- data$X^2
 
   # initialize component distribution
-  f0 <- list(mu = 0)
-  f1 <- list(mu = 0, var = 1)
+  f0 <- point_component(mu = 0)
+  f1 <- normal_component(mu = 0, var = 1)
 
   # initialize posterior assignment
-  f0_loglik <- convolved_logpdf.point(f0, data$betahat, data$se)
-  f1_loglik <- convolved_logpdf.normal(f1, data$betahat, data$se)
+  f0_loglik <- convolved_logpdf(f0, data$betahat, data$se)
+  f1_loglik <- convolved_logpdf(f1, data$betahat, data$se)
   logits <- f1_loglik - f0_loglik + 0 # TODO: set default prior odds to something other than 0
 
   data$y <- sigmoid(logits) # initialize component assignment
   fit <- init.binsusie(data,
-                       L = L,
-                       prior_mean = prior_mean,
-                       prior_variance = prior_variance,
-                       prior_weights = prior_weights
+    L = L,
+    prior_mean = prior_mean,
+    prior_variance = prior_variance,
+    prior_weights = prior_weights
   )
 
   # add 2como specific attributes
