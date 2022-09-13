@@ -6,8 +6,7 @@
 Fits Point Normal SuSiE, observations are drawn from a two component mixture
 (point-mass at zero, normal).
 The prior log odds of being non-zero are a linear function of covariates X
-and the effects have a SuSiE prior
-@param X a n x p matrix of covariates}
+and the effects have a SuSiE prior}
 \usage{
 pointnormalsusie(
   X,
@@ -15,6 +14,8 @@ pointnormalsusie(
   se,
   Z = NULL,
   L = min(10, ncol(X)),
+  f1_params = list(),
+  estimate_f1 = FALSE,
   prior_mean = 0,
   prior_variance = 1,
   prior_weights = NULL,
@@ -30,11 +31,19 @@ pointnormalsusie(
 )
 }
 \arguments{
+\item{X}{a n x p matrix of covariates}
+
 \item{betahat}{an n vector of observations}
 
 \item{se}{a n vector of standard errors}
 
 \item{Z}{fixed effect covaraites (including intercept). If null just a n x 1 matrix of ones}
+
+\item{L}{number of single effects}
+
+\item{f1_params}{list of parameters to initialize f1, must be a subset of those accepted by the constructor for f1}
+
+\item{estimate_f1}{boolean whether or not to estimate the parameters of f1}
 
 \item{prior_mean}{the prior mean of each non-zero element of b. Either a scalar or vector of length L.}
 
@@ -52,5 +61,4 @@ Fits Point Normal SuSiE, observations are drawn from a two component mixture
 (point-mass at zero, normal).
 The prior log odds of being non-zero are a linear function of covariates X
 and the effects have a SuSiE prior
-@param X a n x p matrix of covariates
 }

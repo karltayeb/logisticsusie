@@ -7,10 +7,13 @@
 #' (point-mass at zero, normal).
 #' The prior log odds of being non-zero are a linear function of covariates X
 #' and the effects have a SuSiE prior
-#'  @param X a n x p matrix of covariates
+#' @param X a n x p matrix of covariates
 #' @param betahat an n vector of observations
 #' @param se a n vector of standard errors
 #' @param Z fixed effect covaraites (including intercept). If null just a n x 1 matrix of ones
+#' @param L number of single effects
+#' @param f1_params list of parameters to initialize f1, must be a subset of those accepted by the constructor for f1
+#' @param estimate_f1 boolean whether or not to estimate the parameters of f1
 #' @param prior_mean the prior mean of each non-zero element of b. Either a scalar or vector of length L.
 #' @param prior_variance the prior variance of each non-zero element of b. Either a scalar or vector of length L. If `estimate_prior_variance=TRUE` the value provides an initial estimate of prior variances
 #' @param prior_weights prior probability of selecting each column of X, vector of length p summing to one, or an L x p matrix
@@ -24,6 +27,8 @@ pointnormalsusie <- function(X,
                              se,
                              Z = NULL,
                              L = min(10, ncol(X)),
+                             f1_params = list(),
+                             estimate_f1 = FALSE,
                              prior_mean = 0.0, # set prior mean (feature added for Gao and Bohan)
                              prior_variance = 1.0, # TODO: make scaled prior variance?
                              prior_weights = NULL, # vector of length `p` gjvj g the prior probability of each column of X having nonzero effect... = hypers$pi
@@ -47,6 +52,8 @@ pointnormalsusie <- function(X,
     fit <- init.twococomo(
       data,
       L = L,
+      f1_dist = "normal",
+      f1_params = f1_params,
       prior_mean = prior_mean,
       prior_variance = prior_variance,
       prior_weights = prior_weights

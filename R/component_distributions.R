@@ -3,12 +3,23 @@ convolved_logpdf <- function(x, ...) {
   UseMethod("convolved_logpdf", x)
 }
 
+
+update_params <- function(x, ...) {
+  UseMethod("update_params", x)
+}
+
 # Defaults ----
 
 convolved_logpdf.component_distribution <- function(dist, betahat, se) {
   # TODO: compute convolved pdf by numerical integration?
   # Will probably require logpdf/pdf be implimented for each component
   stop("Generic convolved logpdf not implimented yet")
+}
+
+update_params.component_distribution <- function(dist, betahat, se) {
+  # TODO: compute convolved pdf by numerical integration?
+  # Will probably require logpdf/pdf be implimented for each component
+  stop("Generic update not implimented")
 }
 
 # Point mass Component----
@@ -53,4 +64,15 @@ convolved_logpdf.normal <- function(dist, betahat, se) {
   logp <- dnorm(betahat, mean = dist$mu, sd = sd, log = TRUE)
   logp <- .clamp(logp, 100, -100)
   return(logp)
+}
+
+
+#' Update variance of the normal parameter on a grid centered around the current estimate
+#' on a log2 scale
+update_params.normal <- function(dist, betahat, se, weights) {
+  var.init <- dist$var
+  grid_var <- 2^(seq(-1, 1, by = 0.1) + log2(var.init))
+  grid_dist <- purrr::map(grid_var, ~ normal_component(mu = dist$mu, var = .x))
+  ll <- purrr::map_dbl(grid_dist, ~ sum(convolved_logpdf.normal(.x, betahat, se) * weights, na.rm = T))
+  return(grid_dist[[which.max(ll)]])
 }

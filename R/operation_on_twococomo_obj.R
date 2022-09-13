@@ -35,13 +35,32 @@ compute_elbo.twococomo <- function(fit) {
   return(elbo)
 }
 
-init.twococomo <- function(data, L = 5, prior_mean = 0, prior_variance = 1, prior_weights = NULL) {
+#' Initialize Two CoCoMo
+#' @param data list of data for twococomo
+#' @param L number of single effects
+#' @param f1_dist the name of `component_distribution` for the non-null component
+#' @param f1_params list of parameters to initialize f1, must be a subset of those accepted by the constructor for f1
+#' @param prior_mean the prior mean of each non-zero element of b. Either a scalar or vector of length L.
+#' @param prior_variance the prior variance of each non-zero element of b. Either a scalar or vector of length L. If `estimate_prior_variance=TRUE` the value provides an initial estimate of prior variances
+#' @param prior_weights prior probability of selecting each column of X, vector of length p summing to one, or an L x p matrix
+#' @param returns am initialized twococomo object
+init.twococomo <- function(data,
+                           L = 5,
+                           f1_dist = "normal",
+                           f1_params = list(),
+                           prior_mean = 0,
+                           prior_variance = 1,
+                           prior_weights = NULL) {
   # TODO:  check data has betahat, se, X, Z, N, etc
   data$X2 <- data$X^2
 
   # initialize component distribution
   f0 <- point_component(mu = 0)
-  f1 <- normal_component(mu = 0, var = 1)
+
+  f1 <- rlang::exec(
+    paste0(f1_dist, "_component"), # constructor name
+    !!!f1_params # unpack list of params
+  )
 
   # initialize posterior assignment
   f0_loglik <- convolved_logpdf(f0, data$betahat, data$se)
@@ -63,22 +82,28 @@ init.twococomo <- function(data, L = 5, prior_mean = 0, prior_variance = 1, prio
   return(fit)
 }
 
-iter.twococomo <- function(fit, intercept = TRUE, estimate_prior_variance = TRUE) {
+iter.twococomo <- function(fit, intercept = TRUE, estimate_prior_variance = TRUE, estimate_f1 = TRUE) {
   # update assignments
   fit$data$y <- compute_post_assignment(fit)
+
   # update SuSiE
   fit <- iter.binsusie(fit, intercept, estimate_prior_variance)
 
   # TODO: update mixture components
-
+  if (estimate_f1) {
+    fit$f1 <- update_params(
+      fit$f1, fit$data$betahat, fit$data$se,
+      weights = fit$data$y
+    )
+  }
   return(fit)
 }
 
-fit.twococomo <- function(data, maxiter = 100, tol = 1e-3) {
+fit.twococomo <- function(data, maxiter = 100, tol = 1e-3, estimate_f1 = TRUE) {
   fit <- init.twococomo(data)
 
   for (i in 1:maxiter) {
-    fit <- iter.twococomo(fit)
+    fit <- iter.twococomo(fit, estimate_f1 = estimate_f1)
     fit$elbo <- c(fit$elbo, compute_elbo.twococomo(fit))
     if (.converged(fit, tol)) {
       break
