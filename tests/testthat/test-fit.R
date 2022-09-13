@@ -248,6 +248,22 @@ testthat::test_that("Two CoCoMo Monotone", {
 })
 
 
+test_twococomo_sparse <- function(N = 1) {
+  data <- sim_twococomo_sparse(N = N)
+  fit <- fit.twococomo(data)
+  return(list(
+    fit = fit,
+    monotone = .monotone(fit$elbo)
+  ))
+}
+
+
+testthat::test_that("Two CoCoMo Monotone (SPARSE)", {
+  for (i in seq(5)) {
+    testthat::expect_true(test_twococomo_sparse(1)$monotone)
+  }
+})
+
 ###
 # More component covariate moderated
 ###

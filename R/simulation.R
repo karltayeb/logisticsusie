@@ -86,6 +86,17 @@ sim_twococomo <- function(n = 1000, p = 50, L = 3, N = 1) {
   return(sim)
 }
 
+
+sim_twococomo_sparse <- function(n = 1000, p = 50, L = 3, N = 1) {
+  sim <- sim_susie_sparse(n, p, L, N)
+  sim$beta <- rnorm(n) * sim$y
+  sim$se <- 0.1 + rgamma(n, shape = 0.5)
+  sim$betahat <- sim$beta + rnorm(n) * sim$se
+
+  class(sim) <- "data_mococomo"
+  return(sim)
+}
+
 #' @export
 sim_mococomo <- function(n = 1000, p = 50, L = 3, N = 1) {
   sim <- sim_susie(n, p, L, N)
