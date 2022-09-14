@@ -1,9 +1,25 @@
 # Generics -----
+
+#' Convolved logpdf
+#'
+#' Generic function for `component_distribution` objects, computes the loglikelihood of an observation from
+#' the component distribution, corrupted by gaussian measurement error
+#'
+#' @param betahat observations
+#' @param se standard errors of observations
+#' @return the convolved log density log p(betahat | se) = log \int N(betahat | beta, se) p(beta) dbeta
 convolved_logpdf <- function(x, ...) {
   UseMethod("convolved_logpdf", x)
 }
 
-
+#' Update Params
+#'
+#' Generic function for updating the parameters of a `component_distribution`
+#'
+#' @param betahat observations
+#' @param se standard errors of observations
+#' @param weights weights to weigh each observation by when optimizing
+#' @return a new `component_distribution` object with update parameters
 update_params <- function(x, ...) {
   UseMethod("update_params", x)
 }
@@ -54,11 +70,6 @@ is.normal <- function(x) {
   inherits(x, "normal")
 }
 
-#' Convolved log density
-#' @param  dist is a list with parameters for the normal component
-#' @param betahat vector of oberveations
-#' @param se vector of standard errors of observations
-#' @return A vector of log densities log p(\hat\beta | se) = log N \hat\beta ; \mu, sigma^2 + se^2)
 convolved_logpdf.normal <- function(dist, betahat, se) {
   sd <- sqrt(se^2 + dist$var)
   logp <- dnorm(betahat, mean = dist$mu, sd = sd, log = TRUE)
@@ -66,10 +77,8 @@ convolved_logpdf.normal <- function(dist, betahat, se) {
   return(logp)
 }
 
-
-#' Update variance of the normal parameter on a grid centered around the current estimate
-#' on a log2 scale
 update_params.normal <- function(dist, betahat, se, weights) {
+  # TODO: right now it's just a grid search, but we can impliment EM update easily
   var.init <- dist$var
   grid_var <- 2^(seq(-1, 1, by = 0.1) + log2(var.init))
   grid_dist <- purrr::map(grid_var, ~ normal_component(mu = dist$mu, var = .x))
