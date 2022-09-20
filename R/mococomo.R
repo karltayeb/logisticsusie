@@ -5,7 +5,7 @@
 #'
 #' @param data an object of class data_mococomo  see \link{\code{set_data_mococomo}}
 #' @param maxiter numeric, maximum numerous of itration set to 100 by defaults
-#' @param tol tolreance in term of chjange in ELBO value for stopping criterion
+#' @param tol tolreance in term of change in ELBO value for stopping criterion
 #' @export
 #' @example
 #' #Simulate data under the mococomo model
