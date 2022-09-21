@@ -15,47 +15,44 @@ X_f <- matrix(rnorm(ncol(Y)*10), nrow= ncol(Y))
 
 
 t1 <- init_cEBMF (Y, X_l,X_f,K=1, init_type = "udv_si")
-cEBMF.obj <- cEBMF_iter(cEBMF.obj)
+cEBMF.obj <- cEBMF_iter(t1)
 
 t2 <- init_cEBMF (Y, X_l,X_f,K=5, init_type = "udv_si")
-cEBMF.obj <- cEBMF_iter(cEBMF.obj)
+cEBMF.obj <- cEBMF_iter(t2)
 
 t3 <- init_cEBMF (Y, X_l,X_f,K=15, init_type = "udv_si")
-cEBMF.obj <- cEBMF_iter(cEBMF.obj)
+cEBMF.obj <- cEBMF_iter(t3)
 
 t1 <- init_cEBMF (Y, X_l,X_f,K=1, init_type = "udv")
-cEBMF.obj <- cEBMF_iter(cEBMF.obj)
+cEBMF.obj <- cEBMF_iter(t1 )
 
 t2 <- init_cEBMF (Y, X_l,X_f,K=5, init_type = "udv")
-cEBMF.obj <- cEBMF_iter(cEBMF.obj)
+cEBMF.obj <- cEBMF_iter(t2)
 
 t3 <- init_cEBMF (Y, X_l,X_f,K=15, init_type = "udv_si_svd")
-cEBMF.obj <- cEBMF_iter(cEBMF.obj)
+cEBMF.obj <- cEBMF_iter(t3)
 
 t1 <- init_cEBMF (Y, X_l,X_f,K=1, init_type = "udv_si_svd")
-cEBMF.obj <- cEBMF_iter(cEBMF.obj)
+cEBMF.obj <- cEBMF_iter(t1)
 
 t2 <- init_cEBMF (Y, X_l,X_f,K=5, init_type = "udv_si_svd")
-cEBMF.obj <- cEBMF_iter(cEBMF.obj)
+cEBMF.obj <- cEBMF_iter(t2)
 
 t3 <- init_cEBMF (Y, X_l,X_f,K=15, init_type = "udv_si_svd")
-cEBMF.obj <- cEBMF_iter(cEBMF.obj)
+cEBMF.obj <- cEBMF_iter(t3)
 
 
 
 
-Y_est <- cEBMF.obj$loading[,k]%*%t(cEBMF.obj$factor[,k])
-plot( Y_est, Y_true )
-
-cEBMF.obj <- init_cEBMF (Y, X_l,X_f,K=3, init_type = "udv_si")
+cEBMF.obj <- init_cEBMF (Y, X_l,X_f,K=2, init_type = "udv_si")
 
 for (i in 1:5) {
   cEBMF.obj <- cEBMF_iter  (cEBMF.obj)
-  print(i)
+
 }
 Y_est <- Reduce("+", lapply( 1:cEBMF.obj$K, function(k) cEBMF.obj$loading[,k]%*%t(cEBMF.obj$factor[,k]) ))
 
-
+cEBMF.obj$elbo
 plot(cEBMF.obj$elbo)
 testthat::test_that("exemple elbo should be monotonic",{
   expect_equal(.monotone(cEBMF.obj$elbo), TRUE)

@@ -388,3 +388,7 @@ get_KL.mococomo <- function(fit){
   return( kl)
 }
 
+get_fdr  <- function(fit){
+  out <-  fit$post_assignment[,1]/ (apply(fit$post_assignment,1,sum))
+  return(out)
+}

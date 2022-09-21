@@ -12,7 +12,7 @@
 #'  @param type_noise specify which kind of noise structure is expected, currently three choices. Whether noise constant accross column ('column_wise'), constant 'constant' or constant across rown 'row_wise'
 #'  @param init_type specify initialisation method for loading and factor, methods includes: "udv", "udv_si_svd", "si" (softimpute), "ones" and "rand_udv"
 #' @return a cEBMF object
-init_cEBMF <- function(Y, X_l,X_f,K=1, type_noise='constant',init_type="udv_si" )
+init_cEBMF <- function(Y, X_l,X_f,K=1, type_noise= "constant",init_type="udv_si" )
 {
 
 
@@ -38,7 +38,7 @@ init_cEBMF <- function(Y, X_l,X_f,K=1, type_noise='constant',init_type="udv_si" 
       X_f        = X_f,
       K          = K,
       type_noise = type_noise,
-      elbo       = c(),
+      elbo       = -Inf,
       param_loading = list(), #susie param for each loading
       KL_l          = list(),
       param_factor  = list(),  #susie param for each factor
@@ -74,7 +74,7 @@ init_cEBMF <- function(Y, X_l,X_f,K=1, type_noise='constant',init_type="udv_si" 
       X_f        = X_f,
       K          = K,
       type_noise = type_noise,
-      elbo       = c(),
+      elbo       = -Inf,
       param_loading = list(), #susie param for each loading
       KL_l          = list(),
       param_factor  = list(),  #susie param for each factor
@@ -105,7 +105,7 @@ init_cEBMF <- function(Y, X_l,X_f,K=1, type_noise='constant',init_type="udv_si" 
       X_f        = X_f,
       K          = K,
       type_noise = type_noise,
-      elbo       = c(),
+      elbo       = -Inf,
       param_loading = list(), #susie param for each loading
       KL_l          = list(),
       param_factor  = list(),  #susie param for each factor
@@ -138,7 +138,7 @@ init_cEBMF <- function(Y, X_l,X_f,K=1, type_noise='constant',init_type="udv_si" 
       X_f        = X_f,
       K          = K,
       type_noise = type_noise,
-      elbo       = c(),
+      elbo       = -Inf,
       param_loading = list(), #susie param for each loading
       KL_l          = list(),
       param_factor  = list(),  #susie param for each factor
@@ -170,7 +170,7 @@ init_cEBMF <- function(Y, X_l,X_f,K=1, type_noise='constant',init_type="udv_si" 
       X_f        = X_f,
       K          = K,
       type_noise = type_noise,
-      elbo       = c(),
+      elbo       = -Inf,
       param_loading = list(), #susie param for each loading
       KL_l          = list(),
       param_factor  = list(),  #susie param for each factor
@@ -182,6 +182,26 @@ init_cEBMF <- function(Y, X_l,X_f,K=1, type_noise='constant',init_type="udv_si" 
   #initialize tau using observed variance
   tau <- update_tau.cEBMF(cEBMF.obj)$tau
   return(cEBMF.obj)
+}
+
+
+
+#'@param cEBMF a cEBMF object
+
+cEBMF_iter <- function(cEBMF.obj){
+
+  for( k in 1:cEBMF.obj$K){
+
+    cEBMF.obj <- update_cEBMF(cEBMF.obj, k)
+
+  }
+  cEBMF.obj <- update_tau.cEBMF (cEBMF.obj)
+  #cEBMF.obj$tau
+
+  cEBMF.obj <- update_elbo.cEBMF(cEBMF.obj)
+
+  return(cEBMF.obj)
+
 }
 
 
@@ -244,12 +264,18 @@ cal_expected_factor <- function( cEBMF.obj, Rk,k){
 
 cal_fitted_value.cEBMF <- function(cEBMF.obj)
 {
-  cEBMF.obj$Y_fit <-   Reduce("+",
-                              lapply( 1:cEBMF.obj$K,
-                                      function(k)
-                                        cEBMF.obj$loading[ ,k]%*%t(cEBMF.obj$factor[ ,k])
-                              )
-  )
+
+  if(cEBMF.obj$K ==1 ){
+    cEBMF.obj$Y_fit <- cEBMF.obj$loading %*%t(cEBMF.obj$factor)
+  }else{
+    cEBMF.obj$Y_fit <-   Reduce("+",
+                                lapply( 1:cEBMF.obj$K,
+                                        function(k)
+                                          cEBMF.obj$loading[ ,k]%*%t(cEBMF.obj$factor[ ,k])
+                                      )
+                               )
+  }
+
 
   return(cEBMF.obj)
 }
@@ -260,7 +286,7 @@ cal_expected_residuals.cEBMF <- function(cEBMF.obj)
   if(cEBMF.obj$K==1){
     prod_square_firstmom <- (cEBMF.obj$loading^2)%*%t(cEBMF.obj$factor^2)
 
-    prod_sectmom <-   (cEBMF.obj$loading2)%*%t(cEBMF.obj$factor2)
+    prod_sectmom         <- (cEBMF.obj$loading2)%*%t(cEBMF.obj$factor2)
   }else{
     prod_square_firstmom <-   Reduce("+",
                                      lapply( 1:cEBMF.obj$K,
@@ -276,9 +302,9 @@ cal_expected_residuals.cEBMF <- function(cEBMF.obj)
     )
   }
 
+  cEBMF.obj <- update_fitted_val(cEBMF.obj)
 
-
-  R2  <- (cEBMF.obj$Y  -  cEBMF.obj$Y_fit)^2 -  prod_square_firstmom+ prod_sectmom
+  R2  <- (cEBMF.obj$Y  -  cEBMF.obj$Y_fit)^2 -  prod_square_firstmom + prod_sectmom
 
   return(R2)
 
@@ -349,24 +375,7 @@ update_tau.cEBMF <- function(cEBMF.obj )
 }
 
 #'@param cEBMF a cEBMF object
-
-cEBMF_iter <- function(cEBMF.obj){
-
-  for( k in 1:cEBMF.obj$K){
-
-    cEBMF.obj <- update_cEBMF(cEBMF.obj, k)
-
-  }
-  cEBMF.obj <- update_tau.cEBMF (cEBMF.obj)
-  #cEBMF.obj$tau
-  cEBMF.obj <- update_elbo.cEBMF(cEBMF.obj$elbo)
-print(cEBMF.obj$elbo)
-  return(cEBMF.obj)
-
-}
-
-#'@param cEBMF a cEBMF object
-update_elbo.cEBMF <- function( cEBMF){
+update_elbo.cEBMF <- function( cEBMF.obj){
   cEBMF.obj$elbo <- c(cEBMF.obj$elbo,
                       get_objective.cEBMF (cEBMF.obj)
   )
@@ -424,6 +433,11 @@ update_cEBMF <-  function(cEBMF.obj, k)
 }
 
 
+update_fitted_val <- function( cEBMF.obj)
+{
+  cEBMF.obj <- cal_fitted_value.cEBMF(cEBMF.obj)
+  return(cEBMF.obj)
+}
 
 #' @title prepare output of cEMBF function
 #' @description prepare output of cEMBF function
@@ -432,16 +446,12 @@ update_cEBMF <-  function(cEBMF.obj, k)
 
 out_prep.cEBMF <- function(cEBMF.obj)
 {
-  cEBMF.obj$Y_fit <- cal_fitted_value.cEBMF(cEBMF.obj)
+  cEBMF.obj <- update_fitted_val(cEBMF.obj)
 }
 
 
 
-compute_elbo.cEBMF <- function(cEBMF.obj){
 
-
-  sum(unlist(f$KL_l)) + sum(unlist(f$KL_f)) + e_loglik(data, f)
-}
 
 
 get_objective.cEBMF = function(cEBMF.obj) {
@@ -458,7 +468,7 @@ get_objective.cEBMF = function(cEBMF.obj) {
 e_loglik = function(cEBMF.obj) {
   R2    <- cal_expected_residuals.cEBMF(cEBMF.obj)
   tau   <- cEBMF.obj$tau
-  e_log <-  e_loglik_R2_tau(R2, tau )
+  e_log <- e_loglik_R2_tau(R2, tau )
   return(e_log)
 }
 
