@@ -123,6 +123,22 @@ sim_twococomo_sparse <- function(n = 1000, p = 50, L = 3, N = 1) {
   return(sim)
 }
 
+
+sim_mn_susie <- function(n = 1000, p = 50, L = 3, N = 1, K = 10) {
+  X <- sim_X(n = n, p = p)
+  Z <- matrix(rep(1, n), nrow = n)
+
+  Beta <- matrix(rnorm(p * K), nrow = p) / 10
+  logits <- X %*% Beta
+
+  Y <- t(do.call(cbind, purrr::map(seq(n), ~ rmultinom(1, 50, softmax(logits[.x, ])))))
+
+  data <- list(
+    X = X, Z = Z, y = Y, logits = logits
+  )
+  return(data)
+}
+
 #' @export
 sim_mococomo <- function(n = 1000, p = 50, L = 3, N = 1) {
   sim <- sim_susie(n, p, L, N)
