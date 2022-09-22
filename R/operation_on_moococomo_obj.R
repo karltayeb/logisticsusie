@@ -378,3 +378,17 @@ autoselect.mococomo <- function(data, max_class, mult = 2) {
     return(out)
   }
 }
+
+
+
+get_KL.mococomo <- function(fit){
+  kl_susie <- sum(purrr::map_dbl(fit$logreg_list, compute_kl.binsusie))
+  kl_omega <- sum(purrr::map_dbl(fit$logreg_list, function(x) sum(pg_kl(x$data$N, x$params$xi))))
+  kl <- kl_susie + kl_omega
+  return( kl)
+}
+
+get_fdr  <- function(fit){
+  out <-  fit$post_assignment[,1]/ (apply(fit$post_assignment,1,sum))
+  return(out)
+}
