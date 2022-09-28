@@ -389,6 +389,12 @@ get_KL.mococomo <- function(fit){
 }
 
 get_fdr  <- function(fit){
-  out <-  fit$post_assignment[,1]/ (apply(fit$post_assignment,1,sum))
+  tt1 <-  fit$post_assignment[,1]* dnorm( fit$data$betahat, mean=0, sd= fit$data$se )
+  tt2 <-    Reduce("+",lapply( 2: ncol(fit$post_assignment),
+                               function(k)  fit$post_assignment[,k]* dnorm( fit$data$betahat,
+                                                                            mean=0,
+                                                                            sd= sqrt( fit$data$se^2+ fit$f_list[[k]]$var ) )))
+  out <- tt1/(tt1+tt2)
+
   return(out)
 }
