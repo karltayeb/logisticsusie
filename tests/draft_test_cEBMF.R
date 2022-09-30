@@ -4,7 +4,6 @@ library(logisticsusie)  #Simulate data under the mococomo model
 sim11  <- sim_twococomo(n=1000)
 
 
-plot( out$mean, sim1$beta)
 #preparing the data
 
 data11 <-set_data_mococomo(betahat = sim11$betahat,
@@ -25,7 +24,7 @@ data22 <-set_data_mococomo(betahat = sim22$betahat,
                           X  = sim22$X)
 
 Y_true <- sim11$beta%*%t(sim21$beta)+ sim12$beta%*%t(sim22$beta)
-Y <- data1$betahat%*%t(data2$betahat) +data11$betahat%*%t(data22$betahat)
+Y <- data11$betahat%*%t(data21$betahat) +data12$betahat%*%t(data22$betahat)
 
 plot( Y,Y_true)
 X_l =data11$X
@@ -38,8 +37,9 @@ image(Y_true)
 
 K=2
 dim(Y)
+library(softImpute)
 cEBMF.obj <- init_cEBMF (Y, X_l,X_f,K=2, init_type = "udv_si")
-plot(cEBMF.obj$loading[,1] ,data1$betahat)
+plot(cEBMF.obj$loading[,1] ,data11$betahat)
 
 
 
@@ -80,7 +80,7 @@ for ( o in 1:4){
 
 
 Y_est <- cEBMF.obj$loading[,1]%*%t(cEBMF.obj$factor[,1])+cEBMF.obj$loading[,2]%*%t(cEBMF.obj$factor[,2])
-
+library(flashr)
 f <- flash(Y)
 plot( Y_est, Y )
 plot( Y_true, Y )
