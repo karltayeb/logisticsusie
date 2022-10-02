@@ -10,6 +10,8 @@ data11 <-set_data_mococomo(betahat = sim11$betahat,
                           se = sim11$se ,
                           X  = sim11$X)
 sim12  <- sim_twococomo(n=1000)
+
+fit <- fit.mococomo(data11)
 data12 <-set_data_mococomo(betahat = sim12$betahat,
                            se = sim12$se ,
                            X  = sim12$X)
