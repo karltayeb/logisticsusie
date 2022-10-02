@@ -1,54 +1,9 @@
 
-
-#' Get N x K-1 matrix of PG variational parameters
-#' TODO: deprecate this when we call update functions directly rather than
-#' passing to logistic susie subroutine
-get_xi.mococomo <- function(fit) {
-  xi <- do.call(cbind, purrr::map(fit$logreg_list, ~ purrr::pluck(.x, "params", "xi"))) # N x K-1
-  return(xi)
-}
-
-compute_Xb.mococomo <- function(fit) {
-  Xb <- do.call(cbind, purrr::map(fit$logreg_list, compute_Xb.binsusie)) # N x K-1
-  return(Xb)
-}
-
-compute_prior_assignment <- function(fit) {
-  # TODO alias compute_Xb with predict so that it works with other functions?
-  # TODO make sure GLM predict outputs log-odds scale?
-  Xb <- do.call(cbind, purrr::map(fit$logreg_list, compute_Xb.binsusie)) # N x K-1
-  res <- do.call(rbind, apply(Xb, 1, .predict2logpi, simplify = F)) # N x K
-  return(res)
-}
-
-
-.compute_prior_assignment2 <- function(xb) {
-  log(.pi_tilde2pi(sigmoid(xb)))
-}
-
-#' DONT USE, this ignores the PG agumentation and treats E[Xb_k] as the conditional log odds of sampling component k
-#' and simply converts these quantitities to a vector of probabilities
-compute_prior_assignment2 <- function(fit, log = TRUE) {
-  # TODO alias compute_Xb with predict so that it works with other functions?
-  # TODO make sure GLM predict outputs log-odds scale?
-  pi_tilde <- do.call(cbind, purrr::map(fit$logreg_list, ~ sigmoid(compute_Xb.binsusie(.x)))) # N x K-1
-  res <- do.call(rbind, apply(pi_tilde, 1, .pi_tilde2pi, simplify = F)) # N x K
-
-  if (log) {
-    res <- log(res)
-  } # exponentiate if log=FALSE
-  return(res)
-}
-
-
-
-
-
 #' Compute Expected Assignment Log Likelihood
 #' @return N x K matrix each row has E[p(z=k | \beta, \omega)] for k = 1,..., K
 compute_assignment_loglikelihood.mococomo <- function(fit, normalize = TRUE) {
   K <- length(fit$f_list)
-  Xb <- do.call(cbind, purrr::map(fit$logreg_list, compute_Xb.binsusie)) # N x K-1
+  Xb <- compute_Xb.mnsusie() # N x K-1
   Xbcum <- do.call(rbind, apply(Xb, 1, cumsum, simplify = F))
   kln2 <- seq(K - 1) * log(2)
 
@@ -139,6 +94,7 @@ compute_elbo2.mococomo <- function(fit) {
 compute_elbo.mococomo <- function(fit) {
   K <- length(fit$f_list)
   N <- .expected_trials(fit$post_assignment)
+
   # MAKE SURE susie has access to the right posteriors!
   # and update omega so jj bound is tight
   for (k in seq(K - 1)) {
@@ -155,8 +111,8 @@ compute_elbo.mococomo <- function(fit) {
 
   ll <- sum(post_assignment * data_loglik)
   assignment_entropy <- sum(apply(post_assignment, 1, categorical_entropy))
-  logreg_elbo <- sum(purrr::map_dbl(fit$logreg_list, compute_elbo.binsusie))
-  elbo <- ll + assignment_entropy + logreg_elbo
+  mnsusie_elbo <- compute_elbo.mnsusie(fit)
+  elbo <- ll + assignment_entropy + mnsusie_elbo
   return(elbo)
 }
 
@@ -194,25 +150,11 @@ init.mococomo <- function(data, max_class, mult = 2) {
   data$y <- Y
   data$N <- N
 
-  # initialize K-1 logistic SuSiE
-  .init_logreg <- function(y, N) {
-    dat <- list(
-      X = data$X,
-      Z = data$Z,
-      y = y,
-      N = N
-    )
-    fit <- init.binsusie(dat)
-    return(fit)
-  }
-  logreg_list <- purrr::map(seq(K - 1), ~ .init_logreg(Y[, .x], N[, .x]))
-  fit <- list(
-    data = data,
-    logreg_list = logreg_list,
-    f_list = f_list,
-    post_assignment = Y,
-    N = N
-  )
+  # it's multinational regression + some other stuff
+  fit <- init.mnsusie(data)
+  fit$f_list <- f_list
+  fit$post_assignment <- Y
+  fit$N <- N
 
   # only need to do this once when component probabilities are fixed
   fit$data_loglik <- compute_data_loglikelihood(fit)
@@ -229,19 +171,14 @@ iter.mococomo <- function(fit, update_assignment = T, update_logreg = T) {
     fit$N <- .expected_trials(fit$post_assignment)
   }
 
+  # pass assignments to logreg
+  for (k in seq(K - 1)) {
+    fit$logreg_list[[k]]$data$y <- fit$post_assignment[, k]
+    fit$logreg_list[[k]]$data$N <- fit$N[, k]
+  }
+
   if (update_logreg) {
-    logreg_list <- list()
-    for (k in seq(K - 1)) {
-      logreg <- fit$logreg_list[[k]]
-
-      # pass assignments to logreg
-      logreg$data$y <- fit$post_assignment[, k]
-      logreg$data$N <- fit$N[, k]
-
-      # update logreg
-      logreg_list[[k]] <- iter.binsusie(logreg)
-    }
-    fit$logreg_list <- logreg_list
+    fit <- iter.mnsusie(fit)
   }
 
   return(fit)
@@ -381,20 +318,25 @@ autoselect.mococomo <- function(data, max_class, mult = 2) {
 
 
 
-get_KL.mococomo <- function(fit){
+get_KL.mococomo <- function(fit) {
   kl_susie <- sum(purrr::map_dbl(fit$logreg_list, compute_kl.binsusie))
   kl_omega <- sum(purrr::map_dbl(fit$logreg_list, function(x) sum(pg_kl(x$data$N, x$params$xi))))
   kl <- kl_susie + kl_omega
-  return( kl)
+  return(kl)
 }
 
-get_fdr  <- function(fit){
-  tt1 <-  fit$post_assignment[,1]* dnorm( fit$data$betahat, mean=0, sd= fit$data$se )
-  tt2 <-    Reduce("+",lapply( 2: ncol(fit$post_assignment),
-                               function(k)  fit$post_assignment[,k]* dnorm( fit$data$betahat,
-                                                                            mean=0,
-                                                                            sd= sqrt( fit$data$se^2+ fit$f_list[[k]]$var ) )))
-  out <- tt1/(tt1+tt2)
+get_fdr <- function(fit) {
+  tt1 <- fit$post_assignment[, 1] * dnorm(fit$data$betahat, mean = 0, sd = fit$data$se)
+  tt2 <- Reduce("+", lapply(
+    2:ncol(fit$post_assignment),
+    function(k) {
+      fit$post_assignment[, k] * dnorm(fit$data$betahat,
+        mean = 0,
+        sd = sqrt(fit$data$se^2 + fit$f_list[[k]]$var)
+      )
+    }
+  ))
+  out <- tt1 / (tt1 + tt2)
 
   return(out)
 }

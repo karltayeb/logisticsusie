@@ -11,7 +11,7 @@ fit.mococomo(data, maxiter = 100, tol = 0.001, max_class, mult = 2)
 
 \item{maxiter}{numeric, maximum numerous of itration set to 100 by defaults}
 
-\item{tol}{tolreance in term of chjange in ELBO value for stopping criterion}
+\item{tol}{tolreance in term of change in ELBO value for stopping criterion}
 }
 \description{
 Fucntion implementating the mococomo mode

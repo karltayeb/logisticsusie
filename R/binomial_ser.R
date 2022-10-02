@@ -270,8 +270,8 @@ jj_bound.binser <- function(fit, kidx = NULL) {
   kappa <- compute_kappa(fit, kidx)
   n <- .get_N(fit)
 
-  Xb2 <- compute_Xb2.binser(fit)
-  omega <- compute_omega(fit)
+  # Xb2 <- compute_Xb2.binser(fit)
+  # omega <- compute_omega(fit)
 
   bound <- n * log(sigmoid(xi)) + (kappa * Xb) - (0.5 * n * xi) #+ 0.5 * omega * (xi^2 - Xb2)
   return(bound)

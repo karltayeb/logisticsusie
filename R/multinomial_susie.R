@@ -20,6 +20,18 @@ compute_Xb.mnsusie <- function(fit) {
   return(Xb)
 }
 
+#' Compute Log Prior Assignment Probabilities
+#' For each data point return covariate-dependent prior mixture probabilities
+#' @param xb a K-1 vector of predictions
+#' @return an n x K matrix of log prior probabilities for each data point
+.compute_prior_assignment <- function(xb) {
+  .predict2logpi(xb)
+}
+
+#' Compute Log Prior Assignment Probabilities
+#' For each data point return covariate-dependent prior mixture probabilities
+#' @param fit a multinomial SuSiE fit object (or MoCoCoMo)
+#' @return an n x K matrix of log prior probabilities for each data point
 compute_prior_assignment <- function(fit) {
   # TODO alias compute_Xb with predict so that it works with other functions?
   # TODO make sure GLM predict outputs log-odds scale?
@@ -27,6 +39,7 @@ compute_prior_assignment <- function(fit) {
   res <- do.call(rbind, apply(Xb, 1, .predict2logpi, simplify = F)) # N x K
   return(res)
 }
+
 
 
 compute_jj_bound.mnsusie <- function(fit) {
@@ -47,7 +60,6 @@ compute_jj_bound.mnsusie <- function(fit) {
 
 compute_elbo.mnsusie <- function(fit) {
   K <- length(fit$logreg_list) + 1
-  N <- fit$data$N
 
   # update omega so jj bound is tight
   for (k in seq(K - 1)) {
