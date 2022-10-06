@@ -1,15 +1,28 @@
 
 #rm(list = ls())
 library(logisticsusie)  #Simulate data under the mococomo model
-sim11  <- sim_twococomo(n=1000)
+sim11  <- sim_ordinal_mod(n=10000,beta=0,se=2,alpha_start = 0)
 
 
 #preparing the data
 
-data11 <-set_data_mococomo(betahat = sim11$betahat,
-                          se = sim11$se ,
-                          X  = sim11$X)
-sim12  <- sim_twococomo(n=1000)
+data11 <-set_data_mococomo(betahat = c(rep(0,10),sim11$obs),
+                          se = rep(sim11$se,(length( sim11$obs)+10)) ,
+                          X  =rbind(0*sim11$X[1:10,],sim11$X))
+
+res <- fit.mococomo(data11)
+res$post_assignment
+library(ashr)
+res_ash <- ash(data11$betahat, data11$se, mixcompdist="normal")
+
+t_out <- post_mean_sd.mococomo(res)
+
+plot( sim11$true_obs, t_out[-c(1:10),1])
+points( res_ash$result$PosteriorMean, t_out[,1], col="green")
+abline(a=0,b=1)
+
+
+sim12  <- sim_twococomo(n=100, beta=2)
 
 fit <- fit.mococomo(data11)
 data12 <-set_data_mococomo(betahat = sim12$betahat,
@@ -37,15 +50,15 @@ image(Y_true)
 
 
 
-K=2
+K=3
 dim(Y)
 library(softImpute)
-cEBMF.obj <- init_cEBMF (Y, X_l,X_f,K=2, init_type = "udv_si")
+cEBMF.obj <- init_cEBMF (Y, X_l,X_f,K=3, init_type = "udv_si")
 plot(cEBMF.obj$loading[,1] ,data11$betahat)
 
 
 
-for ( o in 1:4){
+for ( o in 1:10){
   for ( k in 1:K){
     Rk <- cal_partial_residuals.cEBMF(cEBMF.obj,k)
     l_k <- cal_expected_loading( cEBMF.obj, Rk,k)
@@ -90,6 +103,7 @@ plot( Y_true, Y_est )
 points(Y_true, fitted(f), col="green")
 cor( c(Y_true), c(Y_est))
 cor( c(Y_true), c(Y))
+cor( c(Y_true), c(fitted(f)))
 
 
 

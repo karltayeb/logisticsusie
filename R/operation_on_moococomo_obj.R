@@ -134,7 +134,7 @@ init.mococomo <- function(data, max_class, mult = 2) {
   # scale mixture of normals w/ zero mean-- TODO: make this initializable
 
 
-
+#WIlliam to check here
   scales <- autoselect.mococomo(data)
   # scales <- cumprod(c(1., rep(sqrt(2), 5)))
   f_list <- purrr::map(scales, ~ normal_component(mu = 0, var = .x^2))
@@ -226,7 +226,7 @@ cal_ind_moment12 <- function(fit, t_post_var, i) {
     lapply(
       1:length(fit$f_list),
       function(k) {
-        (t_post_var[i, k] / fit$data$se[i]^2) *
+        (t_post_var[i, k] / (fit$data$se[i]^2) )*
           (fit$data$betahat[i])
       }
     )
@@ -307,7 +307,7 @@ autoselect.mococomo <- function(data, max_class, mult = 2) {
     return(c(0, sigmaamax / 2))
   } else {
     npoint <- ceiling(log2(sigmaamax / sigmaamin) / log2(mult))
-    out <- mult^((-npoint):0) * sigmaamax
+    out <- c(0,mult^((-npoint):0) * sigmaamax)#  mult^((-npoint):0) * sigmaamax
     if (!missing(max_class)) {
       if (length(out) > max_class) {
         out <- seq(min(out), max(out), length.out = max_class)
