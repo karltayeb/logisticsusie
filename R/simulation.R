@@ -69,26 +69,63 @@ sim_ser_with_covariates <- function(n = 1000, p = 50, N = 1, idx = 1) {
   )
   return(data)
 }
+
+
+#' @title  Simulate data under the logistic SuSiE model
+#' @description  Simulate data under the logistic SuSiE model
+#' @param n numeric sample size
+#' @param p numeric number of observed covariates
+#' @param L numeric number of causal covariates (should be lower than p)
+#' @param N numeric number of draw in the bionmial considered (set to 1 as default)
+#' @param beta numeric if of length 1 assume that ervery effect have same beta coefficietns
+#' otherwise should be  of length L, if missing beta <- seq(L) * .2
+#' @param alpha numeric intercept in the lostic regression (control sparsity)
 #' @export
 
-sim_susie <- function(n = 1000, p = 50, L = 3, N = 1) {
+sim_susie <- function(n = 1000, p = 50, L = 3, N = 1, beta, alpha=0) {
   X <- sim_X(n, p)
   Z <- matrix(rep(1, n), nrow = n)
+  if( missing(beta)){
+    beta <- seq(L) * .2
+  }
+  if(length(beta)==1){
+    beta <- rep(beta,L)
+  }
 
-  beta <- seq(L) * .2
-  logits <- Matrix::drop(X[, seq(L) * 10] %*% beta)
+
+  logits <-alpha +Matrix::drop(X[, seq(L) * 10] %*% beta)
   p <- sigmoid(logits)
   y <- rbinom(n, N, p)
 
   data <- list(
-    X = X, Z = Z, y = y, N = N, logits = logits
+                X         = X,
+                Z         = Z,
+                y         = y,
+                N         = N,
+                logits    = logits,
+                effect    = beta,
+                intercept = alpha
   )
   return(data)
 }
 
+
+#' @title  Simulate data under the twococomo SuSiE model
+#' @description  Simulate data under the twococomo SuSiE model
+#' @param n numeric sample size
+#' @param p numeric number of observed covariates
+#' @param L numeric number of causal covariates (should be lower than p)
+#' @param N numeric number of draw in the bionmial considered (set to 1 as default)
+#' @param beta numeric if of length 1 assume that ervery effect have same beta coefficietns
+#' otherwise should be  of length L, if missing beta <- seq(L) * .2
 #' @export
-sim_twococomo <- function(n = 1000, p = 50, L = 3, N = 1) {
-  sim <- sim_susie(n, p, L, N)
+sim_twococomo <- function(n = 1000, p = 50, L = 3, N = 1,beta , alpha=0) {
+  if( missing(beta)){
+    sim <- sim_susie(n, p, L, N, alpha=alpha)
+  }else{
+    sim <- sim_susie(n, p, L, N, beta, alpha=alpha)
+  }
+
   sim$beta <- rnorm(n) * sim$y
   sim$se <- 0.1 + rgamma(n, shape = 0.5)
   sim$betahat <- sim$beta + rnorm(n) * sim$se
@@ -96,6 +133,7 @@ sim_twococomo <- function(n = 1000, p = 50, L = 3, N = 1) {
   class(sim) <- "data_mococomo"
   return(sim)
 }
+
 
 
 sim_susie_sparse <- function(n = 1000, p = 50, L = 3, N = 1, pi1 = 0.2, transition = 0.8) {
@@ -140,8 +178,12 @@ sim_mn_susie <- function(n = 1000, p = 50, L = 3, N = 1, K = 10) {
 }
 
 #' @export
-sim_mococomo <- function(n = 1000, p = 50, L = 3, N = 1) {
-  sim <- sim_susie(n, p, L, N)
+sim_mococomo <- function(n = 1000, p = 50, L = 3, N = 1,beta, alpha=0) {
+  if( missing(beta)){
+    sim <- sim_susie(n, p, L, N, alpha=alpha)
+  }else{
+    sim <- sim_susie(n, p, L, N, beta, alpha=alpha)
+  }
   sim$scales <- cumprod(c(1, rep(sqrt(2), 5)))
   sim$beta <- rnorm(n) * sim$y * sample(sim$scales, size = n, replace = T)
   sim$se <- 0.1 + rgamma(n, shape = 0.5)

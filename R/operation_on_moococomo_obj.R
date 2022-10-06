@@ -252,7 +252,8 @@ cal_ind_moment12 <- function(fit, t_post_var, i) {
 #'
 #' # TODO: allow using new observation from another data set (e.g. testing)
 #' @param fit a mococomo object
-#' @exemple
+#' @export
+#' @example
 #' see \link{\code{fit.mococomo}}
 
 post_mean_sd.mococomo <- function(fit) {
@@ -325,6 +326,12 @@ get_KL.mococomo <- function(fit) {
   return(kl)
 }
 
+
+#' @title Compute individual fdr value  mococomo model with centered normal mixture
+#' @descriptionCompute individual fdr value  mococomo model with centered normal mixture
+#'
+#' @param fit a mococomo object
+#' @export
 get_fdr <- function(fit) {
   tt1 <- fit$post_assignment[, 1] * dnorm(fit$data$betahat, mean = 0, sd = fit$data$se)
   tt2 <- Reduce("+", lapply(
