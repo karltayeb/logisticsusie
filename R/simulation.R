@@ -268,7 +268,7 @@ sim_ordinal_mod <- function(n=1000,
   {
     class[i] <- sample(size=1,1:n_class, prob = ind_prob[i,])
     true_obs[i] <- ifelse(class[i]==1, 0,rnorm(1,0 ,  grid_s[class[i]]))
-    obs[i] <- true_obs[i] + rnorm(1,sd=se)
+    obs[i] <- true_obs[i] + rnorm(1,sd=se[i])
   }
   out <- list(true_obs= true_obs,
               obs=obs,
