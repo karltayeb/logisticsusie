@@ -3,7 +3,7 @@
 #' @return N x K matrix each row has E[p(z=k | \beta, \omega)] for k = 1,..., K
 compute_assignment_loglikelihood.mococomo <- function(fit, normalize = TRUE) {
   K <- length(fit$f_list)
-  Xb <- compute_Xb.mnsusie() # N x K-1
+  Xb <- compute_Xb.mnsusie(fit) # N x K-1
   Xbcum <- do.call(rbind, apply(Xb, 1, cumsum, simplify = F))
   kln2 <- seq(K - 1) * log(2)
 
