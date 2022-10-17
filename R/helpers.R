@@ -64,9 +64,16 @@ binsusie_get_cs <- function(fit,
 }
 
 
-
-
-
+# include the term that cancels out when xi is up-to-date
+compute_elbo2 <- function(x, y, mu, tau, xi, delta, tau0) {
+  kappa <- y - 0.5
+  xb <- (x * mu) + delta
+  xb2 <- x^2 * (mu^2 + 1 / tau) + 2 * x * mu * delta + delta^2
+  omega <- logisticsusie:::pg_mean(1, xi)
+  bound <- log(sigmoid(xi)) + (kappa * xb) - (0.5 * xi) #+ 0.5 * omega * (xi^2 - xb2)
+  kl <- logisticsusie:::normal_kl(mu, 1 / tau, 0, 1 / tau0)
+  return(sum(bound) - kl)
+}
 
 
 # implement normal and point mass component distributions
