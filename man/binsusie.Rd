@@ -8,7 +8,7 @@ Fit Binomial SuSiE via coordinate ascent variational inference}
 binsusie(
   X,
   y,
-  N = 1,
+  N = rep(1, length(y)),
   Z = NULL,
   L = min(10, ncol(X)),
   prior_mean = 0,
