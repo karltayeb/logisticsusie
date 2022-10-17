@@ -278,7 +278,7 @@ binsusie_plot <- function(fit, y = "PIP") {
 #' @export
 binsusie <- function(X,
                      y,
-                     N = 1, # number of trials for each
+                     N = rep(1, length(y)), # number of trials for each
                      Z = NULL,
                      L = min(10, ncol(X)),
                      prior_mean = 0.0, # set prior mean (feature added for Gao and Bohan)
@@ -304,6 +304,9 @@ binsusie <- function(X,
   # checking / setup
 
   # Make data list
+  if (length(N) == 1) {
+    N <- rep(N, length(Y))
+  }
   data <- list(X = X, Z = Z, y = y, N = N)
 
   # Initialize object
