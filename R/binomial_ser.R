@@ -64,9 +64,9 @@
 
 .get_var0 <- function(fit, idx = NULL) {
   if (is.null(idx)) {
-    var0 <- fit$hypers$prior_variance^2
+    var0 <- fit$hypers$prior_variance
   } else {
-    var0 <- fit$hypers$prior_variance[idx]^2
+    var0 <- fit$hypers$prior_variance[idx]
   }
   return(var0)
 }
@@ -255,7 +255,7 @@ update_prior_variance.binser <- function(fit, idx = NULL) {
   b2 <- .get_alpha(fit, idx) * (.get_mu(fit, idx)^2 + .get_var(fit, idx))
   b <- coef.binser(fit, idx)
   prior_mean <- .get_prior_mean(fit, idx)
-  prior_variance <- sqrt(sum(b2 - 2 * b * prior_mean) + prior_mean^2)
+  prior_variance <- sum(b2 - 2 * b * prior_mean) + prior_mean^2
   return(prior_variance)
 }
 
