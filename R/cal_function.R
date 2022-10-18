@@ -38,15 +38,6 @@
   return(logpi)
 }
 
-#' Compute Log Prior Assignment Probabilities
-#' For each data point return covariate-dependent prior mixture probabilities
-#' @param fit a MoCoCoMo fit object
-#' @return an n x K matrix of log prior probabilities for each data point
-.compute_prior_assignment <- function(xb) {
-  .predict2logpi(xb)
-}
-
-
 
 
 
