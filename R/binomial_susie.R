@@ -85,9 +85,9 @@ compute_elbo.binsusie <- function(fit) {
 
 
 #' update alpha, mu, and var
-update_b.binsusie <- function(fit, fit_intercept = TRUE, fit_prior_variance = TRUE) {
+update_b.binsusie <- function(fit, fit_intercept = TRUE, fit_prior_variance = TRUE, update_idx = seq(fit$hypers$L)) {
   shift <- compute_Xb.binsusie(fit)
-  for (l in seq(fit$hypers$L)) {
+  for (l in update_idx) {
     # remove current effect estimate
     shift <- Matrix::drop(shift - compute_Xb.binser(fit, idx = l))
 
@@ -224,26 +224,90 @@ fit.binsusie <- function(data,
   return(fit)
 }
 
-binsusie_wrapup <- function(fit) {
+#' remove a single effect and refit model
+#' This function zeros out a single effect and refits the model
+#' Used as a subroutine for `prune_model` which removes irrelevant features
+prune_model_idx <- function(fit, idx, fit_intercept = T, fit_prior_variance = F, tol = 1e-3, maxiter = 10) {
+  # copy the susie model
+  fit2 <- fit
+
+  # don't update this index
+  update_idx <- seq(fit2$hypers$L)
+  update_idx <- update_idx[idx != update_idx]
+
+  # instead, fix in to 0
+  fit2$params$mu[idx, ] <- 0
+  fit2$params$var[idx, ] <- 1e-10
+  fit2$params$delta[idx, ] <- 0
+  fit2$hypers$prior_mean[idx] <- 0
+  fit2$hypers$prior_variance[idx] <- 1e-10
+
+  # new elbo
+  fit2$elbo <- compute_elbo.binsusie(fit2)
+
+  # CAVI loop
+  for (i in 1:maxiter) {
+    # update b
+    fit2 <- update_b.binsusie(fit2, fit_intercept, fit_prior_variance, update_idx = update_idx)
+    # update xi
+    fit2$params$xi <- update_xi.binsusie(fit2)
+    fit2$params$tau <- compute_tau(fit2)
+
+    # update elbo
+    fit2$elbo <- c(fit2$elbo, compute_elbo.binsusie(fit2))
+    if (.converged(fit2, tol)) {
+      break
+    }
+  }
+  return(fit2)
+}
+
+#' Prune Model
+#' Remove irrelevant features from logistic SuSiE fit
+#' @param fit a fit logistic Susie model
+#' @param check_null_threshold if ELBO_null + check_null_threshold > ELBO drop the single effect
+#' @param fit_intercept boolean to re-estimate intercept in simplified model, defaul TRUE
+#' @param fit_prior_variance boolean to re-estimate prior variance in simplified model, default FALSE
+#' @param tol tolerance to declare convergence when fitting simplified model
+prune_model <- function(fit, check_null_threshold, fit_intercept = T, fit_prior_variance = F, tol = 1e-3) {
+  # order by explained variance
+  var0 <- purrr::map_dbl(seq(fit$hypers$L), ~ update_prior_variance.binser(fit, idx = .x))
+  idx_order <- order(var0, decreasing = F)
+
+  for (idx in idx_order) {
+    fit2 <- prune_model_idx(fit, idx, fit_intercept, fit_prior_variance, tol)
+    null_diff <- tail(fit2$elbo, 1) - tail(fit$elbo, 1)
+    if (null_diff + check_null_threshold > 0) {
+      message(paste0("Null ELBO diff: ", null_diff, "... REMOVING effect"))
+      fit <- fit2
+    } else {
+      message(paste0("Null ELBO diff: ", null_diff, "... KEEPING effect"))
+    }
+  }
+  return(fit)
+}
+
+#' BinSuSiE Wrapup
+#' Compute fit summaries (PIPs, CSs, etc) and
+#' Organize binsusie fit so that it is compatable with `susieR` function
+binsusie_wrapup <- function(fit, prior_tol) {
   # TODO put back into original X scale
   X <- fit$data$X
-  res <- list(
-    alpha = fit$params$alpha,
-    mu = fit$params$mu,
-    mu2 = fit$params$mu^2 + fit$params$var
-  )
 
-  res <- c(fit, res)
-  class(res) <- "susie"
-  colnames(res$alpha) <- colnames(X)
-  colnames(res$mu) <- colnames(X)
+  fit$alpha <- fit$params$alpha
+  fit$mu <- fit$params$mu
+  fit$mu2 <- fit$params$mu^2 + fit$params$var
+  fit$V <- fit$hypers$prior_variance
 
-  res$pip <- susieR::susie_get_pip(res)
-  names(res$pip) <- colnames(X)
+  colnames(fit$alpha) <- colnames(X)
+  colnames(fit$mu) <- colnames(X)
 
-  res$sets <- susieR::susie_get_cs(res, X = X)
-  res$intercept <- colSums(res$params$delta)[1]
-  return(res)
+  fit$pip <- susieR::susie_get_pip(fit, prior_tol = prior_tol)
+  names(fit$pip) <- colnames(X)
+
+  fit$sets <- susieR::susie_get_cs(fit, X = X)
+  fit$intercept <- colSums(fit$params$delta)[1]
+  return(fit)
 }
 
 # help -----
@@ -251,7 +315,13 @@ binsusie_wrapup <- function(fit) {
 #' @export
 binsusie_get_pip <- function(fit, prune_by_cs = FALSE, prior_tol = 1e-09) {
   # TODO: filter out components that don't need to be included (see Gao's suggestion)
-  return(susieR::susie_get_pip(fit$params$alpha))
+  include_idx <- which(fit$hypers$prior_variance > prior_tol)
+  if (length(include_idx) > 0) {
+    pip <- susieR::susie_get_pip(fit$params$alpha[include_idx, , drop = F])
+  } else {
+    pip <- rep(0, dim(fit$params$alpha)[2])
+  }
+  return(pip)
 }
 
 
@@ -260,6 +330,11 @@ binsusie_plot <- function(fit, y = "PIP") {
   res <- with(fit, list(alpha = params$alpha, pip = pip, sets = sets))
   class(res) <- "susie"
   susieR::susie_plot(res, y)
+}
+
+#' check the input data
+.check_data_binsusie <- function(dat) {
+  stopifnot("data$X must be matrix/Matrix" = inherits(dat$X, c("matrix", "Matrix")))
 }
 
 #' Binomial SuSiE
@@ -304,10 +379,13 @@ binsusie <- function(X,
   # checking / setup
 
   # Make data list
-  if (length(N) == 1) {
-    N <- rep(N, length(Y))
-  }
   data <- list(X = X, Z = Z, y = y, N = N)
+
+  # If N was passed as a scalar, convert to vector of length n
+  if (length(data$N) == 1) {
+    data$N <- rep(N, length(y))
+  }
+  .check_data_binsusie(data) # throws errors if something is wrong
 
   # Initialize object
   if (is.null(s_init)) {

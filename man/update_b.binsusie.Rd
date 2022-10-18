@@ -4,7 +4,12 @@
 \alias{update_b.binsusie}
 \title{update alpha, mu, and var}
 \usage{
-update_b.binsusie(fit, fit_intercept = TRUE, fit_prior_variance = TRUE)
+update_b.binsusie(
+  fit,
+  fit_intercept = TRUE,
+  fit_prior_variance = TRUE,
+  update_idx = seq(fit$hypers$L)
+)
 }
 \description{
 update alpha, mu, and var
