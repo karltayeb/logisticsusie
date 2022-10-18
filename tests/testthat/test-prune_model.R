@@ -1,7 +1,3 @@
-test_that("multiplication works", {
-  expect_equal(2 * 2, 4)
-})
-
 test_that("Null model returns 0 PIPs", {
   set.seed(10)
   data <- sim_ser(beta = 0, beta0 = -1)
