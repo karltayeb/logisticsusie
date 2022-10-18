@@ -364,8 +364,9 @@ binsusie <- function(X,
                      intercept = TRUE,
                      estimate_prior_variance = TRUE,
                      # estimate_prior_method = c("optim", "EM", "simple"),  right now only EM is implimented
-                     # check_null_threshold = 0,
-                     # prior_tol = 1e-09,
+                     check_null_threshold = 0,
+                     prior_tol = 1e-09,
+                     prune = FALSE,
                      s_init = NULL, # previous fit with which to initialize NO
                      coverage = 0.95,
                      min_abs_corr = 0.5,
@@ -409,9 +410,13 @@ binsusie <- function(X,
     }
   }
 
-  fit <- binsusie_wrapup(fit)
+  # model pruning removes irrelevant components
+  if (prune) {
+    fit <- prune_model(fit, check_null_threshold, fit_intercept, fit_prior_variance, tol = tol)
+  }
 
+  # Wrapup (computing PIPs, CSs, etc)
+  fit <- binsusie_wrapup(fit, prior_tol)
   class(fit) <- c("binsusie", "susie")
-  # 1. compute credible sets
   return(fit)
 }
