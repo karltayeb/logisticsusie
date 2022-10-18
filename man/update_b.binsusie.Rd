@@ -8,7 +8,7 @@ update_b.binsusie(
   fit,
   fit_intercept = TRUE,
   fit_prior_variance = TRUE,
-  update_idx = seq(fit$hypers$L)
+  update_idx = NULL
 )
 }
 \description{

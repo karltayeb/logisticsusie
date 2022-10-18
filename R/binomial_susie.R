@@ -85,7 +85,10 @@ compute_elbo.binsusie <- function(fit) {
 
 
 #' update alpha, mu, and var
-update_b.binsusie <- function(fit, fit_intercept = TRUE, fit_prior_variance = TRUE, update_idx = seq(fit$hypers$L)) {
+update_b.binsusie <- function(fit, fit_intercept = TRUE, fit_prior_variance = TRUE, update_idx = NULL) {
+  if (is.null(update_idx)) {
+    update_idx <- seq(fit$hypers$L)
+  }
   shift <- compute_Xb.binsusie(fit)
   for (l in update_idx) {
     # remove current effect estimate
@@ -248,7 +251,11 @@ prune_model_idx <- function(fit, idx, fit_intercept = T, fit_prior_variance = F,
   # CAVI loop
   for (i in 1:maxiter) {
     # update b
-    fit2 <- update_b.binsusie(fit2, fit_intercept, fit_prior_variance, update_idx = update_idx)
+    fit2 <- update_b.binsusie(fit2,
+      fit_intercept = fit_intercept,
+      fit_prior_variance = fit_prior_variance,
+      update_idx = update_idx
+    )
     # update xi
     fit2$params$xi <- update_xi.binsusie(fit2)
     fit2$params$tau <- compute_tau(fit2)
@@ -275,7 +282,7 @@ prune_model <- function(fit, check_null_threshold, fit_intercept = T, fit_prior_
   idx_order <- order(var0, decreasing = F)
 
   for (idx in idx_order) {
-    fit2 <- prune_model_idx(fit, idx, fit_intercept, fit_prior_variance, tol)
+    fit2 <- prune_model_idx(fit, idx = idx, fit_intercept = fit_intercept, fit_prior_variance = fit_prior_variance, tol = tol)
     null_diff <- tail(fit2$elbo, 1) - tail(fit$elbo, 1)
     if (null_diff + check_null_threshold > 0) {
       message(paste0("Null ELBO diff: ", null_diff, "... REMOVING effect"))
@@ -291,6 +298,8 @@ prune_model <- function(fit, check_null_threshold, fit_intercept = T, fit_prior_
 #' Compute fit summaries (PIPs, CSs, etc) and
 #' Organize binsusie fit so that it is compatable with `susieR` function
 binsusie_wrapup <- function(fit, prior_tol) {
+  class(fit) <- c("binsusie", "susie")
+
   # TODO put back into original X scale
   X <- fit$data$X
 
@@ -412,11 +421,10 @@ binsusie <- function(X,
 
   # model pruning removes irrelevant components
   if (prune) {
-    fit <- prune_model(fit, check_null_threshold, fit_intercept, fit_prior_variance, tol = tol)
+    fit <- prune_model(fit, check_null_threshold, intercept, estimate_prior_variance, tol = tol)
   }
 
   # Wrapup (computing PIPs, CSs, etc)
   fit <- binsusie_wrapup(fit, prior_tol)
-  class(fit) <- c("binsusie", "susie")
   return(fit)
 }
