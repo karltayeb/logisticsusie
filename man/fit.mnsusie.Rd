@@ -6,6 +6,7 @@
 \usage{
 fit.mnsusie(
   data,
+  L = 5,
   maxiter = 10,
   tol = 0.001,
   fit_intercept = TRUE,

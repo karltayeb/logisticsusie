@@ -270,7 +270,7 @@ testthat::test_that("Two CoCoMo Monotone (SPARSE)", {
 
 test_mn_susie <- function() {
   data <- sim_mn_susie()
-  fit <- fit.mnsusie(data, maxiter = 50)
+  fit <- fit.mnsusie(data, L = 3, maxiter = 50)
   return(list(
     fit = fit,
     monotone = .monotone(fit$elbo)

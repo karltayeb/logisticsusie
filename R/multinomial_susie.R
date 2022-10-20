@@ -71,7 +71,7 @@ compute_elbo.mnsusie <- function(fit) {
   return(elbo)
 }
 
-init.mnsusie <- function(data) {
+init.mnsusie <- function(data, L = 5) {
   data$X2 <- data$X^2
 
   K <- dim(data$y)[2]
@@ -93,7 +93,7 @@ init.mnsusie <- function(data) {
       y = y,
       N = N
     )
-    fit <- init.binsusie(dat)
+    fit <- init.binsusie(dat, L = L)
     return(fit)
   }
   logreg_list <- purrr::map(seq(K - 1), ~ .init_logreg(Y[, .x], N[, .x]))
@@ -128,11 +128,12 @@ iter.mnsusie <- function(fit, fit_intercept = T, fit_prior_variance = T) {
 
 #' Fit the binomial single effect regression
 fit.mnsusie <- function(data,
+                        L = 5,
                         maxiter = 10,
                         tol = 1e-3,
                         fit_intercept = TRUE,
                         fit_prior_variance = TRUE) {
-  fit <- init.mnsusie(data)
+  fit <- init.mnsusie(data, L = L)
 
   for (i in 1:maxiter) {
     fit <- iter.mnsusie(fit, fit_intercept, fit_prior_variance)
