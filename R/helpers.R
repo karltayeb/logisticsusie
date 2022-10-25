@@ -6,6 +6,10 @@ sigmoid <- function(x) {
   return(1 / (1 + exp(-x)))
 }
 
+logodds <- function(p) {
+  return(log(p) - log(1 - p))
+}
+
 logSumExp <- matrixStats::logSumExp
 
 softmax <- function(x) {
@@ -63,31 +67,6 @@ binsusie_get_cs <- function(fit,
   return(cs)
 }
 
-
-# include the term that cancels out when xi is up-to-date
-compute_elbo2 <- function(x, y, mu, tau, xi, delta, tau0) {
-  kappa <- y - 0.5
-  xb <- (x * mu) + delta
-  xb2 <- x^2 * (mu^2 + 1 / tau) + 2 * x * mu * delta + delta^2
-  omega <- logisticsusie:::pg_mean(1, xi)
-  bound <- log(sigmoid(xi)) + (kappa * xb) - (0.5 * xi) + 0.5 * omega * (xi^2 - xb2)
-  kl <- logisticsusie:::normal_kl(mu, 1 / tau, 0, 1 / tau0)
-  return(sum(bound) - kl)
-}
-
-# update xi on the fly, so bound is tight
-compute_elbo3 <- function(x, y, mu, tau, xi, delta, tau0) {
-  kappa <- y - 0.5
-  xb <- (x * mu) + delta
-  xb2 <- x^2 * (mu^2 + 1 / tau) + 2 * x * mu * delta + delta^2
-  xi <- sqrt(xb2)
-  omega <- logisticsusie:::pg_mean(1, xi)
-  bound <- log(sigmoid(xi)) + (kappa * xb) - (0.5 * xi)
-  kl <- logisticsusie:::normal_kl(mu, 1 / tau, 0, 1 / tau0)
-  return(sum(bound) - kl)
-}
-
-
 # implement normal and point mass component distributions
 
 .clamp <- function(v, .upper = 100, .lower = -100) {
@@ -95,12 +74,18 @@ compute_elbo3 <- function(x, y, mu, tau, xi, delta, tau0) {
 }
 
 
-
-
-
 is.odd <- function(x) {
   x %% 2 == 1
 }
 is.even <- function(x) {
   x %% 2 == 0
+}
+
+
+get_cs <- function(alpha, requested_coverage = 0.95) {
+  rho <- order(-alpha)
+  idx <- min(sum(cumsum(alpha[rho]) < requested_coverage) + 1, length(alpha))
+  cs <- rho[1:idx]
+  coverage <- sum(alpha[cs])
+  return(list(cs = cs, prob = rho[1:idx], size = idx, requested_coverage = requested_coverage, coverage = coverage))
 }
