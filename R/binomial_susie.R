@@ -334,6 +334,23 @@ binsusie_get_pip <- function(fit, prune_by_cs = FALSE, prior_tol = 1e-09) {
 }
 
 
+binsusie_prep_data <- function(X, y, N, Z, center = TRUE, scale = FALSE) {
+  # center and scale data
+  X <- scale(X, center = center, scale = scale)
+
+  # If N was passed as a scalar, convert to vector of length n
+  if (length(N) == 1) {
+    N <- rep(N, length(y))
+  }
+
+  # Make data list
+  # TODO: store X means and standard errors
+  data <- list(X = X, Z = Z, y = y, N = N)
+  .check_data_binsusie(data) # throws errors if something is wrong
+
+  return(data)
+}
+
 #' @export
 binsusie_plot <- function(fit, y = "PIP") {
   res <- with(fit, list(alpha = params$alpha, pip = pip, sets = sets))
@@ -352,6 +369,8 @@ binsusie_plot <- function(fit, y = "PIP") {
 #' @param y an n vector of integer counts, bernoulli/binomial observations
 #' @param N the number of binomial trials, defaults to 1, may be a scalar or vector of length n
 #' @param Z fixed effect covaraites (including intercept). If null just a n x 1 matrix of ones
+#' @param scale if TRUE, scale the columns of X to unit variate
+#' @param center if TRUE, center the columns of X to mean zero
 #' @param prior_mean the prior mean of each non-zero element of b. Either a scalar or vector of length L.
 #' @param prior_variance the prior variance of each non-zero element of b. Either a scalar or vector of length L. If `estimate_prior_variance=TRUE` the value provides an initial estimate of prior variances
 #' @param prior_weights prior probability of selecting each column of X, vector of length p summing to one, or an L x p matrix
@@ -365,6 +384,8 @@ binsusie <- function(X,
                      N = rep(1, length(y)), # number of trials for each
                      Z = NULL,
                      L = min(10, ncol(X)),
+                     scale = FALSE,
+                     center = TRUE,
                      prior_mean = 0.0, # set prior mean (feature added for Gao and Bohan)
                      prior_variance = 1.0, # TODO: make scaled prior variance?
                      prior_weights = NULL, # vector of length `p` gjvj g the prior probability of each column of X having nonzero effect... = hypers$pi
@@ -385,19 +406,10 @@ binsusie <- function(X,
                      # track_fit = FALSE,
                      # refine = FALSE,
                      n_purity = 100) {
-  ##################
-  # checking / setup
+  # setup data for model
+  data <- binsusie_prep_data(X, y, N, Z, scale, center)
 
-  # Make data list
-  data <- list(X = X, Z = Z, y = y, N = N)
-
-  # If N was passed as a scalar, convert to vector of length n
-  if (length(data$N) == 1) {
-    data$N <- rep(N, length(y))
-  }
-  .check_data_binsusie(data) # throws errors if something is wrong
-
-  # Initialize object
+  # Initialize model
   if (is.null(s_init)) {
     fit <- init.binsusie(
       data,
@@ -419,12 +431,12 @@ binsusie <- function(X,
     }
   }
 
-  # model pruning removes irrelevant components
+  # model pruning-- removes irrelevant components
   if (prune) {
     fit <- prune_model(fit, check_null_threshold, intercept, estimate_prior_variance, tol = tol)
   }
 
-  # Wrapup (computing PIPs, CSs, etc)
+  # wrapup (computing PIPs, CSs, etc)
   fit <- binsusie_wrapup(fit, prior_tol)
   return(fit)
 }

@@ -11,6 +11,8 @@ binsusie(
   N = rep(1, length(y)),
   Z = NULL,
   L = min(10, ncol(X)),
+  scale = FALSE,
+  center = TRUE,
   prior_mean = 0,
   prior_variance = 1,
   prior_weights = NULL,
@@ -36,6 +38,10 @@ binsusie(
 \item{N}{the number of binomial trials, defaults to 1, may be a scalar or vector of length n}
 
 \item{Z}{fixed effect covaraites (including intercept). If null just a n x 1 matrix of ones}
+
+\item{scale}{if TRUE, scale the columns of X to unit variate}
+
+\item{center}{if TRUE, center the columns of X to mean zero}
 
 \item{prior_mean}{the prior mean of each non-zero element of b. Either a scalar or vector of length L.}
 
