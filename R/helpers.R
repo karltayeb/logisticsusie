@@ -89,3 +89,9 @@ get_cs <- function(alpha, requested_coverage = 0.95) {
   coverage <- sum(alpha[cs])
   return(list(cs = cs, prob = rho[1:idx], size = idx, requested_coverage = requested_coverage, coverage = coverage))
 }
+
+get_all_cs <- function(fit, requested_coverage = 0.95) {
+  sets <- purrr::map(1:fit$hypers$L, ~ get_cs(fit$params$alpha[.x, ], requested_coverage))
+  names(sets) <- paste0("L", 1:fit$hypers$L)
+  return(sets)
+}
