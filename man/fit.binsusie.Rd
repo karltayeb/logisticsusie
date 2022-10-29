@@ -5,11 +5,14 @@
 \title{Fit the binomial single effect regression}
 \usage{
 fit.binsusie(
-  data,
+  fit,
   maxiter = 10,
   tol = 0.001,
   fit_intercept = TRUE,
   fit_prior_variance = TRUE,
+  fit_xi = TRUE,
+  fit_alpha = TRUE,
+  fast_elbo = TRUE,
   kidx = NULL
 )
 }

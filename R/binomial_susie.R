@@ -65,17 +65,34 @@ jj_bound.binsusie <- function(fit) {
   kappa <- compute_kappa(fit)
   n <- .get_N(fit)
 
-  # Xb2 <- compute_Xb2.binsusie(fit)
-  # omega <- compute_omega(fit)
-
-  bound <- n * log(sigmoid(xi)) + (kappa * Xb) - (0.5 * n * xi) #+ 0.5 * omega * (xi^2 - Xb2)
+  bound <- n * log(sigmoid(xi)) + (kappa * Xb) - (0.5 * n * xi)
   return(bound)
 }
 
-
 compute_elbo.binsusie <- function(fit) {
-  jj <- sum(jj_bound.binsusie(fit))
-  kl <- compute_kl.binsusie(fit)
+  jj <- sum(jj_bound.binsusie(fit)) # E[log p(y, w | b) - logp(w)]
+  kl <- compute_kl.binsusie(fit) # KL(q(b) || p(b))
+  return(jj - kl)
+}
+
+#' Compute E[p(z, w| b) - q(w)], which is the same as
+#' the bound on the logistic function proposed by Jaakkola and Jordan
+jj_bound2.binsusie <- function(fit) {
+  xi <- .get_xi(fit)
+  Xb <- compute_Xb.binsusie(fit)
+  kappa <- compute_kappa(fit)
+  n <- .get_N(fit)
+
+  Xb2 <- compute_Xb2.binsusie(fit)
+  omega <- compute_omega(fit)
+
+  bound <- n * log(sigmoid(xi)) + (kappa * Xb) - (0.5 * n * xi) + 0.5 * omega * (xi^2 - Xb2)
+  return(bound)
+}
+
+compute_elbo2.binsusie <- function(fit) {
+  jj <- sum(jj_bound2.binsusie(fit)) # E[log p(y, w | b) - logp(w)]
+  kl <- compute_kl.binsusie(fit) # KL(q(b) || p(b))
   return(jj - kl)
 }
 
@@ -85,7 +102,7 @@ compute_elbo.binsusie <- function(fit) {
 
 
 #' update alpha, mu, and var
-update_b.binsusie <- function(fit, fit_intercept = TRUE, fit_prior_variance = TRUE, update_idx = NULL) {
+update_b.binsusie <- function(fit, fit_intercept = TRUE, fit_prior_variance = TRUE, fit_alpha = TRUE, update_idx = NULL) {
   if (is.null(update_idx)) {
     update_idx <- seq(fit$hypers$L)
   }
@@ -98,7 +115,10 @@ update_b.binsusie <- function(fit, fit_intercept = TRUE, fit_prior_variance = TR
     post_l <- update_b.binser(fit, idx = l, shift = shift)
     fit$params$mu[l, ] <- post_l$mu
     fit$params$var[l, ] <- post_l$var
-    fit$params$alpha[l, ] <- post_l$alpha
+
+    if (fit_alpha) {
+      fit$params$alpha[l, ] <- post_l$alpha
+    }
 
     # update intercept/fixed effect covariates
     if (fit_intercept) {
@@ -199,27 +219,36 @@ init.binsusie <- function(data, L = 5, prior_mean = 0, prior_variance = 1, prior
 }
 
 
-iter.binsusie <- function(fit, fit_intercept = TRUE, fit_prior_variance = TRUE) {
+iter.binsusie <- function(fit, fit_intercept = TRUE, fit_prior_variance = TRUE, fit_xi = TRUE, fit_alpha = TRUE) {
   # update b
-  fit <- update_b.binsusie(fit, fit_intercept, fit_prior_variance)
+  fit <- update_b.binsusie(fit, fit_intercept, fit_prior_variance, fit_alpha)
+
   # update xi
-  fit$params$xi <- update_xi.binsusie(fit)
-  fit$params$tau <- compute_tau(fit)
+  if (fit_xi) {
+    fit$params$xi <- update_xi.binsusie(fit)
+    fit$params$tau <- compute_tau(fit)
+  }
   return(fit)
 }
 
 #' Fit the binomial single effect regression
-fit.binsusie <- function(data,
+fit.binsusie <- function(fit,
                          maxiter = 10,
                          tol = 1e-3,
                          fit_intercept = TRUE,
-                         fit_prior_variance = TRUE, kidx = NULL) {
-  fit <- init.binsusie(data, kidx = kidx)
-
+                         fit_prior_variance = TRUE,
+                         fit_xi = TRUE,
+                         fit_alpha = TRUE,
+                         fast_elbo = TRUE,
+                         kidx = NULL) {
   for (i in 1:maxiter) {
-    fit <- iter.binsusie(fit, fit_intercept, fit_prior_variance)
+    fit <- iter.binsusie(fit, fit_intercept, fit_prior_variance, fit_xi, fit_alpha)
     # update elbo
-    fit$elbo <- c(fit$elbo, compute_elbo.binsusie(fit))
+    if (fast_elbo) {
+      fit$elbo <- c(fit$elbo, compute_elbo.binsusie(fit))
+    } else {
+      fit$elbo <- c(fit$elbo, compute_elbo2.binsusie(fit))
+    }
     if (.converged(fit, tol)) {
       break
     }
@@ -294,10 +323,11 @@ prune_model <- function(fit, check_null_threshold, fit_intercept = T, fit_prior_
   return(fit)
 }
 
+
 #' BinSuSiE Wrapup
 #' Compute fit summaries (PIPs, CSs, etc) and
 #' Organize binsusie fit so that it is compatable with `susieR` function
-binsusie_wrapup <- function(fit, prior_tol) {
+binsusie_wrapup <- function(fit, prior_tol = 0) {
   class(fit) <- c("binsusie", "susie")
 
   # TODO put back into original X scale
@@ -316,6 +346,9 @@ binsusie_wrapup <- function(fit, prior_tol) {
 
   fit$sets <- susieR::susie_get_cs(fit, X = X)
   fit$intercept <- colSums(fit$params$delta)[1]
+
+
+
   return(fit)
 }
 
@@ -333,34 +366,11 @@ binsusie_get_pip <- function(fit, prune_by_cs = FALSE, prior_tol = 1e-09) {
   return(pip)
 }
 
-
-binsusie_prep_data <- function(X, y, N, Z, center = TRUE, scale = FALSE) {
-  # center and scale data
-  X <- scale(X, center = center, scale = scale)
-
-  # If N was passed as a scalar, convert to vector of length n
-  if (length(N) == 1) {
-    N <- rep(N, length(y))
-  }
-
-  # Make data list
-  # TODO: store X means and standard errors
-  data <- list(X = X, Z = Z, y = y, N = N)
-  .check_data_binsusie(data) # throws errors if something is wrong
-
-  return(data)
-}
-
 #' @export
 binsusie_plot <- function(fit, y = "PIP") {
   res <- with(fit, list(alpha = params$alpha, pip = pip, sets = sets))
   class(res) <- "susie"
   susieR::susie_plot(res, y)
-}
-
-#' check the input data
-.check_data_binsusie <- function(dat) {
-  stopifnot("data$X must be matrix/Matrix" = inherits(dat$X, c("matrix", "Matrix")))
 }
 
 #' Binomial SuSiE
@@ -406,25 +416,20 @@ binsusie <- function(X,
                      # track_fit = FALSE,
                      # refine = FALSE,
                      n_purity = 100) {
-  # setup data for model
-  data <- binsusie_prep_data(X, y, N, Z, scale, center)
-
   # Initialize model
   if (is.null(s_init)) {
-    fit <- init.binsusie(
-      data,
-      L = L,
-      prior_mean = prior_mean,
-      prior_variance = prior_variance,
-      prior_weights = prior_weights
-    )
+    fit <- binsusie_init(X, y, N, Z, L, scale, center, prior_mean, prior_variance, prior_weights)
   } else {
     fit <- s_init
   }
 
   # model fitting
   for (i in 1:max_iter) {
-    fit <- iter.binsusie(fit, intercept, estimate_prior_variance)
+    fit <- iter.binsusie(
+      fit,
+      fit_intercept = intercept,
+      fit_prior_variance = estimate_prior_variance
+    )
     fit$elbo <- c(fit$elbo, compute_elbo.binsusie(fit))
     if (.converged(fit, tol)) {
       break
