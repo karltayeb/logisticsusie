@@ -9,7 +9,8 @@ Normal prior on the effect N(0, 1/tau0)}
 fit_univariate_vb(
   x,
   y,
-  delta.init = 0,
+  o = 0,
+  delta.init = logodds(mean(y)),
   tau0 = 1,
   estimate_intercept = T,
   maxit = 50,
