@@ -149,7 +149,9 @@ for (i in seq(1, 10)) {
 
 test_susie_N <- function(N = 1) {
   data <- sim_susie(N = N)
-  fit <- fit.binsusie(data, maxiter = 100, tol = 1e-5)
+  fit <- init.binsusie(data)
+  fit <- init.binsusie(data)
+  fit <- fit.binsusie(fit, maxiter = 100, tol = 1e-5)
   return(list(
     fit = fit,
     monotone = .monotone(fit$elbo)
@@ -170,6 +172,28 @@ for (i in seq(1, 10)) {
   })
 }
 
+testthat::test_that("p=2 doesn't fail", {
+  data <- sim_susie()
+  data$X <- data$X[, 1:2]
+  fit <- init.binsusie(data)
+  fit <- fit.binsusie(fit)
+  testthat::expect_true(.monotone(fit$elbo))
+})
+
+testthat::test_that("p=1 doesn't fail", {
+  data <- sim_susie()
+  data$X <- data$X[, 1, drop = F]
+  fit <- init.binsusie(data)
+  fit <- fit.binsusie(fit)
+  testthat::expect_true(.monotone(fit$elbo))
+})
+
+testthat::test_that("X a vector throws error", {
+  data <- sim_susie()
+  data$X <- data$X[, 1]
+  testthat::expect_error(binsusie(data))
+})
+
 
 ##
 # Fit SuSiE tests
@@ -177,7 +201,8 @@ for (i in seq(1, 10)) {
 
 test_susie_sparse <- function(N = 1) {
   data <- sim_susie_sparse(N = N)
-  fit <- fit.binsusie(data, maxiter = 100, tol = 1e-5)
+  fit <- init.binsusie(data)
+  fit <- fit.binsusie(fit, maxiter = 100, tol = 1e-5)
   return(list(
     fit = fit,
     monotone = .monotone(fit$elbo)
