@@ -85,3 +85,24 @@ update_params.normal <- function(dist, betahat, se, weights) {
   ll <- purrr::map_dbl(grid_dist, ~ sum(convolved_logpdf.normal(.x, betahat, se) * weights, na.rm = T))
   return(grid_dist[[which.max(ll)]])
 }
+
+
+
+# beta components
+beta_component <- function(alpha = 0.5) {
+  f <- list(alpha = alpha)
+  class(f) <- c("beta", "component_distribution")
+  return(f)
+}
+
+
+convolved_logpdf.beta <- function(dist, p, se = 1) {
+  logp <- dbeta(p, 1, dist$alpha)
+  logp <- .clamp(logp, 100, -100)
+  return(logp)
+}
+
+update_params.beta <- function(dist, p, se = 1, weights) {
+  # TODO: decide how to update alpha
+  # weights come from posterior assignment probabilities.
+}
