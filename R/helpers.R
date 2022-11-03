@@ -87,7 +87,7 @@ get_cs <- function(alpha, requested_coverage = 0.95) {
   idx <- min(sum(cumsum(alpha[rho]) < requested_coverage) + 1, length(alpha))
   cs <- rho[1:idx]
   coverage <- sum(alpha[cs])
-  return(list(cs = cs, prob = rho[1:idx], size = idx, requested_coverage = requested_coverage, coverage = coverage))
+  return(list(cs = cs, prob = alpha[rho[1:idx]], size = idx, requested_coverage = requested_coverage, coverage = coverage))
 }
 
 get_all_cs <- function(fit, requested_coverage = 0.95) {
