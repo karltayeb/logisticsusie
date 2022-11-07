@@ -22,13 +22,17 @@ softmax <- function(x) {
 
 #' helper function gets difference in ELBO between iterations
 .diff <- function(fit) {
-  return(diff(tail(fit$elbo, 2)))
+  delta <- diff(tail(fit$elbo, 2))
+  if (delta < 0) {
+    warning("ELBO decreased")
+  }
+  return(delta)
 }
 
 #' check if ELBO is converged to some tolerance threshold
 .converged <- function(fit, tol = 1e-3) {
   is.converged <- F
-  if ((length(fit$elbo) > 1) & .diff(fit) <= tol) {
+  if ((length(fit$elbo) > 1) & abs(.diff(fit)) <= tol) {
     is.converged <- T
   }
   return(is.converged)
@@ -94,4 +98,19 @@ get_all_cs <- function(fit, requested_coverage = 0.95) {
   sets <- purrr::map(1:fit$hypers$L, ~ get_cs(fit$params$alpha[.x, ], requested_coverage))
   names(sets) <- paste0("L", 1:fit$hypers$L)
   return(sets)
+}
+
+get_all_cs2 <- function(alpha, requested_coverage = 0.95) {
+  L <- dim(alpha)[1]
+  sets <- purrr::map(1:L, ~ get_cs(alpha[.x, ], requested_coverage))
+  names(sets) <- paste0("L", 1:L)
+  return(sets)
+}
+
+
+#' set xi, update tau
+set_xi <- function(fit, xi) {
+  fit$params$xi <- xi
+  fit$params$tau <- compute_tau(fit)
+  return(fit)
 }

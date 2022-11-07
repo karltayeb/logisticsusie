@@ -115,16 +115,25 @@ fit_univariate_vb <- function(x, y, o = 0, delta.init = logodds(mean(y)), tau0 =
   ))
 }
 
-fit_vb_ser <- function(X, y, offset = 0, prior_variance = 1.0, intercept.init = logodds(mean(y)), estimate_intercept = T) {
+#' Fit a logistic single effect regression model using univariate VB approximation
+fit_uvb_ser <- function(X, y, o = NULL, prior_variance = 1.0, intercept.init = logodds(mean(y)), estimate_intercept = T, prior_weights = NULL) {
   tau0 <- 1 / prior_variance
   p <- dim(X)[2]
-  null_model_elbo <- tail(fit_univariate_vb(X[, 1], y, o = offset, tau0 = 1e10)$elbos, 1)
-  res <- purrr::map(1:p, ~ fit_univariate_vb(X[, .x], y, o = offset, tau0 = tau0, delta.init = intercept.init, estimate_intercept = estimate_intercept)) %>%
+  if (is.null(o)) {
+    # fixed offsets
+    o <- 0
+  }
+  null_model_elbo <- tail(fit_univariate_vb(X[, 1], y, o = o, tau0 = 1e10)$elbos, 1)
+  res <- purrr::map(1:p, ~ fit_univariate_vb(X[, .x], y, o = o, tau0 = tau0, delta.init = intercept.init, estimate_intercept = estimate_intercept)) %>%
     dplyr::tibble() %>%
     tidyr::unnest_wider(1) %>%
     dplyr::rowwise() %>%
     dplyr::mutate(elbo = tail(elbos, 1)) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(BF = elbo - null_model_elbo, PIP = exp(elbo - matrixStats::logSumExp(elbo)))
-  return(res)
+  # return(res)
+
+  lbf_model <- sum(res$BF * res$PIP) - categorical_kl(res$PIP, rep(1 / p, p))
+  loglik <- lbf_model + null_model_elbo
+  return(list(mu = res$mu, var = 1 / res$tau, alpha = res$PIP, intercept = res$delta, lbf = res$BF, lbf_model = lbf_model, prior_variance = prior_variance, loglik = loglik))
 }
