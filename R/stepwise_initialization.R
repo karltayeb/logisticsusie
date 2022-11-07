@@ -11,8 +11,14 @@ binsusie_prep_data <- function(X, y, N, Z, center = TRUE, scale = FALSE) {
   X <- Matrix::Matrix(scale(X, center = center, scale = scale))
 
   # If N was passed as a scalar, convert to vector of length n
+  n <- length(y)
   if (length(N) == 1) {
-    N <- rep(N, length(y))
+    N <- rep(N, n)
+  }
+
+  # set Z to intercept covariate if not provided
+  if (is.null(Z)) {
+    Z <- matrix(rep(1, n), nrow = n)
   }
 
   # Make data list
@@ -21,6 +27,9 @@ binsusie_prep_data <- function(X, y, N, Z, center = TRUE, scale = FALSE) {
   return(data)
 }
 
+#' Initialize binary SuSie
+#'
+#' This is the main initialization function that takes arguments similar to `binsusie`, the main fitting/driver function
 binsusie_init <- function(X,
                           y,
                           N = rep(1, length(y)), # number of trials for each
@@ -43,6 +52,22 @@ binsusie_init <- function(X,
 }
 
 
+# Specialized initialization ------------
+# these functions take a binsusie object and initialize the parameters in some way
+
+#' initialize xi with the predictions from a glm using the tom `m` marginal enrichments
+binsusie_init_xi_glm <- function(fit, n_top = 10) {
+  vb_ser <- fit_vb_ser(fit$data$X, fit$data$y, prior_variance = fit$hypers$prior_variance)
+  top_bf <- order(desc(vb_ser$BF))[1:n_top]
+  glm_fit <- with(bindata, glm(y ~ as.matrix(X[, top_bf]), family = "binomial"))
+  pred <- predict(glm_fit, se.fit = T)
+
+  xi <- sqrt(pred$fit^2 + pred$se.fit^2)
+  xi[xi > 10] <- 10 # truncate
+  hist(xi)
+
+  fit <- set_xi(fit, xi) # set the predictions
+}
 # Forward initializaton-----------
 
 #' update alpha, mu, and var
