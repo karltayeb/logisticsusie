@@ -6,7 +6,7 @@
 the bound on the logistic function proposed by Jaakkola and Jordan
 NOTE: this only works when xi is updated!}
 \usage{
-jj_bound.binser(fit, kidx = NULL)
+jj_bound.binser(fit, shift = 0, kidx = NULL)
 }
 \value{
 a vector of length N with the lower bound for each data point

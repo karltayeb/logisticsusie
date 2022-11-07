@@ -4,7 +4,7 @@
 \alias{init.binser}
 \title{initialize SER}
 \usage{
-init.binser(data)
+init.binser(data, prior_mean = 0, prior_variance = 1, prior_weights = NULL)
 }
 \arguments{
 \item{data}{a list containing X, Z, y}

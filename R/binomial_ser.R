@@ -206,8 +206,8 @@ compute_tau <- function(fit) {
 
 
 #' update for variational parameter parameter xi q(w) = PG(N, xi)
-update_xi.binser <- function(fit) {
-  Xb2 <- compute_Xb2.binser(fit)
+update_xi.binser <- function(fit, shift = 0) {
+  Xb2 <- compute_Xb2.binser(fit, shift = shift)
   xi <- sqrt(abs(Xb2))
   return(xi)
 }
@@ -264,10 +264,10 @@ update_prior_variance.binser <- function(fit, idx = NULL) {
 #' the bound on the logistic function proposed by Jaakkola and Jordan
 #' NOTE: this only works when xi is updated!
 #' @returns a vector of length N with the lower bound for each data point
-jj_bound.binser <- function(fit, kidx = NULL) {
-  xi <- .get_xi(fit, )
-  Xb <- compute_Xb.binser(fit)
-  kappa <- compute_kappa(fit, kidx)
+jj_bound.binser <- function(fit, shift = 0, kidx = NULL) {
+  xi <- .get_xi(fit, kidx = kidx)
+  Xb <- compute_Xb.binser(fit, shift = shift)
+  kappa <- compute_kappa(fit, kidx = kidx)
   n <- .get_N(fit)
 
   # Xb2 <- compute_Xb2.binser(fit)
@@ -293,20 +293,20 @@ explicit_elbo.binser <- function(fit) {
 }
 
 #' More explicit, only works for Bernoulli observations
-jj_bound.logistic <- function(fit, kidx = NULL) {
+jj_bound.logistic <- function(fit, shift = 0, kidx = NULL) {
   xi <- .get_xi(fit, kidx)
-  Xb <- compute_Xb.binser(fit)
+  Xb <- compute_Xb.binser(fit, shift = shift)
   kappa <- compute_kappa(fit, kidx)
 
-  Xb2 <- compute_Xb2.binser(fit)
+  Xb2 <- compute_Xb2.binser(fit, shift = shift)
   omega <- compute_omega(fit)
   bound <- kappa * Xb - 0.5 * xi - 0.25 / xi * tanh(xi / 2) * (Xb2 - xi^2) - log(1 + exp(-xi))
   return(bound)
 }
 
 
-compute_elbo.binser <- function(fit) {
-  jj <- sum(jj_bound.binser(fit)) # E[p(y | w, b)] - KL[q(b) || p(b)]
+compute_elbo.binser <- function(fit, shift = 0) {
+  jj <- sum(jj_bound.binser(fit, shift = shift)) # E[p(y | w, b)] - KL[q(b) || p(b)]
   kl <- compute_kl.binser(fit) # KL[q(b) || p(b)]
   return(jj - kl)
 }
@@ -316,10 +316,11 @@ compute_elbo.binser <- function(fit) {
 #' @param data a list containing X, Z, y
 #' @param prior_mean prior effect mean
 #' @param simga0 prior effect standard deviation
-init.binser <- function(data) {
+init.binser <- function(data, prior_mean = 0, prior_variance = 1, prior_weights = NULL) {
   n <- nrow(data$X)
   p <- ncol(data$X) # number of covariates to select
   p2 <- ncol(data$Z) # number of fixed effects + intercept
+
   # initialize variational parameters
   params <- list(
     alpha = rep(1, p) / p,
@@ -331,10 +332,13 @@ init.binser <- function(data) {
   )
 
   # initialize hyper-parameters
+  if (is.null(prior_weights)) {
+    prior_weights <- rep(1, p) / p
+  }
   hypers <- list(
-    pi = rep(1, p) / p, # categorical probability of nonzero effect
-    prior_mean = 0, # prior mean of effect
-    prior_variance = 1 # prior variance of effect, TODO: include as init arg
+    pi = prior_weights, # categorical probability of nonzero effect
+    prior_mean = prior_mean, # prior mean of effect
+    prior_variance = prior_variance # prior variance of effect, TODO: include as init arg
   )
 
   data$X2 <- data$X^2
@@ -350,23 +354,23 @@ init.binser <- function(data) {
   return(fit.init)
 }
 
-iter.binser <- function(fit, fit_intercept = TRUE, fit_prior_variance = TRUE) {
+iter.binser <- function(fit, shift = 0, fit_intercept = TRUE, fit_prior_variance = TRUE) {
   # update b
-  post <- update_b.binser(fit)
+  post <- update_b.binser(fit, shift = shift)
   fit$params$mu <- post$mu
   fit$params$var <- post$var
   fit$params$alpha <- post$alpha
 
   # update intercept/fixed effect covariates
   if (fit_intercept) {
-    fit$params$delta <- update_delta.binser(fit)
+    fit$params$delta <- update_delta.binser(fit, shift = shift)
   }
   if (fit_prior_variance) {
     fit$hypers$prior_variance <- update_prior_variance.binser(fit)
   }
 
   # update xi
-  fit$params$xi <- update_xi.binser(fit)
+  fit$params$xi <- update_xi.binser(fit, shift = shift)
   fit$params$tau <- compute_tau(fit)
 
   return(fit)
@@ -395,6 +399,69 @@ fit.binser <- function(data = NULL, fit = NULL,
 
     # compute elbo -- TODO: do we want to record every time?
     fit$elbo <- c(fit$elbo, compute_elbo.binser(fit))
+    if (.converged(fit, tol)) {
+      break
+    }
+  }
+  return(fit)
+}
+
+
+#' Binomial SuSiE
+#' Fit Binomial SuSiE via coordinate ascent variational inference
+#' @param X a n x p matrix of covariates
+#' @param y an n vector of integer counts, bernoulli/binomial observations
+#' @param N the number of binomial trials, defaults to 1, may be a scalar or vector of length n
+#' @param Z fixed effect covaraites (including intercept). If null just a n x 1 matrix of ones
+#' @param scale if TRUE, scale the columns of X to unit variate
+#' @param center if TRUE, center the columns of X to mean zero
+#' @param prior_mean the prior mean of each non-zero element of b. Either a scalar or vector of length L.
+#' @param prior_variance the prior variance of each non-zero element of b. Either a scalar or vector of length L. If `estimate_prior_variance=TRUE` the value provides an initial estimate of prior variances
+#' @param prior_weights prior probability of selecting each column of X, vector of length p summing to one, or an L x p matrix
+#' @param intercept
+#' @param estimate_prior_variance
+#' @param s_init a logistic susie object to initialize with, NOTE if non-null, we ignore `prior_mean`, `prior_variance`, and `prior_weights`
+#' @param returns a fit Binomial SuSiE model, which is compatable with summary functions from `susieR` package
+#' @export
+binser <- function(X,
+                   y,
+                   o = 0,
+                   N = rep(1, length(y)), # number of trials for each
+                   Z = NULL,
+                   scale = FALSE,
+                   center = TRUE,
+                   prior_mean = 0.0, # set prior mean (feature added for Gao and Bohan)
+                   prior_variance = 1.0, # TODO: make scaled prior variance?
+                   prior_weights = NULL, # vector of length `p` gjvj g the prior probability of each column of X having nonzero effect... = hypers$pi
+                   intercept = TRUE,
+                   estimate_prior_variance = TRUE,
+                   check_null_threshold = 0,
+                   prior_tol = 1e-09,
+                   prune = FALSE,
+                   s_init = NULL, # previous fit with which to initialize NO
+                   coverage = 0.95,
+                   min_abs_corr = 0.5,
+                   max_iter = 100,
+                   tol = 0.001,
+                   verbose = FALSE,
+                   n_purity = 100) {
+  # Initialize model
+  data <- binsusie_prep_data(X, y, N, Z, scale = scale, center = center)
+  if (is.null(s_init)) {
+    fit <- init.binser(data, prior_mean = prior_mean, prior_variance = prior_variance, prior_weights = prior_weights)
+  } else {
+    fit <- s_init
+  }
+
+  # model fitting
+  for (i in 1:max_iter) {
+    fit <- iter.binser(
+      fit,
+      shift = o,
+      fit_intercept = intercept,
+      fit_prior_variance = estimate_prior_variance
+    )
+    fit$elbo <- c(fit$elbo, compute_elbo.binser(fit, shift = o))
     if (.converged(fit, tol)) {
       break
     }

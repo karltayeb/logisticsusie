@@ -4,7 +4,7 @@
 \alias{jj_bound.logistic}
 \title{More explicit, only works for Bernoulli observations}
 \usage{
-jj_bound.logistic(fit, kidx = NULL)
+jj_bound.logistic(fit, shift = 0, kidx = NULL)
 }
 \description{
 More explicit, only works for Bernoulli observations

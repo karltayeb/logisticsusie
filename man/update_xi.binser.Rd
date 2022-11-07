@@ -4,7 +4,7 @@
 \alias{update_xi.binser}
 \title{update for variational parameter parameter xi q(w) = PG(N, xi)}
 \usage{
-update_xi.binser(fit)
+update_xi.binser(fit, shift = 0)
 }
 \description{
 update for variational parameter parameter xi q(w) = PG(N, xi)
