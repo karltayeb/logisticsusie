@@ -35,7 +35,7 @@ compute_Xb2.binsusie <- function(fit) {
   B2 <- .get_alpha(fit) * (.get_mu(fit)^2 + .get_var(fit))
   b2 <- colSums(B2)
 
-  Xb2 <- fit$data$X2 %*% b2 + Xb**2 - rowSums(XB^2)
+  Xb2 <- (fit$data$X2 %*% b2)[, 1] + Xb**2 - rowSums(XB^2)
   Xb2 <- drop(Xb2 + 2 * Xb * Zd + Zd^2)
   return(Xb2)
 }
@@ -194,11 +194,6 @@ update_xi.binsusie <- function(fit) {
 init.binsusie <- function(data, L = 5, prior_mean = 0, prior_variance = 1, prior_weights = NULL, kidx = NULL) {
   n <- nrow(data$X)
   p <- ncol(data$X)
-
-  # set Z if not provided
-  if (is.null(data$Z)) {
-    data$Z <- matrix(rep(1, n), nrow = n)
-  }
   p2 <- ncol(data$Z)
 
   params <- .init.binsusie.params(n, p, p2, L)
