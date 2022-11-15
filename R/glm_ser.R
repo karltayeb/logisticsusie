@@ -1,6 +1,7 @@
 # Adapted from: https://andrewg3311.github.io/susieR_logistic_wflow/susie_logistic_demonstration.html#adjustments_to_susie_code
 
 # compute SER using GLM
+#' @export
 fit_glm_ser <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept = T, prior_weights = NULL) {
   p <- ncol(X)
   betahat <- numeric(p)
@@ -59,7 +60,7 @@ fit_glm_ser <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept
   return(list(alpha = alpha, mu = post_mean, intercept = intercept, var = post_var, lbf = lbf, lbf_model = lbf_model, prior_variance = prior_variance, loglik = loglik))
 }
 
-
+#' @export
 ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol = 1e-3, maxit = 100, estimate_intercept = TRUE, ser_function = NULL) {
   if (is.null(ser_function)) {
     stop("You need to specify a fit function `fit_glm_ser`, `fit_vb_ser`, etc")
@@ -135,6 +136,7 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
   return(post_info)
 }
 
+#' @export
 ibss_monitor_convergence <- function(fit) {
   map_dbl(1:(fit$iter - 1), ~ norm(
     fit$beta_post_history[[.x]] - fit$beta_post_history[[.x + 1]],
