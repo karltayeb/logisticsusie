@@ -27,7 +27,8 @@ fit_glm_ser <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept
   }
 
   # = wakefield ABF
-  lbf <- dnorm(betahat, 0, sqrt(prior_variance + shat2), log = TRUE) - dnorm(betahat, 0, sqrt(shat2), log = TRUE)
+  lbf <- dnorm(betahat, 0, sqrt(prior_variance + shat2), log = TRUE) -
+    dnorm(betahat, 0, sqrt(shat2), log = TRUE)
 
   # log(bf) on each SNP
   lbf[is.infinite(shat2)] <- 0 # deal with special case of infinite shat2 (eg happens if X does not vary)
@@ -73,6 +74,7 @@ fit_susie_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights 
   post_var <- matrix(NA, nrow = L, ncol = p)
   post_info <- list(alpha = post_alpha, mu = post_mu, var = post_var)
 
+  # store posterior effect estimates
   beta_post_init <- matrix(Inf, nrow = L, ncol = p) # initialize
   beta_post_init2 <- beta_post_init
   beta_post <- matrix(0, nrow = L, ncol = p)
@@ -80,6 +82,9 @@ fit_susie_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights 
   fixed <- rep(0, n) # fixed portion, estimated from l' != l other SER models
 
   iter <- 0
+
+  tictoc::tic() # start timer
+  fits <- vector(mode = "list", length = L)
   # repeat until posterior means converge (ELBO not calculated here, so use this convergence criterion instead)
   while ((norm(beta_post - beta_post_init, "1") > tol) & (norm(beta_post - beta_post_init2, "1") > tol)) {
     beta_post_init2 <- beta_post_init # store from 2 iterations ago
@@ -97,18 +102,31 @@ fit_susie_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights 
       # update beta_post
       beta_post[l, ] <- ser_l$alpha * ser_l$mu
 
-      fixed <- fixed + (X %*% beta_post[l, ])[, 1] # add back new fixed portion
+      # add back new fixed portion
+      fixed <- fixed + (X %*% beta_post[l, ])[, 1]
+
+      # save current ser
+      fits[[l]] <- ser_l
     }
     iter <- iter + 1
     if (iter > maxit) {
       warning("Maximum number of iterations reached")
+      break
     }
   }
+  timer <- tictoc::toc()
+
 
   # now, get intercept w/ MLE, holding our final estimate of beta to be fixed
   beta <- colSums(post_info$alpha * post_info$mu)
   pred <- (X %*% beta)[, 1]
   int <- coef(glm(y ~ 1 + offset(pred), family = "binomial"))
   post_info$intercept <- int
+
+  # add the final ser fits
+  names(fits) <- paste0("L", 1:L)
+  post_info$fits <- fits
+  post_info$iter <- iter
+  post_info$elapsed_time <- unname(timer$toc - timer$tic)
   return(post_info)
 }
