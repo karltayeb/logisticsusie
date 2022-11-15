@@ -10,7 +10,7 @@ fit_univariate_vb(
   x,
   y,
   o = 0,
-  delta.init = logodds(mean(y)),
+  delta.init = logodds(mean(y) + 1e-10),
   tau0 = 1,
   estimate_intercept = T,
   maxit = 50,

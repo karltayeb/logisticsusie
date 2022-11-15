@@ -1,4 +1,4 @@
-
+# Updates --------
 update_intercept <- function(x, y, o, mu, tau, xi, delta, tau0) {
   kappa <- y - 0.5
   xb <- (x * mu) + o
@@ -74,10 +74,11 @@ update_tau0 <- function(x, y, o, mu, tau, xi, delta, tau0) {
   return(1 / b2)
 }
 
+# Single Fit-------------
 #' Quick implimentation of univariate VB logistic regression
 #' The intercept `delta` is treated as a parameter to be optimized,
 #' Normal prior on the effect N(0, 1/tau0)
-fit_univariate_vb <- function(x, y, o = 0, delta.init = logodds(mean(y)), tau0 = 1, estimate_intercept = T, maxit = 50, tol = 1e-3) {
+fit_univariate_vb <- function(x, y, o = 0, delta.init = logodds(mean(y) + 1e-10), tau0 = 1, estimate_intercept = T, maxit = 50, tol = 1e-3) {
   # init
   mu <- 0
   tau <- 1
@@ -115,25 +116,43 @@ fit_univariate_vb <- function(x, y, o = 0, delta.init = logodds(mean(y)), tau0 =
   ))
 }
 
+# SER--------
 #' Fit a logistic single effect regression model using univariate VB approximation
-fit_uvb_ser <- function(X, y, o = NULL, prior_variance = 1.0, intercept.init = logodds(mean(y)), estimate_intercept = T, prior_weights = NULL) {
+#' @export
+fit_uvb_ser <- function(X, y, o = NULL, prior_variance = 1.0, intercept.init = logodds(mean(y) + 1e-10), estimate_intercept = T, prior_weights = NULL) {
   tau0 <- 1 / prior_variance
   p <- dim(X)[2]
   if (is.null(o)) {
     # fixed offsets
     o <- 0
   }
-  null_model_elbo <- tail(fit_univariate_vb(X[, 1], y, o = o, tau0 = 1e10)$elbos, 1)
+
+  # null_model_elbo <- tail(fit_univariate_vb(X[, 1], y, o = o, tau0 = 1e10)$elbos, 1)
+  null_likelihood <- sum(dbinom(y, 1, mean(y), log = T))
+
   res <- purrr::map(1:p, ~ fit_univariate_vb(X[, .x], y, o = o, tau0 = tau0, delta.init = intercept.init, estimate_intercept = estimate_intercept)) %>%
     dplyr::tibble() %>%
     tidyr::unnest_wider(1) %>%
     dplyr::rowwise() %>%
     dplyr::mutate(elbo = tail(elbos, 1)) %>%
     dplyr::ungroup() %>%
-    dplyr::mutate(BF = elbo - null_model_elbo, PIP = exp(elbo - matrixStats::logSumExp(elbo)))
-  # return(res)
+    dplyr::mutate(
+      lbf = elbo - null_likelihood,
+      alpha = exp(lbf - matrixStats::logSumExp(lbf))
+    )
 
-  lbf_model <- sum(res$BF * res$PIP) - categorical_kl(res$PIP, rep(1 / p, p))
-  loglik <- lbf_model + null_model_elbo
-  return(list(mu = res$mu, var = 1 / res$tau, alpha = res$PIP, intercept = res$delta, lbf = res$BF, lbf_model = lbf_model, prior_variance = prior_variance, loglik = loglik))
+  lbf_model <- sum(res$lbf * res$alpha) - categorical_kl(res$alpha, rep(1 / p, p))
+  loglik <- lbf_model + null_likelihood
+  res <- list(
+    mu = res$mu,
+    var = 1 / res$tau,
+    alpha = res$alpha,
+    intercept = res$delta,
+    lbf = res$lbf,
+    lbf_model = lbf_model,
+    prior_variance = prior_variance,
+    loglik = loglik,
+    null_loglik = null_likelihood
+  )
+  return(res)
 }
