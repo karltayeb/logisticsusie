@@ -6,6 +6,7 @@ sigmoid <- function(x) {
   return(1 / (1 + exp(-x)))
 }
 
+#' @export
 logodds <- function(p) {
   return(log(p) - log(1 - p))
 }
