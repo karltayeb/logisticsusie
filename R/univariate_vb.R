@@ -78,6 +78,7 @@ update_tau0 <- function(x, y, o, mu, tau, xi, delta, tau0) {
 #' Quick implimentation of univariate VB logistic regression
 #' The intercept `delta` is treated as a parameter to be optimized,
 #' Normal prior on the effect N(0, 1/tau0)
+#' @export
 fit_univariate_vb <- function(x, y, o = 0, delta.init = logodds(mean(y) + 1e-10), tau0 = 1, estimate_intercept = T, maxit = 50, tol = 1e-3) {
   # init
   mu <- 0
