@@ -4,7 +4,7 @@
 \alias{correct_bin_ser}
 \title{Correct a binomial SER fit by recomputing the lbfs}
 \usage{
-correct_bin_ser(X, y, fit)
+correct_bin_ser(X, y, o, fit)
 }
 \description{
 Correct a binomial SER fit by recomputing the lbfs

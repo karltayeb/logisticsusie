@@ -5,7 +5,7 @@
 \title{Compute log Bayes Factors for each feature
 Takes a SER and give back the log-Bayes Factors for each feature}
 \usage{
-compute_lbf_variable(ser, l = 1)
+compute_lbf_variable(X, y, o, fit)
 }
 \description{
 Compute log Bayes Factors for each feature
