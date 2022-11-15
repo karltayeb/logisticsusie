@@ -60,7 +60,7 @@ fit_glm_ser <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept
 }
 
 
-fit_susie_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol = 1e-3, maxit = 100, estimate_intercept = TRUE, ser_function = NULL) {
+ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol = 1e-3, maxit = 100, estimate_intercept = TRUE, ser_function = NULL) {
   if (is.null(ser_function)) {
     stop("You need to specify a fit function `fit_glm_ser`, `fit_vb_ser`, etc")
   }
@@ -85,6 +85,7 @@ fit_susie_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights 
 
   tictoc::tic() # start timer
   fits <- vector(mode = "list", length = L)
+  beta_post_history <- vector(mode = "list", length = maxit)
   # repeat until posterior means converge (ELBO not calculated here, so use this convergence criterion instead)
   while ((norm(beta_post - beta_post_init, "1") > tol) & (norm(beta_post - beta_post_init2, "1") > tol)) {
     beta_post_init2 <- beta_post_init # store from 2 iterations ago
@@ -109,6 +110,8 @@ fit_susie_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights 
       fits[[l]] <- ser_l
     }
     iter <- iter + 1
+    beta_post_history[[iter]] <- beta_post
+
     if (iter > maxit) {
       warning("Maximum number of iterations reached")
       break
@@ -128,5 +131,13 @@ fit_susie_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights 
   post_info$fits <- fits
   post_info$iter <- iter
   post_info$elapsed_time <- unname(timer$toc - timer$tic)
+  post_info$beta_post_history <- beta_post_history
   return(post_info)
+}
+
+ibss_monitor_convergence <- function(fit) {
+  map_dbl(1:(fit$iter - 1), ~ norm(
+    fit$beta_post_history[[.x]] - fit$beta_post_history[[.x + 1]],
+    type = "2"
+  ))
 }

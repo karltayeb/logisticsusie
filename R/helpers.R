@@ -101,11 +101,21 @@ get_all_cs <- function(fit, requested_coverage = 0.95) {
   return(sets)
 }
 
+
 get_all_cs2 <- function(alpha, requested_coverage = 0.95) {
   L <- dim(alpha)[1]
   sets <- purrr::map(1:L, ~ get_cs(alpha[.x, ], requested_coverage))
   names(sets) <- paste0("L", 1:L)
   return(sets)
+}
+
+# convenient table of CSs from get_all_cs2
+cs_tbl2 <- function(alpha) {
+  get_all_cs2(alpha) %>%
+    tibble() %>%
+    unnest_wider(1) %>%
+    rowwise() %>%
+    mutate(top_feaure = cs[1], top_feature_alpha = prob[1]) # %>% unnest_longer(c(cs, prob))
 }
 
 
