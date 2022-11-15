@@ -71,6 +71,29 @@ sim_ser_with_covariates <- function(n = 1000, p = 50, N = 1, idx = 1) {
 }
 
 
+sim_ser_with_random_effects <- function(n = 1000,
+                                        p = 50,
+                                        N = 1,
+                                        idx = 1,
+                                        beta = 1,
+                                        beta0 = -2,
+                                        re_var = 1,
+                                        fsimX = sim_X,
+                                        fsimX_control = list()) {
+  X <- rlang::exec(fsimX, n = n, p = p, !!!fsimX_control)
+  Z <- matrix(rep(1, n), nrow = n)
+
+  logits <- beta0 + beta * X[, idx] + rnorm(n, sd = sqrt(re_var))
+  p <- sigmoid(logits)
+  y <- rbinom(n, N, p)
+
+  data <- list(
+    X = X, Z = Z, y = y, N = N, logits = logits
+  )
+  return(data)
+}
+
+
 #' @title  Simulate data under the logistic SuSiE model
 #' @description  Simulate data under the logistic SuSiE model
 #' @param n numeric sample size
@@ -82,29 +105,29 @@ sim_ser_with_covariates <- function(n = 1000, p = 50, N = 1, idx = 1) {
 #' @param alpha numeric intercept in the lostic regression (control sparsity)
 #' @export
 
-sim_susie <- function(n = 1000, p = 50, L = 3, N = 1, beta, alpha=0) {
+sim_susie <- function(n = 1000, p = 50, L = 3, N = 1, beta, alpha = 0) {
   X <- sim_X(n, p)
   Z <- matrix(rep(1, n), nrow = n)
-  if( missing(beta)){
+  if (missing(beta)) {
     beta <- seq(L) * .2
   }
-  if(length(beta)==1){
-    beta <- rep(beta,L)
+  if (length(beta) == 1) {
+    beta <- rep(beta, L)
   }
 
 
-  logits <-alpha +Matrix::drop(X[, seq(L) * 10] %*% beta)
+  logits <- alpha + Matrix::drop(X[, seq(L) * 10] %*% beta)
   p <- sigmoid(logits)
   y <- rbinom(n, N, p)
 
   data <- list(
-                X         = X,
-                Z         = Z,
-                y         = y,
-                N         = N,
-                logits    = logits,
-                effect    = beta,
-                intercept = alpha
+    X         = X,
+    Z         = Z,
+    y         = y,
+    N         = N,
+    logits    = logits,
+    effect    = beta,
+    intercept = alpha
   )
   return(data)
 }
@@ -119,11 +142,11 @@ sim_susie <- function(n = 1000, p = 50, L = 3, N = 1, beta, alpha=0) {
 #' @param beta numeric if of length 1 assume that ervery effect have same beta coefficietns
 #' otherwise should be  of length L, if missing beta <- seq(L) * .2
 #' @export
-sim_twococomo <- function(n = 1000, p = 50, L = 3, N = 1,beta , alpha=0) {
-  if( missing(beta)){
-    sim <- sim_susie(n, p, L, N, alpha=alpha)
-  }else{
-    sim <- sim_susie(n, p, L, N, beta, alpha=alpha)
+sim_twococomo <- function(n = 1000, p = 50, L = 3, N = 1, beta, alpha = 0) {
+  if (missing(beta)) {
+    sim <- sim_susie(n, p, L, N, alpha = alpha)
+  } else {
+    sim <- sim_susie(n, p, L, N, beta, alpha = alpha)
   }
 
   sim$beta <- rnorm(n) * sim$y
@@ -178,11 +201,11 @@ sim_mn_susie <- function(n = 1000, p = 50, L = 3, N = 1, K = 10) {
 }
 
 #' @export
-sim_mococomo <- function(n = 1000, p = 50, L = 3, N = 1,beta, alpha=0) {
-  if( missing(beta)){
-    sim <- sim_susie(n, p, L, N, alpha=alpha)
-  }else{
-    sim <- sim_susie(n, p, L, N, beta, alpha=alpha)
+sim_mococomo <- function(n = 1000, p = 50, L = 3, N = 1, beta, alpha = 0) {
+  if (missing(beta)) {
+    sim <- sim_susie(n, p, L, N, alpha = alpha)
+  } else {
+    sim <- sim_susie(n, p, L, N, beta, alpha = alpha)
   }
   sim$scales <- cumprod(c(1, rep(sqrt(2), 5)))
   sim$beta <- rnorm(n) * sim$y * sample(sim$scales, size = n, replace = T)
@@ -194,88 +217,86 @@ sim_mococomo <- function(n = 1000, p = 50, L = 3, N = 1,beta, alpha=0) {
 
 
 #' @export
-sim_ordinal_mod <- function(n=1000,
-                                p=30,
-                                p_act=1,
-                                se=1,
-                                n_class=5,
-                                beta_size=1, # 1 moderatly informative , 1.5 strongly infrmative
-                                alpha_start=3.5,#3.5, 2.5, 1.5 as start corresponds to sparse medium and dense signals
-                                grid_s,
-                                max_grid=2, # represent signal power the larger the clearer signals
-                                full_res=TRUE
-)
-{
-  if( missing(grid_s)){
-
-    grid_s <- seq(0,max_grid, length.out=n_class)
+sim_ordinal_mod <- function(n = 1000,
+                            p = 30,
+                            p_act = 1,
+                            se = 1,
+                            n_class = 5,
+                            beta_size = 1, # 1 moderatly informative , 1.5 strongly infrmative
+                            alpha_start = 3.5, # 3.5, 2.5, 1.5 as start corresponds to sparse medium and dense signals
+                            grid_s,
+                            max_grid = 2, # represent signal power the larger the clearer signals
+                            full_res = TRUE) {
+  if (missing(grid_s)) {
+    grid_s <- seq(0, max_grid, length.out = n_class)
   }
-  if(missing(se))
-  {
+  if (missing(se)) {
     se <- runif(n)
   }
-  if(length(se)==1){
+  if (length(se) == 1) {
     se <- rep(se, n)
   }
 
 
-  beta <- sample(c(-beta_size,beta_size),size=p_act, replace = TRUE)
+  beta <- sample(c(-beta_size, beta_size), size = p_act, replace = TRUE)
 
 
 
-  alpha <- alpha_start+ seq(0,3, length.out=n_class)
-  #res_summary= length(which(cebmn_fdr<0.05))/n
-  #length(which(camt_lfdr<0.05))/n
-  #length(which(ihw_fdr<0.05))/n
+  alpha <- alpha_start + seq(0, 3, length.out = n_class)
+  # res_summary= length(which(cebmn_fdr<0.05))/n
+  # length(which(camt_lfdr<0.05))/n
+  # length(which(ihw_fdr<0.05))/n
 
-  X <- matrix( rnorm (n*p ), nrow=n, ncol=p)
+  X <- matrix(rnorm(n * p), nrow = n, ncol = p)
   # simulation under ordinal model
-  if( length(beta)==1){
-    pred <-   sigmoid(matrix(alpha,
-                             byrow = TRUE,
-                             nrow=n,
-                             ncol=n_class) + matrix(rep(X[,c(1:p_act)] * (beta),n_class),
-                                                    ncol = n_class)
-    )
-  }else{
-    pred <-   sigmoid(matrix(alpha,
-                             byrow = TRUE,
-                             nrow=n,
-                             ncol=n_class) + matrix(rep(X[,c(1:p_act)]%*%(beta),n_class),
-                                                    ncol = n_class)
-    )
+  if (length(beta) == 1) {
+    pred <- sigmoid(matrix(alpha,
+      byrow = TRUE,
+      nrow = n,
+      ncol = n_class
+    ) + matrix(rep(X[, c(1:p_act)] * (beta), n_class),
+      ncol = n_class
+    ))
+  } else {
+    pred <- sigmoid(matrix(alpha,
+      byrow = TRUE,
+      nrow = n,
+      ncol = n_class
+    ) + matrix(rep(X[, c(1:p_act)] %*% (beta), n_class),
+      ncol = n_class
+    ))
   }
 
 
 
-  ind_prob <- matrix(NA, ncol=n_class, nrow=n)
-  for ( i in 1:nrow(ind_prob)){
-    for ( j in 1: ncol(ind_prob)){
-      if(j==1){
-        ind_prob[i,j] <-  pred[i,j]
-      }else{
-        ind_prob[i,j] <-  pred[i,j]-   pred[i,(j-1)]
+  ind_prob <- matrix(NA, ncol = n_class, nrow = n)
+  for (i in 1:nrow(ind_prob)) {
+    for (j in 1:ncol(ind_prob)) {
+      if (j == 1) {
+        ind_prob[i, j] <- pred[i, j]
+      } else {
+        ind_prob[i, j] <- pred[i, j] - pred[i, (j - 1)]
       }
-
     }
   }
-  ind_prob <- ind_prob/apply( ind_prob, 1,sum)
+  ind_prob <- ind_prob / apply(ind_prob, 1, sum)
 
   obs <- rep(NA, n)
-  true_obs <- rep(NA,n)
-  class <- rep(NA,n)
+  true_obs <- rep(NA, n)
+  class <- rep(NA, n)
   for (i in 1:n)
   {
-    class[i] <- sample(size=1,1:n_class, prob = ind_prob[i,])
-    true_obs[i] <- ifelse(class[i]==1, 0,rnorm(1,0 ,  grid_s[class[i]]))
-    obs[i] <- true_obs[i] + rnorm(1,sd=se[i])
+    class[i] <- sample(size = 1, 1:n_class, prob = ind_prob[i, ])
+    true_obs[i] <- ifelse(class[i] == 1, 0, rnorm(1, 0, grid_s[class[i]]))
+    obs[i] <- true_obs[i] + rnorm(1, sd = se[i])
   }
-  out <- list(true_obs= true_obs,
-              obs=obs,
-              X=X,
-              se= se,
-              class=class,
-              sim_param=  c(n,p,p_act,se,n_class))
+  out <- list(
+    true_obs = true_obs,
+    obs = obs,
+    X = X,
+    se = se,
+    class = class,
+    sim_param = c(n, p, p_act, se, n_class)
+  )
   return(out)
 }
-
