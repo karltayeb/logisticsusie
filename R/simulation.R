@@ -25,12 +25,46 @@ sim_X_sparse <- function(n = 1000, p = 50, pi1 = 0.2, p_flip = 0.01) {
 }
 
 
-# Generate effects ----
 
+# Generate effects ----
 sim_b_constant <- function(b = 1, p = 50, L = 3) {
   idx <- seq(L) * 10
   beta <- rep(b, L)
   return(list(beta = beta, idx = idx))
+}
+
+sim_y_ser <- function(X, beta0, beta, idx = NULL, N = 1) {
+  n <- dim(X)[1]
+  p <- dim(X)[2]
+
+  if (is.null(idx)) {
+    idx <- sample(p, 1)
+  }
+
+  logits <- beta0 + beta * X[, idx]
+  p <- sigmoid(logits)
+  y <- rbinom(n, N, p)
+
+  data <- list(y = y, logits = logits, N = N, beta = beta, beta0 = beta0, idx = idx)
+  return(data)
+}
+
+sim_y_susie <- function(X, beta0, beta, idx = NULL, N = 1) {
+  n <- dim(X)[1]
+  p <- dim(X)[2]
+
+  if (length(beta) >= p) {
+    stop("length(beta) must be less than number of columns of X")
+  }
+  if (is.null(idx)) {
+    idx <- sample(p, length(beta))
+  }
+
+  logits <- beta0 + rowSums(beta * X[, idx, drop = F])
+  p <- sigmoid(logits)
+  y <- rbinom(n, N, p)
+  data <- list(y = y, logits = logits, N = N, beta = beta, beta0 = beta0, idx = idx)
+  return(data)
 }
 
 #' @export
