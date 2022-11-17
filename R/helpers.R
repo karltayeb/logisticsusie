@@ -112,12 +112,11 @@ get_all_cs2 <- function(alpha, requested_coverage = 0.95) {
 # convenient table of CSs from get_all_cs2
 cs_tbl2 <- function(alpha) {
   get_all_cs2(alpha) %>%
-    tibble() %>%
-    unnest_wider(1) %>%
-    rowwise() %>%
-    mutate(top_feaure = cs[1], top_feature_alpha = prob[1]) # %>% unnest_longer(c(cs, prob))
+    dplyr::tibble() %>%
+    tidyr::unnest_wider(1) %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(top_feaure = cs[1], top_feature_alpha = prob[1]) # %>% unnest_longer(c(cs, prob))
 }
-
 
 #' set xi, update tau
 set_xi <- function(fit, xi) {
