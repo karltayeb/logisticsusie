@@ -79,7 +79,12 @@ update_tau0 <- function(x, y, o, mu, tau, xi, delta, tau0) {
 #' The intercept `delta` is treated as a parameter to be optimized,
 #' Normal prior on the effect N(0, 1/tau0)
 #' @export
-fit_univariate_vb <- function(x, y, o = 0, delta.init = logodds(mean(y) + 1e-10), tau0 = 1, estimate_intercept = T, maxit = 50, tol = 1e-3) {
+fit_univariate_vb <- function(x, y, o = 0,
+                              delta.init = logodds(mean(y) + 1e-10),
+                              tau0 = 1,
+                              estimate_intercept = T,
+                              maxit = 50,
+                              tol = 1e-3) {
   # init
   mu <- 0
   tau <- 1
@@ -120,7 +125,11 @@ fit_univariate_vb <- function(x, y, o = 0, delta.init = logodds(mean(y) + 1e-10)
 # SER--------
 #' Fit a logistic single effect regression model using univariate VB approximation
 #' @export
-fit_uvb_ser <- function(X, y, o = NULL, prior_variance = 1.0, intercept.init = logodds(mean(y) + 1e-10), estimate_intercept = T, prior_weights = NULL) {
+fit_uvb_ser <- function(X, y, o = NULL,
+                        prior_variance = 1.0,
+                        intercept.init = logodds(mean(y) + 1e-10),
+                        estimate_intercept = T,
+                        prior_weights = NULL) {
   tau0 <- 1 / prior_variance
   p <- dim(X)[2]
   if (is.null(o)) {
@@ -131,7 +140,13 @@ fit_uvb_ser <- function(X, y, o = NULL, prior_variance = 1.0, intercept.init = l
   # null_model_elbo <- tail(fit_univariate_vb(X[, 1], y, o = o, tau0 = 1e10)$elbos, 1)
   null_likelihood <- sum(dbinom(y, 1, mean(y), log = T))
 
-  res <- purrr::map(1:p, ~ fit_univariate_vb(X[, .x], y, o = o, tau0 = tau0, delta.init = intercept.init, estimate_intercept = estimate_intercept)) %>%
+  res <- purrr::map(1:p, ~ fit_univariate_vb(
+    X[, .x], y,
+    o = o,
+    tau0 = tau0,
+    delta.init = intercept.init,
+    estimate_intercept = estimate_intercept
+  )) %>%
     dplyr::tibble() %>%
     tidyr::unnest_wider(1) %>%
     dplyr::rowwise() %>%
