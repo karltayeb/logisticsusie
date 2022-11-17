@@ -20,13 +20,17 @@ compute_elbo_idx <- function(ser, o = 0, idx) {
 #' @export
 compute_lbf_variable <- function(X, y, o, fit) {
   p <- dim(X)[2]
+  intercept <- fit$intercept
+  if (length(intercept) == 1) {
+    intercept <- rep(intercept, p)
+  }
   elbo <- purrr::map_dbl(1:p, ~ compute_elbo2(
     x = X[, .x],
     y = y, o = o,
     mu = fit$mu[.x],
     tau = 1 / fit$var[.x],
     xi = fit$xi,
-    delta = fit$intercept[.x],
+    delta = intercept[.x],
     tau0 = 1 / fit$prior_variance
   ))
   null_likelihood <- sum(dbinom(y, 1, mean(y), log = T))
