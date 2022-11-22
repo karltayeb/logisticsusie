@@ -213,8 +213,7 @@ compute_elbo.mococomo <- function(fit) {
   # TODO: do we want to just store post_assignment after each update?
   post_assignment <- fit$post_assignment
   data_loglik <- fit$data_loglik
-print( dim(post_assignment))
-print( dim(data_loglik))
+
   ll <- sum(post_assignment * data_loglik)
   assignment_entropy <- sum(apply(post_assignment, 1, categorical_entropy))
   mnsusie_elbo <- compute_elbo.mnsusie(fit)
