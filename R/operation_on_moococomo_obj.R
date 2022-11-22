@@ -1,8 +1,113 @@
 
+
+
+init.mococomo <- function (data, max_class, mult = 2,upper=FALSE, ...)
+  UseMethod("init.mococomo")
+
+#' @rdname init.mococomo
+#'
+#'
+#' @method init.mococomo normal
+#'
+#' @export init.mococomo.normal
+#'
+#' @export
+#'
+init.mococomo.normal <- function(data, max_class, mult = 2,upper=FALSE,...) {
+
+    data$X2 <- data$X^2
+
+    # TODO check input data has X, Z, betahat, se, etc.
+    #### We can force the user to input data as being from a certain  class generarted by a set_data  function
+    # w
+    # scale mixture of normals w/ zero mean-- TODO: make this initializable
+
+
+    #WIlliam to check here
+    scales <- autoselect.mococomo(data)
+    # scales <- cumprod(c(1., rep(sqrt(2), 5)))
+    f_list <- purrr::map(scales, ~ normal_component(mu = 0, var = .x^2))
+
+    K <- length(scales)
+    p <- ncol(data$X)
+    n <- nrow(data$X)
+
+    # initialize posterior assignment
+    Y <- matrix(rep(1, K * n) / K, nrow = n)
+    N <- .expected_trials(Y)
+
+    data$y <- Y
+    data$N <- N
+
+    # it's multinational regression + some other stuff
+    fit                 <- init.mnsusie(data)
+    fit$f_list          <- f_list
+    fit$post_assignment <- Y
+    fit$N               <- N
+    fit$dist            <- dist
+    fit$K               <- length(fit$f_list)
+    class(fit) <- "mococomo_normal"
+    # only need to do this once when component probabilities are fixed
+    fit$data_loglik <- compute_data_loglikelihood(fit)
+
+    return(fit)
+}
+
+
+#' @rdname init.mococomo
+#'
+#'
+#' @method init.mococomo beta
+#'
+#' @export init.mococomo.beta
+#'
+#' @export
+#'
+init.mococomo.beta <- function(data, max_class, mult = 2,upper=FALSE,...) {
+# different set up depending on fitting p values or fitting z-scores
+    #need to polish the upper limit for alpha and beta, now set as 100
+    if(upper){ #mixture to fit component close to 1
+      alpha   <- seq(1.1,100,length.out=max_class)
+      upper_l <- list( alpha=alpha, beta=1)
+    }else{
+      upper_l = NULL
+    }
+    #mixture to fit component close to 0
+    beta    <- c(1,seq(1.1,100,length.out=max_class)) #contains null component!!!
+    lower_l <-list( alpha=1, beta=beta)
+    f_list  <- beta_component(alpha = alpha,
+                              beta  = beta
+                             )
+    K      <- length(upper_l[[1]])+length(lower_l[[2]])
+    p      <- ncol(data$X)
+    n      <- nrow(data$X)
+
+    # initialize posterior assignment
+    Y <- matrix(rep(1, K * n) / K, nrow = n)
+    N <- .expected_trials(Y)
+    data$y <- Y
+    data$N <- N
+
+    # it's multinational regression + some other stuff
+    fit                 <- init.mnsusie(data)
+    fit$f_list          <- f_list
+    fit$upper_l         <- upper_l
+    fit$lower_l         <- lower_l
+    fit$post_assignment <- Y
+    fit$N               <- N
+    fit$dist            <- dist
+    fit$K               <- K
+    class(fit)          <- "mococomo_beta"
+    # only need to do this once when component probabilities are fixed
+    fit$data_loglik     <- compute_data_loglikelihood(fit)
+
+    return(fit)
+
+}
 #' Compute Expected Assignment Log Likelihood
 #' @return N x K matrix each row has E[p(z=k | \beta, \omega)] for k = 1,..., K
 compute_assignment_loglikelihood.mococomo <- function(fit, normalize = TRUE) {
-  K <- length(fit$f_list)
+  K <- fit$K
   Xb <- compute_Xb.mnsusie(fit) # N x K-1
   Xbcum <- do.call(rbind, apply(Xb, 1, cumsum, simplify = F))
   kln2 <- seq(K - 1) * log(2)
@@ -26,7 +131,7 @@ compute_assignment_loglikelihood.mococomo <- function(fit, normalize = TRUE) {
 
 
 compute_assignment_jj_bound.mococomo <- function(fit) {
-  K <- length(fit$f_list)
+  K <- fit$K
   Xb <- do.call(cbind, purrr::map(fit$logreg_list, compute_Xb.binsusie)) # N x K-1
   Xi <- do.call(cbind, purrr::map(fit$logreg_list, ~ purrr::pluck(.x, "params", "xi"))) # N x K-1
 
@@ -92,7 +197,7 @@ compute_elbo2.mococomo <- function(fit) {
 }
 
 compute_elbo.mococomo <- function(fit) {
-  K <- length(fit$f_list)
+  K <- fit$K
   N <- .expected_trials(fit$post_assignment)
 
   # MAKE SURE susie has access to the right posteriors!
@@ -108,7 +213,8 @@ compute_elbo.mococomo <- function(fit) {
   # TODO: do we want to just store post_assignment after each update?
   post_assignment <- fit$post_assignment
   data_loglik <- fit$data_loglik
-
+print( dim(post_assignment))
+print( dim(data_loglik))
   ll <- sum(post_assignment * data_loglik)
   assignment_entropy <- sum(apply(post_assignment, 1, categorical_entropy))
   mnsusie_elbo <- compute_elbo.mnsusie(fit)
@@ -125,64 +231,30 @@ compute_elbo.mococomo <- function(fit) {
   N <- 1. - cumY + Y
 }
 
-init.mococomo <- function(data, max_class, mult = 2) {
-  data$X2 <- data$X^2
-
-  # TODO check input data has X, Z, betahat, se, etc.
-  #### We can force the user to input data as being from a certain  class generarted by a set_data  function
-  # w
-  # scale mixture of normals w/ zero mean-- TODO: make this initializable
-
-
-#WIlliam to check here
-  scales <- autoselect.mococomo(data)
-  # scales <- cumprod(c(1., rep(sqrt(2), 5)))
-  f_list <- purrr::map(scales, ~ normal_component(mu = 0, var = .x^2))
-
-  K <- length(scales)
-  p <- ncol(data$X)
-  n <- nrow(data$X)
-
-  # initialize posterior assignment
-  Y <- matrix(rep(1, K * n) / K, nrow = n)
-  N <- .expected_trials(Y)
-
-  data$y <- Y
-  data$N <- N
-
-  # it's multinational regression + some other stuff
-  fit <- init.mnsusie(data)
-  fit$f_list <- f_list
-  fit$post_assignment <- Y
-  fit$N <- N
-
-  # only need to do this once when component probabilities are fixed
-  fit$data_loglik <- compute_data_loglikelihood(fit)
-  return(fit)
-}
-
 
 iter.mococomo <- function(fit, update_assignment = T, update_logreg = T) {
-  K <- length(fit$f_list)
+    K <- fit$K
 
-  # updates posterior assignments
-  if (update_assignment) {
-    fit$post_assignment <- compute_posterior_assignment(fit, log = F)
-    fit$N <- .expected_trials(fit$post_assignment)
+    # updates posterior assignments
+    if (update_assignment) {
+      fit$post_assignment <- compute_posterior_assignment(fit, log = F)
+      fit$N <- .expected_trials(fit$post_assignment)
+    }
+
+    # pass assignments to logreg
+    for (k in seq(K - 1)) {
+      fit$logreg_list[[k]]$data$y <- fit$post_assignment[, k]
+      fit$logreg_list[[k]]$data$N <- fit$N[, k]
+    }
+
+    if (update_logreg) {
+      fit <- iter.mnsusie(fit)
+    }
+
+    return(fit)
   }
 
-  # pass assignments to logreg
-  for (k in seq(K - 1)) {
-    fit$logreg_list[[k]]$data$y <- fit$post_assignment[, k]
-    fit$logreg_list[[k]]$data$N <- fit$N[, k]
-  }
 
-  if (update_logreg) {
-    fit <- iter.mnsusie(fit)
-  }
-
-  return(fit)
-}
 
 
 
@@ -290,7 +362,7 @@ post_mean_sd.mococomo <- function(fit) {
 # that should be used, based on the values of betahat and sebetahat
 # mode is the location about which inference is going to be centered
 # gridmult is the multiplier by which the sds differ across the grid
-
+#'@export
 autoselect.mococomo <- function(data, max_class, mult = 2) {
   betahat <- data$betahat
   sebetahat <- data$se
