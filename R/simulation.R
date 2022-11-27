@@ -49,7 +49,7 @@ sim_y_ser <- function(X, beta0, beta, idx = NULL, N = 1) {
   return(data)
 }
 
-sim_y_susie <- function(X, beta0, beta, idx = NULL, N = 1) {
+sim_y_susie <- function(X, beta0, beta, re_var = 0, idx = NULL, N = 1) {
   n <- dim(X)[1]
   p <- dim(X)[2]
 
@@ -60,7 +60,7 @@ sim_y_susie <- function(X, beta0, beta, idx = NULL, N = 1) {
     idx <- sample(p, length(beta))
   }
 
-  logits <- beta0 + rowSums(beta * X[, idx, drop = F])
+  logits <- beta0 + rowSums(beta * X[, idx, drop = F]) + (rnorm(n) * sqrt(re_var))
   p <- sigmoid(logits)
   y <- rbinom(n, N, p)
   data <- list(y = y, logits = logits, N = N, beta = beta, beta0 = beta0, idx = idx)
