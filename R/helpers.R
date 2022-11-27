@@ -101,12 +101,26 @@ get_all_cs <- function(fit, requested_coverage = 0.95) {
   return(sets)
 }
 
-
 get_all_cs2 <- function(alpha, requested_coverage = 0.95) {
+  if (is.null(dim(alpha))) {
+    alpha <- matrix(alpha, nrow = 1)
+  }
   L <- dim(alpha)[1]
   sets <- purrr::map(1:L, ~ get_cs(alpha[.x, ], requested_coverage))
   names(sets) <- paste0("L", 1:L)
   return(sets)
+}
+
+#' Check if a CS covers a particular index
+get_coverage <- function(cs, idx) {
+  cs$covered <- idx %in% cs$cs
+  names(cs$covered) <- idx
+  return(cs)
+}
+
+#' Check if set of indices `idx` in a list of credible sets
+get_all_coverage <- function(css, idx) {
+  purrr::map(css, ~ get_coverage(.x, idx))
 }
 
 # convenient table of CSs from get_all_cs2
@@ -115,9 +129,22 @@ cs_tbl2 <- function(alpha) {
     dplyr::tibble() %>%
     tidyr::unnest_wider(1) %>%
     dplyr::rowwise() %>%
-    dplyr::mutate(top_feaure = cs[1], top_feature_alpha = prob[1]) # %>% unnest_longer(c(cs, prob))
+    dplyr::mutate(top_feaure = cs[1], top_feature_alpha = prob[1]) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(L = paste0("L", 1:dplyr::n())) # %>% unnest_longer(c(cs, prob))
 }
 
+
+#' Compute PIPs
+get_pip <- function(alpha) {
+  if (is.null(dim(alpha))) {
+    alpha <- matrix(alpha, nrow = 1)
+  }
+
+  p <- dim(alpha)[2]
+  pip <- purrr::map_dbl(1:p, ~ 1 - prod(1 - alpha[, .x]))
+  return(pip)
+}
 #' set xi, update tau
 set_xi <- function(fit, xi) {
   fit$params$xi <- xi
