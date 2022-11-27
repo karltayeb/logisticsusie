@@ -2,7 +2,7 @@
 
 # compute SER using GLM
 #' @export
-fit_glm_ser <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept = T, prior_weights = NULL, family = "binomial") {
+fit_glm_ser <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept = T, estimate_prior_variance = F, prior_weights = NULL, family = "binomial") {
   p <- ncol(X)
   betahat <- numeric(p)
   shat2 <- numeric(p)
@@ -25,6 +25,10 @@ fit_glm_ser <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept
     # NOTE: coerces "intercept" to be 0 or 1 to grab relevant row of glm coefficient output
     betahat[j] <- ifelse(is.na(log.fit.coef[1 + estimate_intercept, 1]), 0, log.fit.coef[1 + estimate_intercept, 1]) # beta-hat MLE (if na, just set to 0)
     shat2[j] <- ifelse(is.na(log.fit.coef[1 + estimate_intercept, 2]), Inf, log.fit.coef[1 + estimate_intercept, 2]^2) # (std errof beta-hat MLE)^2 (if na, just set to Inf)
+  }
+
+  if (estimate_prior_variance) {
+    prior_variance <- pmax(0, betahat^2 - shat2)
   }
 
   # = wakefield ABF

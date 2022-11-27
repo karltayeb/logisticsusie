@@ -83,18 +83,35 @@ fit_univariate_vb <- function(x, y, o = 0,
                               delta.init = logodds(mean(y) + 1e-10),
                               tau0 = 1,
                               estimate_intercept = T,
+                              estimate_prior_variance = F,
                               maxit = 50,
                               tol = 1e-3) {
-  # init
+  # initialize
   mu <- 0
   tau <- 1
   delta <- delta.init
   xi <- update_xi(x, y, o, mu, tau, 1, delta, tau0)
   xi <- pmax(xi, 1e-3)
-
   elbos <- compute_elbo(x, y, o, mu, tau, xi, delta, tau0)
+
+  # if estimating prior variance, initialize with fixed prior variance fit
+  if (estimate_prior_variance) {
+    prefit <- fit_univariate_vb(
+      x, y, o, delta.init, tau0,
+      estimate_intercept = estimate_intercept,
+      estimate_prior_variance = F,
+      maxit = maxit,
+      tol = tol
+    )
+    mu <- prefit$mu
+    tau <- prefit$tau
+    delta <- prefit$delta
+    xi <- prefit$xi
+    elbos <- prefit$elbos
+  }
+
+  # loop CAVI update
   for (i in seq(maxit)) {
-    # rep
     if (estimate_intercept) {
       delta <- update_intercept(x, y, o, mu, tau, xi, delta, tau0)
     }
@@ -106,13 +123,19 @@ fit_univariate_vb <- function(x, y, o = 0,
     xi <- update_xi(x, y, o, mu, tau, xi, delta, tau0)
     elbos <- c(elbos, compute_elbo(x, y, o, mu, tau, xi, delta, tau0))
 
+    if (estimate_prior_variance) {
+      tau0 <- update_tau0(x, y, o, mu, tau, xi, delta, tau0)
+    }
+
     if (diff(tail(elbos, 2)) < tol) {
       break
     }
   }
 
+  # record convergence
   converged <- diff(tail(elbos, 2)) < tol
   monotone <- logisticsusie:::.monotone(elbos)
+
   return(list(
     x = x, y = y, o = o,
     mu = mu, tau = tau, xi = xi, delta = delta, tau0 = tau0,
@@ -129,6 +152,7 @@ fit_uvb_ser <- function(X, y, o = NULL,
                         prior_variance = 1.0,
                         intercept.init = logodds(mean(y) + 1e-10),
                         estimate_intercept = T,
+                        estimate_prior_variance = F,
                         prior_weights = NULL) {
   tau0 <- 1 / prior_variance
   p <- dim(X)[2]
@@ -145,7 +169,8 @@ fit_uvb_ser <- function(X, y, o = NULL,
     o = o,
     tau0 = tau0,
     delta.init = intercept.init,
-    estimate_intercept = estimate_intercept
+    estimate_intercept = estimate_intercept,
+    estimate_prior_variance = estimate_prior_variance
   )) %>%
     dplyr::tibble() %>%
     tidyr::unnest_wider(1) %>%
@@ -166,7 +191,7 @@ fit_uvb_ser <- function(X, y, o = NULL,
     intercept = res$delta,
     lbf = res$lbf,
     lbf_model = lbf_model,
-    prior_variance = prior_variance,
+    prior_variance = 1 / res$tau0,
     loglik = loglik,
     null_loglik = null_likelihood
   )

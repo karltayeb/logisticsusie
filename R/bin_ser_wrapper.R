@@ -40,11 +40,11 @@ compute_lbf_variable <- function(X, y, o, fit) {
 #' Fit a logistic single effect regression with our variational approximation
 #' Returns a list with posterior summary
 #' @export
-fit_bin_ser <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept = T, prior_weights = NULL) {
+fit_bin_ser <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept = T, estimate_prior_variance = F, prior_weights = NULL) {
   if (is.null(o)) {
     o <- 0
   }
-  fit <- binser(X, y, o = o, center = F, prior_variance = prior_variance, estimate_prior_variance = F)
+  fit <- binser(X, y, o = o, center = F, prior_variance = prior_variance, estimate_prior_variance = estimate_prior_variance)
   p <- dim(X)[2]
   loglik <- tail(fit$elbo, 1)
   intercept <- rep(fit$params$delta, )
@@ -55,7 +55,8 @@ fit_bin_ser <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept
     var = fit$params$var,
     intercept = intercept,
     xi = fit$params$xi,
-    prior_variance = prior_variance, loglik = loglik, null_loglik = null_likelihood
+    prior_variance = fit$hypers$prior_variance,
+    loglik = loglik, null_loglik = null_likelihood
   )
 
   lbf <- compute_lbf_variable(X, y, o, fit)

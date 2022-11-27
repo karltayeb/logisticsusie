@@ -11,6 +11,7 @@ fit_uvb_ser_re(
   prior_variance = 1,
   intercept.init = logodds(mean(y) + 1e-10),
   estimate_intercept = T,
+  estimate_prior_variance = F,
   prior_weights = NULL
 )
 }

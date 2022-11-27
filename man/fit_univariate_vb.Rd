@@ -13,6 +13,7 @@ fit_univariate_vb(
   delta.init = logodds(mean(y) + 1e-10),
   tau0 = 1,
   estimate_intercept = T,
+  estimate_prior_variance = F,
   maxit = 50,
   tol = 0.001
 )
