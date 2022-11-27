@@ -121,11 +121,15 @@ correct_bin_ser <- function(X, y, o, fit) {
 #' Fit a logistic single effect regression with our variational approximation
 #' Returns a list with posterior summary
 #' @export
-fit_bin_ser_corrected <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept = T, prior_weights = NULL) {
+fit_bin_ser_corrected <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept = T, estimate_prior_variance = F, prior_weights = NULL) {
   if (is.null(o)) {
     o <- 0
   }
-  fit <- fit_bin_ser(X, y, o, prior_variance, estimate_intercept, prior_weigts)
+  fit <- fit_bin_ser(X, y, o, prior_variance,
+    estimate_intercept = estimate_intercept,
+    estimate_prior_variance = estimate_prior_variance,
+    prior_weights = prior_weights
+  )
   fit <- correct_bin_ser(X, y, o, fit)
   return(fit)
 }

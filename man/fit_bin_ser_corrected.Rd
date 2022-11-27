@@ -11,6 +11,7 @@ fit_bin_ser_corrected(
   o = NULL,
   prior_variance = 1,
   estimate_intercept = T,
+  estimate_prior_variance = F,
   prior_weights = NULL
 )
 }
