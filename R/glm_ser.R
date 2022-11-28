@@ -100,20 +100,24 @@ shat2_jj <- function(x, y, betahat, intercept) {
 
 #' @export
 fit_jjabf_ser <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept = T, estimate_prior_variance = F, prior_weights = NULL) {
-  glm_fits <- map_glm(X, y, o, estimate_intercept, family = "binomial")
-  betahat <- glm_fits$betahat
-  intercept <- glm_fits$intercept
+  uvb_ser <- fit_uvb_ser(X, y, o,
+    prior_variance = 1e10,
+    estimate_intercept = estimate_intercept,
+    estimate_prior_variance = estimate_prior_variance
+  )
+
+  betahat <- uvb_ser$mu
+  shat2 <- uvb_ser$var
+  intercept <- uvb_ser$intercept
 
   # replace shat with estimate from JJ approximation
   p <- length(betahat)
-  shat2 <- purrr::map_dbl(1:p, ~ shat2_jj(X[, .x], y, betahat[.x], intercept[.x]))
-
   # estimate prior variance
   if (estimate_prior_variance) {
     stop("estimating prior variance not implimented for this SER")
   }
 
   res <- wakefield_ser(y, betahat, shat2, prior_variance, prior_weights)
-  res$intercept <- glm_fits$intercept
+  res$intercept <- intercept
   return(res)
 }
