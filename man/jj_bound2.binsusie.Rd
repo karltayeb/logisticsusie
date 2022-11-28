@@ -5,7 +5,7 @@
 \title{Compute E\link{p(z, w| b) - q(w)}, which is the same as
 the bound on the logistic function proposed by Jaakkola and Jordan}
 \usage{
-jj_bound2.binsusie(fit)
+jj_bound2.binsusie(fit, k)
 }
 \description{
 Compute E\link{p(z, w| b) - q(w)}, which is the same as

@@ -1,7 +1,3 @@
-####
-# Binomial SuSiE
-###
-
 
 ###
 # Computations ----
@@ -12,46 +8,83 @@
 #' Extract regression coefficients from binomial SER fit
 #' @param fit Binomial SER object
 #' @return Return E[\beta]
-coef.binsusie <- function(fit, idx = NULL) {
-  b <- colSums(.get_alpha(fit, idx) * .get_mu(fit, idx))
+coef.binsusie <- function(fit, k, idx = NULL) {
+  if (missing(k)) {
+    b <- colSums(.get_alpha(fit, idx) * .get_mu(fit, idx))
+  } else {
+    b <- colSums(.get_alpha(fit$logreg_list[[k]], idx) * .get_mu(fit$logreg_list[[k]], idx))
+  }
+
   return(b)
 }
 
 #' Expected linear prediction
-compute_Xb.binsusie <- function(fit) {
-  Xb <- drop(fit$data$X %*% colSums(.get_alpha(fit) * .get_mu(fit)))
-  Zd <- drop(fit$data$Z %*% colSums(.get_delta(fit)))
+compute_Xb.binsusie <- function(fit, k) {
+  if (missing(k)) {
+    Xb <- drop(fit$data$X %*% colSums(.get_alpha(fit) * .get_mu(fit)))
+    Zd <- drop(fit$data$Z %*% colSums(.get_delta(fit)))
+  } else {
+    Xb <- drop(fit$data$X %*% colSums(.get_alpha(fit$logreg_list[[k]]) * .get_mu(fit$logreg_list[[k]])))
+    Zd <- drop(fit$data$Z %*% colSums(.get_delta(fit$logreg_list[[k]])))
+  }
+
   return(Matrix::drop(Xb + Zd))
 }
 
 
-#' Second moment of linear prediction
-compute_Xb2.binsusie <- function(fit) {
-  B <- .get_alpha(fit) * .get_mu(fit)
-  XB <- fit$data$X %*% t(B)
-  Xb <- rowSums(XB)
-  Zd <- drop(fit$data$Z %*% colSums(.get_delta(fit)))
+compute_Xb2.binsusie <- function(fit, k) {
+  if (missing(k)) {
+    B <- .get_alpha(fit) * .get_mu(fit)
+    XB <- fit$data$X %*% t(B)
+    Xb <- rowSums(XB)
+    Zd <- drop(fit$data$Z %*% colSums(.get_delta(fit)))
 
-  B2 <- .get_alpha(fit) * (.get_mu(fit)^2 + .get_var(fit))
-  b2 <- colSums(B2)
+    B2 <- .get_alpha(fit) * (.get_mu(fit)^2 + .get_var(fit))
+    b2 <- colSums(B2)
 
-  Xb2 <- (fit$data$X2 %*% b2)[, 1] + Xb**2 - rowSums(XB^2)
-  Xb2 <- drop(Xb2 + 2 * Xb * Zd + Zd^2)
+    Xb2 <- fit$data$X2 %*% b2 + Xb**2 - rowSums(XB^2)
+    Xb2 <- drop(Xb2 + 2 * Xb * Zd + Zd^2)
+  } else {
+    B <- .get_alpha(fit$logreg_list[[k]]) * .get_mu(fit$logreg_list[[k]])
+    XB <- fit$data$X %*% t(B)
+    Xb <- rowSums(XB)
+    Zd <- drop(fit$data$Z %*% colSums(.get_delta(fit$logreg_list[[k]])))
+
+    B2 <- .get_alpha(fit$logreg_list[[k]]) * (.get_mu(fit$logreg_list[[k]])^2 + .get_var(fit$logreg_list[[k]]))
+    b2 <- colSums(B2)
+
+    Xb2 <- fit$data$X2 %*% b2 + Xb**2 - rowSums(XB^2)
+    Xb2 <- drop(Xb2 + 2 * Xb * Zd + Zd^2)
+  }
+
   return(Xb2)
 }
+
 
 #' Compute KL(q(\beta) || p(\beta)) for Sum of SERs
 #' Note this does not include KL(q(\omega) || p(\omega))
 #' since that gets computes as part of the JJ bound
-compute_kl.binsusie <- function(fit) {
-  kl <- sum(purrr::map_dbl(seq(fit$hypers$L), ~ .compute_ser_kl(
-    .get_alpha(fit, .x),
-    .get_pi(fit, .x),
-    .get_mu(fit, .x),
-    .get_var(fit, .x),
-    .get_prior_mean(fit, .x),
-    .get_var0(fit, .x)
-  )))
+compute_kl.binsusie <- function(fit, k) {
+  if (missing(k)) {
+    kl <- sum(purrr::map_dbl(seq(fit$hypers$L), ~ .compute_ser_kl(
+      .get_alpha(fit, .x),
+      .get_pi(fit, .x),
+      .get_mu(fit, .x),
+      .get_var(fit, .x),
+      .get_prior_mean(fit, .x),
+      .get_var0(fit, .x)
+    )))
+  } else {
+    kl <- sum(purrr::map_dbl(seq(fit$logreg_list[[k]]$hypers$L), ~ .compute_ser_kl(
+      .get_alpha(fit$logreg_list[[k]], .x),
+      .get_pi(fit$logreg_list[[k]], .x),
+      .get_mu(fit$logreg_list[[k]], .x),
+      .get_var(fit$logreg_list[[k]], .x),
+      .get_prior_mean(fit$logreg_list[[k]], .x),
+      .get_var0(fit$logreg_list[[k]], .x)
+    )))
+  }
+
   return(kl)
 }
 
@@ -59,40 +92,75 @@ compute_kl.binsusie <- function(fit) {
 #' Compute E[p(z, w| b) - q(w)], which is the same as
 #' the bound on the logistic function proposed by Jaakkola and Jordan
 #' NOTE: this only works when xi is updated!
-jj_bound.binsusie <- function(fit) {
-  xi <- .get_xi(fit)
-  Xb <- compute_Xb.binsusie(fit)
-  kappa <- compute_kappa(fit)
-  n <- .get_N(fit)
+jj_bound.binsusie <- function(fit, k) {
+  if (missing(k)) {
+    xi <- .get_xi(fit)
+    Xb <- compute_Xb.binsusie(fit)
+    kappa <- compute_kappa(fit)
+    n <- .get_N(fit)
 
-  bound <- n * log(sigmoid(xi)) + (kappa * Xb) - (0.5 * n * xi)
+    bound <- n * log(sigmoid(xi)) + (kappa * Xb) - (0.5 * n * xi)
+  } else {
+    xi <- .get_xi(fit$logreg_list[[k]])
+    Xb <- compute_Xb.binsusie(fit, k = k)
+    kappa <- compute_kappa(fit, k = k)
+    n <- .get_N(fit)
+
+    bound <- n * log(sigmoid(xi)) + (kappa * Xb) - (0.5 * n * xi)
+  }
   return(bound)
 }
 
-compute_elbo.binsusie <- function(fit) {
-  jj <- sum(jj_bound.binsusie(fit)) # E[log p(y, w | b) - logp(w)]
-  kl <- compute_kl.binsusie(fit) # KL(q(b) || p(b))
+compute_elbo.binsusie <- function(fit, k) {
+  if (missing(k)) {
+    jj <- sum(jj_bound.binsusie(fit)) # E[log p(y, w | b) - logp(w)]
+    kl <- compute_kl.binsusie(fit) # KL(q(b) || p(b))
+  } else {
+    jj <- sum(jj_bound.binsusie(fit, k = k)) # E[log p(y, w | b) - logp(w)]
+    kl <- compute_kl.binsusie(fit, k = k) # KL(q(b) || p(b))
+  }
+
   return(jj - kl)
 }
 
 #' Compute E[p(z, w| b) - q(w)], which is the same as
 #' the bound on the logistic function proposed by Jaakkola and Jordan
-jj_bound2.binsusie <- function(fit) {
-  xi <- .get_xi(fit)
-  Xb <- compute_Xb.binsusie(fit)
-  kappa <- compute_kappa(fit)
-  n <- .get_N(fit)
+jj_bound2.binsusie <- function(fit, k) {
+  if (missing(k)) {
+    xi <- .get_xi(fit)
+    Xb <- compute_Xb.binsusie(fit)
+    kappa <- compute_kappa(fit)
+    n <- .get_N(fit)
 
-  Xb2 <- compute_Xb2.binsusie(fit)
-  omega <- compute_omega(fit)
+    Xb2 <- compute_Xb2.binsusie(fit)
+    omega <- compute_omega(fit)
 
-  bound <- n * log(sigmoid(xi)) + (kappa * Xb) - (0.5 * n * xi) + 0.5 * omega * (xi^2 - Xb2)
+    bound <- n * log(sigmoid(xi)) + (kappa * Xb) - (0.5 * n * xi) + 0.5 * omega * (xi^2 - Xb2)
+  } else {
+    xi <- .get_xi(fit$logreg_list[[k]])
+    Xb <- compute_Xb.binsusie(fit, k = k)
+    kappa <- compute_kappa(fit, k = k)
+    n <- .get_N(fit)
+
+    Xb2 <- compute_Xb2.binsusie(fit, k = k)
+    omega <- compute_omega(fit, k = k)
+
+    bound <- n * log(sigmoid(xi)) + (kappa * Xb) - (0.5 * n * xi) + 0.5 * omega * (xi^2 - Xb2)
+  }
+
+
   return(bound)
 }
 
-compute_elbo2.binsusie <- function(fit) {
-  jj <- sum(jj_bound2.binsusie(fit)) # E[log p(y, w | b) - logp(w)]
-  kl <- compute_kl.binsusie(fit) # KL(q(b) || p(b))
+compute_elbo2.binsusie <- function(fit, k) {
+  if (missing(k)) {
+    jj <- sum(jj_bound2.binsusie(fit)) # E[log p(y, w | b) - logp(w)]
+    kl <- compute_kl.binsusie(fit) # KL(q(b) || p(b))
+  } else {
+    jj <- sum(jj_bound2.binsusie(fit, k = k)) # E[log p(y, w | b) - logp(w)]
+    kl <- compute_kl.binsusie(fit, k = k) # KL(q(b) || p(b))
+  }
+
   return(jj - kl)
 }
 
@@ -102,45 +170,85 @@ compute_elbo2.binsusie <- function(fit) {
 
 
 #' update alpha, mu, and var
-update_b.binsusie <- function(fit, fit_intercept = TRUE, fit_prior_variance = TRUE, fit_alpha = TRUE, update_idx = NULL) {
-  if (is.null(update_idx)) {
-    update_idx <- seq(fit$hypers$L)
+update_b.binsusie <- function(fit, k, fit_intercept = TRUE, fit_prior_variance = TRUE, fit_alpha = TRUE, update_idx = NULL) {
+  if (missing(k)) {
+    if (is.null(update_idx)) {
+      update_idx <- seq(fit$hypers$L)
+    }
+    shift <- compute_Xb.binsusie(fit)
+    for (l in update_idx) {
+      # remove current effect estimate
+      shift <- Matrix::drop(shift - compute_Xb.binser(fit, idx = l))
+
+      # update SER
+      post_l <- update_b.binser(fit, idx = l, shift = shift)
+      fit$params$mu[l, ] <- post_l$mu
+      fit$params$var[l, ] <- post_l$var
+
+      if (fit_alpha) {
+        fit$params$alpha[l, ] <- post_l$alpha
+      }
+
+      # update intercept/fixed effect covariates
+      if (fit_intercept) {
+        fit$params$delta[l, ] <- update_delta.binser(fit, idx = l, shift = shift)
+      }
+
+      # update prior_variance
+      if (fit_prior_variance) {
+        fit$hypers$prior_variance[l] <- update_prior_variance.binser(fit, idx = l)
+      }
+
+      # add current effect estimate
+      shift <- shift + compute_Xb.binser(fit, k = k, idx = l)
+    }
+  } else {
+    if (is.null(update_idx)) {
+      update_idx <- seq(fit$logreg_list[[k]]$hypers$L)
+    }
+    shift <- compute_Xb.binsusie(fit, k = k)
+    for (l in update_idx) {
+      # remove current effect estimate
+      shift <- Matrix::drop(shift - compute_Xb.binser(fit, k = k, idx = l))
+
+      # update SER
+      post_l <- update_b.binser(fit, k = k, idx = l, shift = shift)
+      fit$params$mu[l, ] <- post_l$mu
+      fit$params$var[l, ] <- post_l$var
+
+      if (fit_alpha) {
+        fit$params$alpha[l, ] <- post_l$alpha
+      }
+
+      # update intercept/fixed effect covariates
+      if (fit_intercept) {
+        fit$params$delta[l, ] <- update_delta.binser(fit, k = k, idx = l, shift = shift)
+      }
+
+      # update prior_variance
+      if (fit_prior_variance) {
+        fit$hypers$prior_variance[l] <- update_prior_variance.binser(fit, k = k, idx = l)
+      }
+
+      # add current effect estimate
+      shift <- shift + compute_Xb.binser(fit, k = k, idx = l)
+    }
   }
-  shift <- compute_Xb.binsusie(fit)
-  for (l in update_idx) {
-    # remove current effect estimate
-    shift <- Matrix::drop(shift - compute_Xb.binser(fit, idx = l))
 
-    # update SER
-    post_l <- update_b.binser(fit, idx = l, shift = shift)
-    fit$params$mu[l, ] <- post_l$mu
-    fit$params$var[l, ] <- post_l$var
-
-    if (fit_alpha) {
-      fit$params$alpha[l, ] <- post_l$alpha
-    }
-
-    # update intercept/fixed effect covariates
-    if (fit_intercept) {
-      fit$params$delta[l, ] <- update_delta.binser(fit, idx = l, shift = shift)
-    }
-
-    # update prior_variance
-    if (fit_prior_variance) {
-      fit$hypers$prior_variance[l] <- update_prior_variance.binser(fit, idx = l)
-    }
-
-    # add current effect estimate
-    shift <- shift + compute_Xb.binser(fit, idx = l)
-  }
   return(fit)
 }
 
 
 #' update for variational parameter parameter xi q(w) = PG(N, xi)
-update_xi.binsusie <- function(fit) {
-  Xb2 <- compute_Xb2.binsusie(fit)
-  xi <- sqrt(abs(Xb2))
+update_xi.binsusie <- function(fit, k) {
+  if (missing(k)) {
+    Xb2 <- compute_Xb2.binsusie(fit)
+    xi <- sqrt(abs(Xb2))
+  } else {
+    Xb2 <- compute_Xb2.binsusie(fit, k = k)
+    xi <- sqrt(abs(Xb2))
+  }
+
   return(xi)
 }
 
@@ -214,20 +322,43 @@ init.binsusie <- function(data, L = 5, prior_mean = 0, prior_variance = 1, prior
 }
 
 
-iter.binsusie <- function(fit, fit_intercept = TRUE, fit_prior_variance = TRUE, fit_xi = TRUE, fit_alpha = TRUE) {
-  # update b
-  fit <- update_b.binsusie(fit, fit_intercept, fit_prior_variance, fit_alpha)
+iter.binsusie <- function(fit, k, fit_intercept = TRUE, fit_prior_variance = TRUE, fit_xi = TRUE, fit_alpha = TRUE) {
+  if (missing(k)) {
+    # update b
+    fit <- update_b.binsusie(fit,
+      fit_intercept = fit_intercept,
+      fit_prior_variance = fit_prior_variance,
+      fit_alpha = fit_alpha
+    )
 
-  # update xi
-  if (fit_xi) {
-    fit$params$xi <- update_xi.binsusie(fit)
-    fit$params$tau <- compute_tau(fit)
+    # update xi
+    if (fit_xi) {
+      fit$params$xi <- update_xi.binsusie(fit)
+      fit$params$tau <- compute_tau(fit)
+    }
+  } else {
+    # update b
+    fit$logreg_list[[k]] <- update_b.binsusie(fit,
+      k                  = k,
+      fit_intercept      = fit_intercept,
+      fit_prior_variance = fit_prior_variance,
+      fit_alpha          = fit_alpha
+    )
+
+    # update xi
+    if (fit_xi) {
+      fit$logreg_list[[k]]$params$xi <- update_xi.binsusie(fit, k)
+      fit$logreg_list[[k]]$params$tau <- compute_tau(fit, k)
+    }
   }
+
+
   return(fit)
 }
 
 #' Fit the binomial single effect regression
 fit.binsusie <- function(fit,
+                         k,
                          maxiter = 10,
                          tol = 1e-3,
                          fit_intercept = TRUE,
@@ -236,60 +367,127 @@ fit.binsusie <- function(fit,
                          fit_alpha = TRUE,
                          fast_elbo = TRUE,
                          kidx = NULL) {
-  for (i in 1:maxiter) {
-    fit <- iter.binsusie(fit, fit_intercept, fit_prior_variance, fit_xi, fit_alpha)
-    # update elbo
-    if (fast_elbo) {
-      fit$elbo <- c(fit$elbo, compute_elbo.binsusie(fit))
-    } else {
-      fit$elbo <- c(fit$elbo, compute_elbo2.binsusie(fit))
+  if (missing(k)) {
+    for (i in 1:maxiter) {
+      fit <- iter.binsusie(fit,
+        fit_intercept      = fit_intercept,
+        fit_prior_variance = fit_prior_variance,
+        fit_xi             = fit_xi,
+        fit_alpha          = fit_alpha
+      )
+      # update elbo
+      if (fast_elbo) {
+        fit$elbo <- c(fit$elbo, compute_elbo.binsusie(fit))
+      } else {
+        fit$elbo <- c(fit$elbo, compute_elbo2.binsusie(fit))
+      }
+      if (.converged(fit, tol)) {
+        break
+      }
     }
-    if (.converged(fit, tol)) {
-      break
+  } else {
+    for (i in 1:maxiter) {
+      fit$logreg_list[[k]] <- iter.binsusie(fit,
+        k                  = k,
+        fit_intercept      = fit_intercept,
+        fit_prior_variance = fit_prior_variance,
+        fit_xi             = fit_xi,
+        fit_alpha          = fit_alpha
+      )
+      # update elbo
+      if (fast_elbo) {
+        fit$logreg_list[[k]]$elbo <- c(fit$logreg_list[[k]]$elbo, compute_elbo.binsusie(fit, k))
+      } else {
+        fit$logreg_list[[k]]$elbo <- c(fit$logreg_list[[k]]$elbo, compute_elbo2.binsusie(fit, k))
+      }
+      if (.converged(fit, tol)) {
+        break
+      }
     }
   }
+
   return(fit)
 }
 
 #' remove a single effect and refit model
 #' This function zeros out a single effect and refits the model
 #' Used as a subroutine for `prune_model` which removes irrelevant features
-prune_model_idx <- function(fit, idx, fit_intercept = T, fit_prior_variance = F, tol = 1e-3, maxiter = 10) {
-  # copy the susie model
-  fit2 <- fit
+prune_model_idx <- function(fit, k, idx, fit_intercept = T, fit_prior_variance = F, tol = 1e-3, maxiter = 10) {
+  if (missing(k)) {
+    # copy the susie model
+    fit2 <- fit
 
-  # don't update this index
-  update_idx <- seq(fit2$hypers$L)
-  update_idx <- update_idx[idx != update_idx]
+    # don't update this index
+    update_idx <- seq(fit2$hypers$L)
+    update_idx <- update_idx[idx != update_idx]
 
-  # instead, fix in to 0
-  fit2$params$mu[idx, ] <- 0
-  fit2$params$var[idx, ] <- 1e-10
-  fit2$params$delta[idx, ] <- 0
-  fit2$hypers$prior_mean[idx] <- 0
-  fit2$hypers$prior_variance[idx] <- 1e-10
+    # instead, fix in to 0
+    fit2$params$mu[idx, ] <- 0
+    fit2$params$var[idx, ] <- 1e-10
+    fit2$params$delta[idx, ] <- 0
+    fit2$hypers$prior_mean[idx] <- 0
+    fit2$hypers$prior_variance[idx] <- 1e-10
 
-  # new elbo
-  fit2$elbo <- compute_elbo.binsusie(fit2)
+    # new elbo
+    fit2$elbo <- compute_elbo.binsusie(fit2)
 
-  # CAVI loop
-  for (i in 1:maxiter) {
-    # update b
-    fit2 <- update_b.binsusie(fit2,
-      fit_intercept = fit_intercept,
-      fit_prior_variance = fit_prior_variance,
-      update_idx = update_idx
-    )
-    # update xi
-    fit2$params$xi <- update_xi.binsusie(fit2)
-    fit2$params$tau <- compute_tau(fit2)
+    # CAVI loop
+    for (i in 1:maxiter) {
+      # update b
+      fit2 <- update_b.binsusie(fit2,
+        fit_intercept = fit_intercept,
+        fit_prior_variance = fit_prior_variance,
+        update_idx = update_idx
+      )
+      # update xi
+      fit2$params$xi <- update_xi.binsusie(fit2)
+      fit2$params$tau <- compute_tau(fit2)
 
-    # update elbo
-    fit2$elbo <- c(fit2$elbo, compute_elbo.binsusie(fit2))
-    if (.converged(fit2, tol)) {
-      break
+      # update elbo
+      fit2$elbo <- c(fit2$elbo, compute_elbo.binsusie(fit2))
+      if (.converged(fit2, tol)) {
+        break
+      }
+    }
+  } else {
+    # copy the susie model
+    fit2 <- fit
+    fit$logreg_list
+    # don't update this index
+    update_idx <- seq(fit2$hypers$L)
+    update_idx <- update_idx[idx != update_idx]
+
+    # instead, fix in to 0
+    fit2$logreg_list[[k]]$params$mu[idx, ] <- 0
+    fit2$logreg_list[[k]]$params$var[idx, ] <- 1e-10
+    fit2$logreg_list[[k]]$params$delta[idx, ] <- 0
+    fit2$logreg_list[[k]]$hypers$prior_mean[idx] <- 0
+    fit2$logreg_list[[k]]$hypers$prior_variance[idx] <- 1e-10
+
+    # new elbo
+    fit2$logreg_list[[k]]$elbo <- compute_elbo.binsusie(fit2)
+
+    # CAVI loop
+    for (i in 1:maxiter) {
+      # update b
+      fit2$logreg_list[[k]] <- update_b.binsusie(fit2,
+        k = k,
+        fit_intercept = fit_intercept,
+        fit_prior_variance = fit_prior_variance,
+        update_idx = update_idx
+      )
+      # update xi
+      fit2$logreg_list[[k]]$params$xi <- update_xi.binsusie(fit2, k)
+      fit2$logreg_list[[k]]$params$tau <- compute_tau(fit2, k)
+
+      # update elbo
+      fit2$logreg_list[[k]]$elbo <- c(fit2$logreg_list[[k]]$elbo, compute_elbo.binsusie(fit2, k))
+      if (.converged(fit2$logreg_list[[k]], tol)) {
+        break
+      }
     }
   }
+
   return(fit2)
 }
 
@@ -300,21 +498,48 @@ prune_model_idx <- function(fit, idx, fit_intercept = T, fit_prior_variance = F,
 #' @param fit_intercept boolean to re-estimate intercept in simplified model, defaul TRUE
 #' @param fit_prior_variance boolean to re-estimate prior variance in simplified model, default FALSE
 #' @param tol tolerance to declare convergence when fitting simplified model
-prune_model <- function(fit, check_null_threshold, fit_intercept = T, fit_prior_variance = F, tol = 1e-3) {
-  # order by explained variance
-  var0 <- purrr::map_dbl(seq(fit$hypers$L), ~ update_prior_variance.binser(fit, idx = .x))
-  idx_order <- order(var0, decreasing = F)
+prune_model <- function(fit, k, check_null_threshold, fit_intercept = T, fit_prior_variance = F, tol = 1e-3) {
+  if (missing(k)) {
+    # order by explained variance
+    var0 <- purrr::map_dbl(seq(fit$hypers$L), ~ update_prior_variance.binser(fit, idx = .x))
+    idx_order <- order(var0, decreasing = F)
 
-  for (idx in idx_order) {
-    fit2 <- prune_model_idx(fit, idx = idx, fit_intercept = fit_intercept, fit_prior_variance = fit_prior_variance, tol = tol)
-    null_diff <- tail(fit2$elbo, 1) - tail(fit$elbo, 1)
-    if (null_diff + check_null_threshold > 0) {
-      message(paste0("Null ELBO diff: ", null_diff, "... REMOVING effect"))
-      fit <- fit2
-    } else {
-      message(paste0("Null ELBO diff: ", null_diff, "... KEEPING effect"))
+    for (idx in idx_order) {
+      fit2 <- prune_model_idx(fit, idx = idx, fit_intercept = fit_intercept, fit_prior_variance = fit_prior_variance, tol = tol)
+      null_diff <- tail(fit2$elbo, 1) - tail(fit$elbo, 1)
+      if (null_diff + check_null_threshold > 0) {
+        message(paste0("Null ELBO diff: ", null_diff, "... REMOVING effect"))
+        fit <- fit2
+      } else {
+        message(paste0("Null ELBO diff: ", null_diff, "... KEEPING effect"))
+      }
+    }
+  } else {
+    # order by explained variance
+    var0 <- purrr::map_dbl(
+      seq(fit$logreg_list[[k]]$hypers$L),
+      ~ update_prior_variance.binser(fit, k = k, idx = .x)
+    )
+    idx_order <- order(var0, decreasing = F)
+
+    for (idx in idx_order) {
+      fit2 <- prune_model_idx(fit,
+        k = k,
+        idx = idx,
+        fit_intercept = fit_intercept,
+        fit_prior_variance = fit_prior_variance,
+        tol = tol
+      )
+      null_diff <- tail(fit2$elbo, 1) - tail(fit$elbo, 1)
+      if (null_diff + check_null_threshold > 0) {
+        message(paste0("Null ELBO diff: ", null_diff, "... REMOVING effect"))
+        fit <- fit2
+      } else {
+        message(paste0("Null ELBO diff: ", null_diff, "... KEEPING effect"))
+      }
     }
   }
+
   return(fit)
 }
 
@@ -322,25 +547,49 @@ prune_model <- function(fit, check_null_threshold, fit_intercept = T, fit_prior_
 #' BinSuSiE Wrapup
 #' Compute fit summaries (PIPs, CSs, etc) and
 #' Organize binsusie fit so that it is compatable with `susieR` function
-binsusie_wrapup <- function(fit, prior_tol = 0) {
-  class(fit) <- c("binsusie", "susie")
+binsusie_wrapup <- function(fit, k, prior_tol = 0) {
+  if (missing(k)) {
+    class(fit) <- c("binsusie", "susie")
 
-  # TODO put back into original X scale
-  X <- fit$data$X
+    # TODO put back into original X scale
+    X <- fit$data$X
 
-  fit$alpha <- fit$params$alpha
-  fit$mu <- fit$params$mu
-  fit$mu2 <- fit$params$mu^2 + fit$params$var
-  fit$V <- fit$hypers$prior_variance
+    fit$alpha <- fit$params$alpha
+    fit$mu <- fit$params$mu
+    fit$mu2 <- fit$params$mu^2 + fit$params$var
+    fit$V <- fit$hypers$prior_variance
 
-  colnames(fit$alpha) <- colnames(X)
-  colnames(fit$mu) <- colnames(X)
+    colnames(fit$alpha) <- colnames(X)
+    colnames(fit$mu) <- colnames(X)
 
-  fit$pip <- susieR::susie_get_pip(fit, prior_tol = prior_tol)
-  names(fit$pip) <- colnames(X)
+    fit$pip <- susieR::susie_get_pip(fit, prior_tol = prior_tol)
+    names(fit$pip) <- colnames(X)
 
-  fit$sets <- susieR::susie_get_cs(fit, X = X)
-  fit$intercept <- colSums(fit$params$delta)[1]
+    fit$sets <- susieR::susie_get_cs(fit, X = X)
+    fit$intercept <- colSums(fit$params$delta)[1]
+  } else {
+    class(fit) <- c("binsusie", "susie")
+
+    # TODO put back into original X scale
+    X <- fit$data$X
+
+    fit$alpha <- fit$logreg_list[[k]]$params$alpha
+    fit$mu <- fit$logreg_list[[k]]$params$mu
+    fit$mu2 <- fit$logreg_list[[k]]$params$mu^2 + fit$logreg_list[[k]]$params$var
+    fit$V <- fit$logreg_list[[k]]$hypers$prior_variance
+
+    colnames(fit$logreg_list[[k]]$alpha) <- colnames(X)
+    colnames(fit$logreg_list[[k]]$mu) <- colnames(X)
+
+    fit$logreg_list[[k]]$pip <- susieR::susie_get_pip(fit$logreg_list[[k]],
+      prior_tol = prior_tol
+    )
+    names(fit$logreg_list[[k]]$pip) <- colnames(X)
+
+    fit$logreg_list[[k]]$sets <- susieR::susie_get_cs(fit$logreg_list[[k]], X = X)
+    fit$logreg_list[[k]]$intercept <- colSums(fit$logreg_list[[k]]$params$delta)[1]
+  }
+
 
 
 
@@ -350,22 +599,42 @@ binsusie_wrapup <- function(fit, prior_tol = 0) {
 # help -----
 
 #' @export
-binsusie_get_pip <- function(fit, prune_by_cs = FALSE, prior_tol = 1e-09) {
-  # TODO: filter out components that don't need to be included (see Gao's suggestion)
-  include_idx <- which(fit$hypers$prior_variance > prior_tol)
-  if (length(include_idx) > 0) {
-    pip <- susieR::susie_get_pip(fit$params$alpha[include_idx, , drop = F])
+binsusie_get_pip <- function(fit, k, prune_by_cs = FALSE, prior_tol = 1e-09) {
+  if (missing(k)) {
+    # TODO: filter out components that don't need to be included (see Gao's suggestion)
+    include_idx <- which(fit$hypers$prior_variance > prior_tol)
+    if (length(include_idx) > 0) {
+      pip <- susieR::susie_get_pip(fit$params$alpha[include_idx, , drop = F])
+    } else {
+      pip <- rep(0, dim(fit$params$alpha)[2])
+    }
   } else {
-    pip <- rep(0, dim(fit$params$alpha)[2])
+    # TODO: filter out components that don't need to be included (see Gao's suggestion)
+    include_idx <- which(fit$logreg_list[[k]]$hypers$prior_variance > prior_tol)
+    if (length(include_idx) > 0) {
+      pip <- susieR::susie_get_pip(fit$logreg_list[[k]]$params$alpha[include_idx, , drop = F])
+    } else {
+      pip <- rep(0, dim(fit$logreg_list[[k]]$params$alpha)[2])
+    }
   }
+
   return(pip)
 }
 
 #' @export
-binsusie_plot <- function(fit, y = "PIP") {
-  res <- with(fit, list(alpha = params$alpha, pip = pip, sets = sets))
-  class(res) <- "susie"
-  susieR::susie_plot(res, y)
+binsusie_plot <- function(fit, k, y = "PIP") {
+  if (missing(k)) {
+    res <- with(fit, list(alpha = params$alpha, pip = pip, sets = sets))
+    class(res) <- "susie"
+    susieR::susie_plot(res, y)
+  } else {
+    res <- with(
+      fit$logreg_list[[k]],
+      list(alpha = params$alpha, pip = pip, sets = sets)
+    )
+    class(res) <- "susie"
+    susieR::susie_plot(res, y)
+  }
 }
 
 #' Binomial SuSiE
@@ -436,7 +705,7 @@ binsusie <- function(X,
     fit <- prune_model(fit, check_null_threshold, intercept, estimate_prior_variance, tol = tol)
   }
 
-  # wrapup (computing PIPs, CSs, etc)
+  # wrap up (computing PIPs, CSs, etc)
   fit <- binsusie_wrapup(fit, prior_tol)
   return(fit)
 }

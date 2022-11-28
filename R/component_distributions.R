@@ -28,13 +28,13 @@ update_params <- function(x, ...) {
 
 convolved_logpdf.component_distribution <- function(dist, betahat, se) {
   # TODO: compute convolved pdf by numerical integration?
-  # Will probably require logpdf/pdf be implimented for each component
+  # Will probably require logpdf/pdf be implemented for each component
   stop("Generic convolved logpdf not implimented yet")
 }
 
 update_params.component_distribution <- function(dist, betahat, se) {
   # TODO: compute convolved pdf by numerical integration?
-  # Will probably require logpdf/pdf be implimented for each component
+  # Will probably require logpdf/pdf be implemented for each component
   stop("Generic update not implimented")
 }
 
@@ -88,16 +88,23 @@ update_params.normal <- function(dist, betahat, se, weights) {
 
 
 
-# beta components
-beta_component <- function(alpha = 0.5) {
-  f <- list(alpha = alpha)
+# Beta components -----
+#strictly increasing and convex, if alpha \geq 1 and beta \leq1
+# strictly decreasing and convex if alpha \leq 1 and beta \geq1
+beta_component <- function(alpha = 1, beta=1) {
+  f <- list(alpha = alpha,
+            beta  = beta
+            )
   class(f) <- c("beta", "component_distribution")
   return(f)
 }
 
 
 convolved_logpdf.beta <- function(dist, p, se = 1) {
-  logp <- dbeta(p, 1, dist$alpha)
+  logp <- dbeta(p,
+                shape1 = dist$alpha,
+                shape2 = dist$beta
+                )
   logp <- .clamp(logp, 100, -100)
   return(logp)
 }

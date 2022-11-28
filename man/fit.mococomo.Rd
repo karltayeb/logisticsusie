@@ -2,20 +2,33 @@
 % Please edit documentation in R/mococomo.R
 \name{fit.mococomo}
 \alias{fit.mococomo}
-\title{Fucntion implementating the mococomo mode}
+\title{Function implementation the mococomo mode}
 \usage{
-fit.mococomo(data, maxiter = 100, tol = 0.001, max_class, mult = 2)
+fit.mococomo(
+  data,
+  dist = "normal",
+  maxiter = 100,
+  tol = 0.001,
+  max_class = 10,
+  mult = 2,
+  upper = FALSE
+)
 }
 \arguments{
 \item{data}{an object of class data_mococomo  see \link{\code{set_data_mococomo}}}
 
+\item{dist}{type of model currently supoorted (normal and beta )}
+
 \item{maxiter}{numeric, maximum numerous of itration set to 100 by defaults}
 
-\item{tol}{tolreance in term of change in ELBO value for stopping criterion}
+\item{tol}{tolerance in term of change in ELBO value for stopping criterion}
+
+\item{upper, }{logical, set to FALSE by default. Specific to beta distribution.
+If true use a to set of mixture for fitting both end of the of the distribution as in the ZAP paper by Leung and Sunn}
 }
 \description{
-Fucntion implementating the mococomo mode
+Function implementation the mococomo mode
 }
 \details{
-Fucntion implementating the mococomo mode
+Function implementation the mococomo mode
 }

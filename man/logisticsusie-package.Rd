@@ -4,12 +4,17 @@
 \name{logisticsusie-package}
 \alias{logisticsusie}
 \alias{logisticsusie-package}
-\title{logisticsusie: What the Package Does (One Line, Title Case)}
+\title{logisticsusie: Logistic SuSiE and its extensions}
 \description{
-What the package does (one paragraph).
+Implements logistic, multinomial and categorical SuSiE as well as some additional FDR and shrinkage methods
 }
 \author{
-\strong{Maintainer}: First Last \email{first.last@example.com} (\href{https://orcid.org/YOUR-ORCID-ID}{ORCID})
+\strong{Maintainer}: Karl Tayeb \email{ktayeb@uchicago.edu}
+
+Authors:
+\itemize{
+  \item William  Denault \email{wdenault@uchicago.edu}
+}
 
 }
 \keyword{internal}

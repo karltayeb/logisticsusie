@@ -5,7 +5,7 @@
 \title{Get Binomial SER coefficients
 Extract regression coefficients from binomial SER fit}
 \usage{
-\method{coef}{binsusie}(fit, idx = NULL)
+\method{coef}{binsusie}(fit, k, idx = NULL)
 }
 \arguments{
 \item{fit}{Binomial SER object}

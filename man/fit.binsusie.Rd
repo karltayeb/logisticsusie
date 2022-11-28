@@ -6,6 +6,7 @@
 \usage{
 fit.binsusie(
   fit,
+  k,
   maxiter = 10,
   tol = 0.001,
   fit_intercept = TRUE,

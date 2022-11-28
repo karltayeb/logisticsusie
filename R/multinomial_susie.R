@@ -116,9 +116,9 @@ iter.mnsusie <- function(fit, fit_intercept = T, fit_prior_variance = T) {
 
     # update logreg
     logreg_list[[k]] <- iter.binsusie(logreg,
-      fit_intercept = fit_intercept,
-      fit_prior_variance = fit_prior_variance
-    )
+                                      fit_intercept = fit_intercept,
+                                      fit_prior_variance = fit_prior_variance
+                                     )
   }
   fit$logreg_list <- logreg_list
 

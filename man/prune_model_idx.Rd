@@ -8,6 +8,7 @@ Used as a subroutine for \code{prune_model} which removes irrelevant features}
 \usage{
 prune_model_idx(
   fit,
+  k,
   idx,
   fit_intercept = T,
   fit_prior_variance = F,

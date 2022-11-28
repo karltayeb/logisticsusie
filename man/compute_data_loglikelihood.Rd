@@ -2,10 +2,16 @@
 % Please edit documentation in R/cal_function.R
 \name{compute_data_loglikelihood}
 \alias{compute_data_loglikelihood}
+\alias{compute_data_loglikelihood.mococomo_normal}
+\alias{compute_data_loglikelihood.mococomo_beta}
 \title{Compute Data Log Likelihood
 Compute p(betahat_i| z=k, se_i) i = 1..., n, k=1... K}
 \usage{
-compute_data_loglikelihood(fit)
+compute_data_loglikelihood(fit, ...)
+
+\method{compute_data_loglikelihood}{mococomo_normal}(fit)
+
+\method{compute_data_loglikelihood}{mococomo_beta}(fit)
 }
 \arguments{
 \item{fit}{an MoCoCoMo fit object}

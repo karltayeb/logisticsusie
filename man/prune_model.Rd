@@ -7,6 +7,7 @@ Remove irrelevant features from logistic SuSiE fit}
 \usage{
 prune_model(
   fit,
+  k,
   check_null_threshold,
   fit_intercept = T,
   fit_prior_variance = F,

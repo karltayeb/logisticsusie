@@ -6,7 +6,7 @@
 Compute fit summaries (PIPs, CSs, etc) and
 Organize binsusie fit so that it is compatable with \code{susieR} function}
 \usage{
-binsusie_wrapup(fit, prior_tol = 0)
+binsusie_wrapup(fit, k, prior_tol = 0)
 }
 \description{
 BinSuSiE Wrapup

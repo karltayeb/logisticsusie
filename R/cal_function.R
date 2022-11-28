@@ -47,13 +47,75 @@
 #' Compute p(betahat_i| z=k, se_i) i = 1..., n, k=1... K
 #' @param fit an MoCoCoMo fit object
 #' @return n x K matrix of  log likelihood of each data point for each component
-compute_data_loglikelihood <- function(fit) {
-  # compute loglikelihood of each data point under each component distribution
-  # TODO: replace with generic convolved_logpdf function
-  data_loglik <- do.call(cbind, purrr::map(
-    fit$f_list, ~ convolved_logpdf(.x, fit$data$betahat, fit$data$se)
-  ))
-  return(data_loglik)
+compute_data_loglikelihood <- function(fit,...)
+  UseMethod("compute_data_loglikelihood")
+
+
+
+
+#' @rdname compute_data_loglikelihood
+#'
+#' @method compute_data_loglikelihood mococomo_normal
+#'
+#' @export compute_data_loglikelihood.mococomo_normal
+#'
+#'
+#' @export
+compute_data_loglikelihood.mococomo_normal <- function(fit) {
+
+
+    # compute loglikelihood of each data point under each component distribution
+    # TODO: replace with generic convolved_logpdf function
+    data_loglik <- do.call(cbind,
+                           purrr::map(
+                    fit$f_list, ~ convolved_logpdf(.x, fit$data$betahat, fit$data$se)
+                                   )
+                          )
+    return(data_loglik)
+}
+
+#' @rdname compute_data_loglikelihood
+#'
+#' @method compute_data_loglikelihood mococomo_beta
+#'
+#' @export compute_data_loglikelihood.mococomo_beta
+#'
+#'
+#' @export
+compute_data_loglikelihood.mococomo_beta <- function(fit) {
+
+
+    if( !is.null(fit$upper_l)){
+      up_df <- do.call( cbind,
+                        lapply( 1:length(fit$f_list$alpha),
+                                function(i){
+                                  logp <- dbeta(fit$data$p,
+                                                shape1 = fit$f_list$alpha[[i]],
+                                                shape2 = 1
+                                  )
+                                  logp <- .clamp(logp, 100, -100)
+                                  return(logp)
+                                } ))
+    }
+
+    lw_df <- do.call( cbind,
+                      lapply( 1:length(fit$f_list$beta),
+                              function(i){
+                                logp <- dbeta(fit$data$p,
+                                              shape1 =1,
+                                              shape2 =  fit$f_list$beta[[i]]
+                                )
+                                logp <- .clamp(logp, 100, -100)
+                                return(logp)
+                              } ))
+    if( !is.null(fit$upper_l)){
+           data_loglik <- cbind(lw_df, up_df)
+    }else{
+           data_loglik <- lw_df
+    }
+    return(data_loglik)
+
+
 }
 
 

@@ -187,7 +187,7 @@ sim_twococomo <- function(n = 1000, p = 50, L = 3, N = 1, beta, alpha = 0) {
   sim$se <- 0.1 + rgamma(n, shape = 0.5)
   sim$betahat <- sim$beta + rnorm(n) * sim$se
 
-  class(sim) <- "data_mococomo"
+  class(sim) <- c("normal", "data_mococomo")
   return(sim)
 }
 
@@ -214,7 +214,7 @@ sim_twococomo_sparse <- function(n = 1000, p = 50, L = 3, N = 1) {
   sim$se <- 0.1 + rgamma(n, shape = 0.5)
   sim$betahat <- sim$beta + rnorm(n) * sim$se
 
-  class(sim) <- "data_mococomo"
+  class(sim) <- c("normal", "data_mococomo")
   return(sim)
 }
 
@@ -245,10 +245,23 @@ sim_mococomo <- function(n = 1000, p = 50, L = 3, N = 1, beta, alpha = 0) {
   sim$beta <- rnorm(n) * sim$y * sample(sim$scales, size = n, replace = T)
   sim$se <- 0.1 + rgamma(n, shape = 0.5)
   sim$betahat <- sim$beta + rnorm(n) * sim$se
-  class(sim) <- "data_mococomo"
+  class(sim) <- c("normal", "data_mococomo")
   return(sim)
 }
 
+#' @export
+#' #not the actual underlying model we are aiming at fitting but this is just
+#' to have something that look a like and fast to implement
+sim_mococomo_beta <- function(n = 1000, p = 50, L = 3, N = 1, beta) {
+  if (missing(beta)) {
+    sim <- sim_mococomo(n = n, p = p, L = L, N = N)
+  } else {
+    sim <- sim_mococomo(n = n, p = p, L = L, N = N, beta = beta)
+  }
+
+  sim$p <- 1 - pnorm(sim$betahat)
+  return(sim)
+}
 
 #' @export
 sim_ordinal_mod <- function(n = 1000,
@@ -333,4 +346,24 @@ sim_ordinal_mod <- function(n = 1000,
     sim_param = c(n, p, p_act, se, n_class)
   )
   return(out)
+}
+
+
+#' @title  Simulate mixture of beta distribution
+#' @description  Simulate mixture of beta distribution
+#' @param n numeric sample size
+#' @param par list of the component parameter
+#' @param prob mixture proportion
+#' @export
+
+sim_mixture_beta <- function(n = 1000, par = list(alpha = c(1, 1), beta = c(1, 10)), prob = c(0.9, 0.1)) {
+  temp <- c()
+  for (i in 1:n) {
+    tt <- sample(c(1, 2), prob = prob, size = 1)
+    temp <- c(temp, rbeta(1,
+      shape1 = par$alpha[tt],
+      shape2 = par$beta[tt]
+    ))
+  }
+  return(temp)
 }

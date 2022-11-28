@@ -87,7 +87,9 @@ iter.twococomo <- function(fit, intercept = TRUE, estimate_prior_variance = TRUE
   fit$data$y <- compute_post_assignment(fit)
 
   # update SuSiE
-  fit <- iter.binsusie(fit, intercept, estimate_prior_variance)
+  fit <- iter.binsusie(fit,
+                       fit_intercept      = intercept  ,
+                       fit_prior_variance = estimate_prior_variance)
 
   # TODO: update mixture components
   if (estimate_f1) {

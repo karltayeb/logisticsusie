@@ -6,6 +6,7 @@
 \usage{
 update_b.binsusie(
   fit,
+  k,
   fit_intercept = TRUE,
   fit_prior_variance = TRUE,
   fit_alpha = TRUE,

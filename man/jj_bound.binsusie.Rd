@@ -6,7 +6,7 @@
 the bound on the logistic function proposed by Jaakkola and Jordan
 NOTE: this only works when xi is updated!}
 \usage{
-jj_bound.binsusie(fit)
+jj_bound.binsusie(fit, k)
 }
 \description{
 Compute E\link{p(z, w| b) - q(w)}, which is the same as

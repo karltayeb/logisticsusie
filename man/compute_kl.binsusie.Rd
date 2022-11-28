@@ -6,7 +6,7 @@
 Note this does not include KL(q(\omega) || p(\omega))
 since that gets computes as part of the JJ bound}
 \usage{
-compute_kl.binsusie(fit)
+compute_kl.binsusie(fit, k)
 }
 \description{
 Compute KL(q(\beta) || p(\beta)) for Sum of SERs

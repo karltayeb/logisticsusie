@@ -4,7 +4,7 @@
 \alias{compute_Xb.binsusie}
 \title{Expected linear prediction}
 \usage{
-compute_Xb.binsusie(fit)
+compute_Xb.binsusie(fit, k)
 }
 \description{
 Expected linear prediction

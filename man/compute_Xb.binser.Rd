@@ -5,7 +5,7 @@
 \title{compute_Xb.binser
 Compute expected predicted log odds}
 \usage{
-compute_Xb.binser(fit, idx = NULL, shift = 0)
+compute_Xb.binser(fit, k, idx = NULL, shift = 0)
 }
 \arguments{
 \item{fit}{Binomial SER object}

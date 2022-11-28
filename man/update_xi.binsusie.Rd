@@ -4,7 +4,7 @@
 \alias{update_xi.binsusie}
 \title{update for variational parameter parameter xi q(w) = PG(N, xi)}
 \usage{
-update_xi.binsusie(fit)
+update_xi.binsusie(fit, k)
 }
 \description{
 update for variational parameter parameter xi q(w) = PG(N, xi)
