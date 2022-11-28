@@ -556,7 +556,7 @@ binsusie_wrapup <- function(fit, k, prior_tol = 0) {
 
     fit$alpha <- fit$params$alpha
     fit$mu <- fit$params$mu
-    fit$mu2 <- fit$params$mu^2 + fit$params$var
+    fit$var <- fit$params$var
     fit$V <- fit$hypers$prior_variance
 
     colnames(fit$alpha) <- colnames(X)
@@ -575,7 +575,7 @@ binsusie_wrapup <- function(fit, k, prior_tol = 0) {
 
     fit$alpha <- fit$logreg_list[[k]]$params$alpha
     fit$mu <- fit$logreg_list[[k]]$params$mu
-    fit$mu2 <- fit$logreg_list[[k]]$params$mu^2 + fit$logreg_list[[k]]$params$var
+    fit$var <- fit$logreg_list[[k]]$params$var
     fit$V <- fit$logreg_list[[k]]$hypers$prior_variance
 
     colnames(fit$logreg_list[[k]]$alpha) <- colnames(X)
