@@ -66,7 +66,7 @@ compute_Xb2.binsusie<- function(fit,k) {
 #' Note this does not include KL(q(\omega) || p(\omega))
 #' since that gets computes as part of the JJ bound
 compute_kl.binsusie <- function(fit,k) {
-  if(mssing(k)){
+  if(missing(k)){
     kl <- sum(purrr::map_dbl(seq(fit$hypers$L), ~ .compute_ser_kl(
       .get_alpha(fit, .x),
       .get_pi(fit, .x),
@@ -336,16 +336,23 @@ iter.binsusie <- function(fit, k, fit_intercept = TRUE, fit_prior_variance = TRU
 
   if(missing(k)){
     # update b
-    fit <- update_b.binsusie(fit, fit_intercept, fit_prior_variance, fit_alpha)
+    fit <- update_b.binsusie(fit,
+                             fit_intercept      =  fit_intercept,
+                             fit_prior_variance =  fit_prior_variance,
+                             fit_alpha          = fit_alpha)
 
     # update xi
     if (fit_xi) {
-      fit$params$xi <- update_xi.binsusie(fit)
+      fit$params$xi  <- update_xi.binsusie(fit)
       fit$params$tau <- compute_tau(fit)
     }
   }else{
     # update b
-    fit$logreg_list[[k]] <- update_b.binsusie(fit,k=k, fit_intercept, fit_prior_variance, fit_alpha)
+    fit$logreg_list[[k]] <- update_b.binsusie(fit,
+                                              k                  = k,
+                                              fit_intercept      = fit_intercept,
+                                              fit_prior_variance = fit_prior_variance,
+                                              fit_alpha          = fit_alpha)
 
     # update xi
     if (fit_xi) {
@@ -372,7 +379,11 @@ fit.binsusie <- function(fit,
 
   if(missing(k)){
     for (i in 1:maxiter) {
-      fit <- iter.binsusie(fit, fit_intercept, fit_prior_variance, fit_xi, fit_alpha)
+      fit <- iter.binsusie(fit,
+                           fit_intercept      = fit_intercept,
+                           fit_prior_variance = fit_prior_variance,
+                           fit_xi             = fit_xi,
+                           fit_alpha          = fit_alpha)
       # update elbo
       if (fast_elbo) {
         fit$elbo <- c(fit$elbo, compute_elbo.binsusie(fit))
@@ -385,7 +396,12 @@ fit.binsusie <- function(fit,
     }
   }else{
     for (i in 1:maxiter) {
-      fit$logreg_list[[k]] <- iter.binsusie(fit,k=k, fit_intercept, fit_prior_variance, fit_xi, fit_alpha)
+      fit$logreg_list[[k]] <- iter.binsusie(fit,
+                                            k                  = k,
+                                            fit_intercept      = fit_intercept,
+                                            fit_prior_variance = fit_prior_variance,
+                                            fit_xi             = fit_xi,
+                                            fit_alpha          = fit_alpha)
       # update elbo
       if (fast_elbo) {
         fit$logreg_list[[k]]$elbo <- c(fit$logreg_list[[k]]$elbo, compute_elbo.binsusie(fit,k))

@@ -147,10 +147,17 @@ compute_Zd.binser <- function(fit, idx = NULL, shift = 0) {
 #' Compute expected predicted log odds
 #' @param fit Binomial SER object
 #' @return Return E[Xb]
-compute_Xb.binser <- function(fit, idx = NULL, shift = 0) {
-  Xb <- Matrix::drop(fit$data$X %*% coef.binser(fit, idx))
-  Zd <- compute_Zd.binser(fit, idx, shift)
-  Xb <- Xb + Zd
+compute_Xb.binser <- function(fit, k,idx = NULL, shift = 0) {
+  if( missing(k)){
+    Xb <- Matrix::drop(fit$data$X %*% coef.binser(fit, idx))
+    Zd <- compute_Zd.binser(fit, idx, shift)
+    Xb <- Xb + Zd
+  }else{
+    Xb <- Matrix::drop(fit$data$X %*% coef.binser(fit$logreg_list[[k]], idx))
+    Zd <- compute_Zd.binser(fit$logreg_list[[k]], idx, shift)
+    Xb <- Xb + Zd
+  }
+
   return(Xb)
 }
 

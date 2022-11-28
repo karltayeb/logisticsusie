@@ -66,9 +66,11 @@ compute_data_loglikelihood.mococomo_normal <- function(fit) {
 
     # compute loglikelihood of each data point under each component distribution
     # TODO: replace with generic convolved_logpdf function
-    data_loglik <- do.call(cbind, purrr::map(
-      fit$f_list, ~ convolved_logpdf(.x, fit$data$betahat, fit$data$se)
-    ))
+    data_loglik <- do.call(cbind,
+                           purrr::map(
+                    fit$f_list, ~ convolved_logpdf(.x, fit$data$betahat, fit$data$se)
+                                   )
+                          )
     return(data_loglik)
 }
 
