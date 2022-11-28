@@ -26,7 +26,7 @@ update_xi_re <- function(x, y, o, mu, tau, xi, delta, tau0) {
   xb <- x * mu
   o <- o$mu
 
-  psi2 <- xb2 + o2 + delta2 + 2 * xb * o + 2 * xb * delta + 2 * o * delta
+  psi2 <- xb2 + o2 + delta2 + (2 * xb * o) + (2 * xb * delta) + (2 * o * delta)
   return(sqrt(psi2))
 }
 
