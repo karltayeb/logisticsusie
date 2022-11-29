@@ -139,8 +139,8 @@ sim_ser_with_random_effects <- function(n = 1000,
 #' @param alpha numeric intercept in the lostic regression (control sparsity)
 #' @export
 
-sim_susie <- function(n = 1000, p = 50, L = 3, N = 1, beta, alpha = 0) {
-  X <- sim_X(n, p)
+sim_susie <- function(n = 1000, p = 50, L = 3, N = 1, beta, alpha = 0, idx = NULL, length_scale = 50) {
+  X <- sim_X(n, p, length_scale = length_scale)
   Z <- matrix(rep(1, n), nrow = n)
   if (missing(beta)) {
     beta <- seq(L) * .2
@@ -149,19 +149,23 @@ sim_susie <- function(n = 1000, p = 50, L = 3, N = 1, beta, alpha = 0) {
     beta <- rep(beta, L)
   }
 
-
-  logits <- alpha + Matrix::drop(X[, seq(L) * 10] %*% beta)
+  if (is.null(idx)) {
+    idx <- seq(L) * 10
+  }
+  logits <- alpha + Matrix::drop(X[, idx] %*% beta)
   p <- sigmoid(logits)
   y <- rbinom(n, N, p)
 
   data <- list(
-    X         = X,
-    Z         = Z,
-    y         = y,
-    N         = N,
-    logits    = logits,
-    effect    = beta,
-    intercept = alpha
+    X = X,
+    Z = Z,
+    y = y,
+    N = N,
+    logits = logits,
+    effect = beta,
+    intercept = alpha,
+    beta = beta,
+    idx = idx
   )
   return(data)
 }

@@ -4,7 +4,16 @@
 \alias{sim_susie}
 \title{Simulate data under the logistic SuSiE model}
 \usage{
-sim_susie(n = 1000, p = 50, L = 3, N = 1, beta, alpha = 0)
+sim_susie(
+  n = 1000,
+  p = 50,
+  L = 3,
+  N = 1,
+  beta,
+  alpha = 0,
+  idx = NULL,
+  length_scale = 50
+)
 }
 \arguments{
 \item{n}{numeric sample size}
