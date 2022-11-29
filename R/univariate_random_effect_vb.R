@@ -18,15 +18,17 @@ update_b_re <- function(x, y, o, mu, tau, xi, delta, tau0) {
   return(list(mu = nu / tau, tau = tau))
 }
 
-update_xi_re <- function(x, y, o, mu, tau, xi, delta, tau0) {
-  delta2 <- delta^2
-  o2 <- o$mu2
-  xb2 <- x^2 * (mu^2 + 1 / tau)
-
+compute_psi2_re <- function(x, y, o, mu, tau, xi, delta, tau0) {
+  Vo <- o$mu2 - o$mu^2
+  Vxb <- x^2 * (1 / tau)
   xb <- x * mu
   o <- o$mu
+  psi2 <- (xb + delta + o)^2 + Vo + Vxb
+  return(psi2)
+}
 
-  psi2 <- xb2 + o2 + delta2 + (2 * xb * o) + (2 * xb * delta) + (2 * o * delta)
+update_xi_re <- function(x, y, o, mu, tau, xi, delta, tau0) {
+  psi2 <- compute_psi2_re(x, y, o, mu, tau, xi, delta, tau0)
   return(sqrt(psi2))
 }
 
@@ -126,6 +128,23 @@ fit_univariate_vb_re <- function(x, y, o = NULL, delta.init = logodds(mean(y) + 
 }
 
 # SER--------
+
+compute_psi2_ser_re <- function(X, alpha, mu, var, delta) {
+  # expected predictions
+  Xb <- Matrix::drop(X %*% (alpha * mu))
+  Zd <- sum(alpha * delta)
+  psi <- Xb + Zd
+
+  # variance components
+  b2 <- alpha * (mu^2 + var)
+  Xb2 <- Matrix::drop(X^2 %*% b2)
+  VXb <- Xb2 - Xb^2
+
+  # second moment
+  psi2 <- psi^2 + VXb
+  return(psi2)
+}
+
 #' Fit a logistic single effect regression model using univariate VB approximation
 #' @export
 fit_uvb_ser_re <- function(X, y, o = NULL, prior_variance = 1.0, intercept.init = logodds(mean(y) + 1e-10), estimate_intercept = T, estimate_prior_variance = F, prior_weights = NULL) {
@@ -149,6 +168,10 @@ fit_uvb_ser_re <- function(X, y, o = NULL, prior_variance = 1.0, intercept.init 
 
   lbf_model <- sum(res$lbf * res$alpha) - categorical_kl(res$alpha, rep(1 / p, p))
   loglik <- lbf_model + null_likelihood
+
+  psi <- drop(X %*% (res$alpha * res$mu)) + sum(res$alpha * res$delta)
+  psi2 <- compute_psi2_ser_re(X, res$alpha, res$mu, 1 / res$tau, res$delta)
+
   res <- list(
     mu = res$mu,
     var = 1 / res$tau,
@@ -160,7 +183,9 @@ fit_uvb_ser_re <- function(X, y, o = NULL, prior_variance = 1.0, intercept.init 
     prior_variance = prior_variance,
     loglik = loglik,
     null_loglik = null_likelihood,
-    o = o
+    o = o,
+    psi = psi,
+    psi2 = psi2
   )
   return(res)
 }
@@ -171,32 +196,22 @@ fit_uvb_ser_re <- function(X, y, o = NULL, prior_variance = 1.0, intercept.init 
 
 #' Add the predictions from an SER to the random offset
 add_re <- function(o, ser, X) {
-  # get first and second moments of prediction (psi) from SER
-  delta <- ser$intercept
-  xb <- (X %*% (ser$mu * ser$alpha))[, 1]
-  xb2 <- (X^2 %*% (ser$mu^2 + ser$var))[, 1]
-  psi <- xb #+ delta
-  psi2 <- xb2 #+ delta^2 + 2 * xb * delta
-
   # add to offset
-  o$mu2 <- psi2 + o$mu2 + 2 * o$mu * psi
-  o$mu <- o$mu + psi
+  o$mu2 <- ser$psi2 + o$mu2 + 2 * o$mu * ser$psi
+  o$mu <- o$mu + ser$psi
   return(o)
 }
 
 #' Subtract the predictions from an SER to the random offset
 sub_re <- function(o, ser, X) {
-  # get first and second moments of prediction (psi) from SER
-  delta <- ser$intercept
-  xb <- (X %*% (ser$mu * ser$alpha))[, 1]
-  xb2 <- (X^2 %*% (ser$mu^2 + ser$var))[, 1]
-  psi <- xb #+ delta
-  psi2 <- xb2 #+ delta^2 + 2 * xb * delta
-
   # remove from offset
-  o$mu <- o$mu - psi
-  o$mu2 <- o$mu2 - psi2 - 2 * o$mu * psi
+  o$mu <- o$mu - ser$psi
+  o$mu2 <- o$mu2 - ser$psi2 - 2 * o$mu * ser$psi
   return(o)
+}
+
+valid_offset <- function(o) {
+  return(all(o$mu2 - o$mu^2 >= 0))
 }
 
 
@@ -222,7 +237,15 @@ ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol 
   tictoc::tic() # start timer
 
   # initialize empty SERs
-  empty_ser <- list(alpha = rep(1 / p, p), mu = rep(0, p), var = (rep(0, p)), intercept = 0)
+  empty_ser <- list(
+    alpha = rep(1 / p, p),
+    mu = rep(0, p),
+    var = (rep(0, p)),
+    intercept = 0,
+    psi = rep(0, n),
+    psi2 = rep(0, n)
+  )
+
   fits <- vector(mode = "list", length = L)
   for (l in 1:L) {
     fits[[l]] <- empty_ser
@@ -242,7 +265,6 @@ ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol 
         estimate_intercept = estimate_intercept,
         prior_weights = prior_weights
       )
-
 
       # store
       alpha[l, ] <- ser_l$alpha
@@ -289,87 +311,4 @@ ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol 
     psi = fixed
   )
   return(res)
-}
-
-
-fit_susie_re <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol = 1e-3, maxit = 100, estimate_intercept = TRUE) {
-  p <- ncol(X)
-  n <- nrow(X)
-
-  # place to store posterior info for each l = 1, ..., L
-  post_alpha <- matrix(NA, nrow = L, ncol = p)
-  post_mu <- matrix(NA, nrow = L, ncol = p)
-  post_var <- matrix(NA, nrow = L, ncol = p)
-  post_info <- list(alpha = post_alpha, mu = post_mu, var = post_var)
-
-  # store posterior effect estimates
-  beta_post_init <- matrix(Inf, nrow = L, ncol = p) # initialize
-  beta_post_init2 <- beta_post_init
-  beta_post <- matrix(0, nrow = L, ncol = p)
-
-  fixed <- list(mu = rep(0, n), mu2 = rep(0, n)) # fixed portion, estimated from l' != l other SER models
-
-  iter <- 0
-  tictoc::tic() # start timer
-
-  empty_ser <- list(alpha = rep(1 / p, p), mu = rep(0, p), var = (rep(0, p)), intercept = 0)
-  fits <- vector(mode = "list", length = L)
-  for (l in 1:L) {
-    fits[[l]] <- empty_ser
-  }
-
-  # repeat until posterior means converge (ELBO not calculated here, so use this convergence criterion instead)
-  while ((norm(beta_post - beta_post_init, "1") > tol) & (norm(beta_post - beta_post_init2, "1") > tol)) {
-    beta_post_init2 <- beta_post_init # store from 2 iterations ago
-    beta_post_init <- beta_post
-
-    for (l in 1:L) {
-      ser_l <- fits[[l]]
-
-      # remove effect from previous iteration
-      fixed <- sub_re(fixed, ser_l, X)
-
-      # fit new SER with random offset
-      ser_l <- fit_uvb_ser_re(X, y,
-        o = fixed,
-        prior_variance = prior_variance,
-        estimate_intercept = estimate_intercept,
-        prior_weights = prior_weights
-      )
-
-      # store
-      post_info$alpha[l, ] <- ser_l$alpha
-      post_info$mu[l, ] <- ser_l$mu
-      post_info$var[l, ] <- ser_l$var
-
-      # update beta_post
-      beta_post[l, ] <- ser_l$alpha * ser_l$mu
-
-      # add back new fixed portion
-      fixed <- add_re(fixed, ser_l, X)
-
-      # save current ser
-      fits[[l]] <- ser_l
-    }
-    iter <- iter + 1
-    if (iter > maxit) {
-      warning("Maximum number of iterations reached")
-      break
-    }
-  }
-  timer <- tictoc::toc()
-
-
-  # now, get intercept w/ MLE, holding our final estimate of beta to be fixed
-  beta <- colSums(post_info$alpha * post_info$mu)
-  pred <- (X %*% beta)[, 1]
-  int <- coef(glm(y ~ 1 + offset(pred), family = "binomial"))
-  post_info$intercept <- int
-
-  # add the final ser fits
-  names(fits) <- paste0("L", 1:L)
-  post_info$fits <- fits
-  post_info$iter <- iter
-  post_info$elapsed_time <- unname(timer$toc - timer$tic)
-  return(post_info)
 }
