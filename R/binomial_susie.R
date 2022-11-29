@@ -42,8 +42,8 @@ compute_Xb2.binsusie <- function(fit, k) {
     B2 <- .get_alpha(fit) * (.get_mu(fit)^2 + .get_var(fit))
     b2 <- colSums(B2)
 
-    Xb2 <- fit$data$X2 %*% b2 + Xb**2 - rowSums(XB^2)
-    Xb2 <- drop(Xb2 + 2 * Xb * Zd + Zd^2)
+    Xb2 <- Matrix::drop(fit$data$X2 %*% b2) + Xb**2 - rowSums(XB^2)
+    Xb2 <- Xb2 + 2 * Xb * Zd + Zd^2
   } else {
     B <- .get_alpha(fit$logreg_list[[k]]) * .get_mu(fit$logreg_list[[k]])
     XB <- fit$data$X %*% t(B)
@@ -53,8 +53,8 @@ compute_Xb2.binsusie <- function(fit, k) {
     B2 <- .get_alpha(fit$logreg_list[[k]]) * (.get_mu(fit$logreg_list[[k]])^2 + .get_var(fit$logreg_list[[k]]))
     b2 <- colSums(B2)
 
-    Xb2 <- fit$data$X2 %*% b2 + Xb**2 - rowSums(XB^2)
-    Xb2 <- drop(Xb2 + 2 * Xb * Zd + Zd^2)
+    Xb2 <- Matrix::drop(fit$data$X2 %*% b2) + Xb**2 - rowSums(XB^2)
+    Xb2 <- Xb2 + 2 * Xb * Zd + Zd^2
   }
 
   return(Xb2)
