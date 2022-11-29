@@ -13,8 +13,8 @@ update_b_re <- function(x, y, o, mu, tau, xi, delta, tau0) {
   delta <- delta + o$mu
   omega <- logisticsusie:::pg_mean(1, xi)
   kappa <- y - 0.5
-  tau <- sum(omega * x^2) + tau0
-  nu <- sum((kappa - omega * delta) * x)
+  tau <- sum(omega * x^2) + tau0 # posterior precision
+  nu <- sum((kappa - omega * delta) * x) # unormalized posterior mean
   return(list(mu = nu / tau, tau = tau))
 }
 
@@ -135,7 +135,7 @@ fit_uvb_ser_re <- function(X, y, o = NULL, prior_variance = 1.0, intercept.init 
     # fixed offsets
     o <- list(mu = 0, mu2 = 0)
   }
-  null_model_elbo <- tail(fit_univariate_vb_re(X[, 1], y, o = o, tau0 = 1e10)$elbos, 1)
+  null_likelihood <- sum(dbinom(y, 1, mean(y), log = T))
   res <- purrr::map(1:p, ~ fit_univariate_vb_re(X[, .x], y, o = o, tau0 = tau0, delta.init = intercept.init, estimate_intercept = estimate_intercept, estimate_prior_variance = estimate_prior_variance)) %>%
     dplyr::tibble() %>%
     tidyr::unnest_wider(1) %>%
@@ -143,21 +143,23 @@ fit_uvb_ser_re <- function(X, y, o = NULL, prior_variance = 1.0, intercept.init 
     dplyr::mutate(elbo = tail(elbos, 1)) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(
-      lbf = elbo - null_model_elbo,
+      lbf = elbo - null_likelihood,
       alpha = exp(lbf - matrixStats::logSumExp(lbf))
     )
 
   lbf_model <- sum(res$lbf * res$alpha) - categorical_kl(res$alpha, rep(1 / p, p))
-  loglik <- lbf_model + null_model_elbo
+  loglik <- lbf_model + null_likelihood
   res <- list(
     mu = res$mu,
     var = 1 / res$tau,
     alpha = res$alpha,
     intercept = res$delta,
     lbf = res$lbf,
+    elbo = res$elbo,
     lbf_model = lbf_model,
     prior_variance = prior_variance,
     loglik = loglik,
+    null_loglik = null_likelihood,
     o = o
   )
   return(res)

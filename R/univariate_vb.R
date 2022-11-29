@@ -190,10 +190,12 @@ fit_uvb_ser <- function(X, y, o = NULL,
     alpha = res$alpha,
     intercept = res$delta,
     lbf = res$lbf,
+    elbo = res$elbo,
     lbf_model = lbf_model,
     prior_variance = 1 / res$tau0,
     loglik = loglik,
-    null_loglik = null_likelihood
+    null_loglik = null_likelihood,
+    o = o
   )
   return(res)
 }
