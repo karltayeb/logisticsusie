@@ -149,6 +149,7 @@ compute_psi2_ser_re <- function(X, alpha, mu, var, delta) {
 #' @export
 fit_uvb_ser_re <- function(X, y, o = NULL, prior_variance = 1.0, intercept.init = logodds(mean(y) + 1e-10), estimate_intercept = T, estimate_prior_variance = F, prior_weights = NULL) {
   tau0 <- 1 / prior_variance
+  X <- as.matrix(X)
   p <- dim(X)[2]
   if (is.null(o)) {
     # fixed offsets
