@@ -706,6 +706,6 @@ binsusie <- function(X,
   }
 
   # wrap up (computing PIPs, CSs, etc)
-  fit <- binsusie_wrapup(fit, prior_tol)
+  fit <- binsusie_wrapup(fit, prior_tol = prior_tol)
   return(fit)
 }
