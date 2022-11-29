@@ -67,6 +67,17 @@ sim_y_susie <- function(X, beta0, beta, re_var = 0, idx = NULL, N = 1) {
   return(data)
 }
 
+sim_y_null <- function(X, beta0, re_var = 0, N = 1) {
+  n <- dim(X)[1]
+  p <- dim(X)[2]
+
+  logits <- beta0 + (rnorm(n) * sqrt(re_var))
+  p <- sigmoid(logits)
+  y <- rbinom(n, N, p)
+  data <- list(y = y, logits = logits, N = N, beta0 = beta0, idx = list())
+  return(data)
+}
+
 #' @export
 sim_ser <- function(n = 1000,
                     p = 50,
