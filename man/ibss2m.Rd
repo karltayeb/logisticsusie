@@ -12,7 +12,8 @@ ibss2m(
   prior_weights = NULL,
   tol = 0.001,
   maxit = 100,
-  estimate_intercept = TRUE
+  estimate_intercept = T,
+  estimate_prior_variance = F
 )
 }
 \description{

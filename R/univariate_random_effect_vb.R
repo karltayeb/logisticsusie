@@ -18,6 +18,12 @@ update_b_re <- function(x, y, o, mu, tau, xi, delta, tau0) {
   return(list(mu = nu / tau, tau = tau))
 }
 
+compute_psi_re <- function(x, y, o, mu, tau, xi, delta, tau0) {
+  xb <- x * mu
+  psi <- xb + delta + o$mu
+  return(psi)
+}
+
 compute_psi2_re <- function(x, y, o, mu, tau, xi, delta, tau0) {
   Vo <- o$mu2 - o$mu^2
   Vxb <- x^2 * (1 / tau)
@@ -34,8 +40,7 @@ update_xi_re <- function(x, y, o, mu, tau, xi, delta, tau0) {
 
 compute_elbo_re <- function(x, y, o, mu, tau, xi, delta, tau0) {
   kappa <- y - 0.5
-  delta <- delta + o$mu
-  psi <- (x * mu) + delta
+  psi <- compute_psi_re(x, y, o, mu, tau, xi, delta, tau0)
   bound <- log(sigmoid(xi)) + (kappa * psi) - (0.5 * xi)
   kl <- logisticsusie:::normal_kl(mu, 1 / tau, 0, 1 / tau0)
   return(sum(bound) - kl)
@@ -44,17 +49,24 @@ compute_elbo_re <- function(x, y, o, mu, tau, xi, delta, tau0) {
 # include the term that cancels out when xi is up-to-date
 compute_elbo2_re <- function(x, y, o, mu, tau, xi, delta, tau0) {
   kappa <- y - 0.5
-  delta2 <- o$mu2 + delta^2 + (2 * o$mu * delta)
-  delta <- delta + o$mu
-
-  xb <- (x * mu)
-  psi <- xb + delta
-
-  xb2 <- x^2 * (mu^2 + 1 / tau)
-  psi2 <- xb2 + delta2 + 2 * xb * delta
+  psi <- compute_psi_re(x, y, o, mu, tau, xi, delta, tau0)
+  psi2 <- compute_psi2_re(x, y, o, mu, tau, xi, delta, tau0)
 
   omega <- logisticsusie:::pg_mean(1, xi)
   bound <- log(sigmoid(xi)) + (kappa * psi) - (0.5 * xi) + 0.5 * omega * (xi^2 - psi2)
+  kl <- logisticsusie:::normal_kl(mu, 1 / tau, 0, 1 / tau0)
+  return(sum(bound) - kl)
+}
+
+# update xi on-the-fly
+compute_elbo3_re <- function(x, y, o, mu, tau, xi, delta, tau0) {
+  kappa <- y - 0.5
+  psi <- compute_psi_re(x, y, o, mu, tau, xi, delta, tau0)
+  psi2 <- compute_psi2_re(x, y, o, mu, tau, xi, delta, tau0)
+  xi <- sqrt(psi2) # optimal xi
+
+  omega <- logisticsusie:::pg_mean(1, xi)
+  bound <- log(sigmoid(xi)) + (kappa * psi) - (0.5 * xi) #+ 0.5 * omega * (xi^2 - psi2)
   kl <- logisticsusie:::normal_kl(mu, 1 / tau, 0, 1 / tau0)
   return(sum(bound) - kl)
 }
@@ -105,12 +117,11 @@ fit_univariate_vb_re <- function(x, y, o = NULL, delta.init = logodds(mean(y) + 
     tau <- b$tau
 
     xi <- update_xi_re(x, y, o, mu, tau, xi, delta, tau0)
-    elbos <- c(elbos, compute_elbo_re(x, y, o, mu, tau, xi, delta, tau0))
-
     if (estimate_prior_variance) {
       tau0 <- update_tau0(x, y, o, mu, tau, xi, delta, tau0)
     }
 
+    elbos <- c(elbos, compute_elbo_re(x, y, o, mu, tau, xi, delta, tau0))
     if (diff(tail(elbos, 2)) < tol) {
       break
     }
@@ -128,7 +139,6 @@ fit_univariate_vb_re <- function(x, y, o = NULL, delta.init = logodds(mean(y) + 
 }
 
 # SER--------
-
 compute_psi2_ser_re <- function(X, alpha, mu, var, delta) {
   # expected predictions
   Xb <- Matrix::drop(X %*% (alpha * mu))
@@ -141,22 +151,46 @@ compute_psi2_ser_re <- function(X, alpha, mu, var, delta) {
   VXb <- Xb2 - Xb^2
 
   # second moment
+  # NOTE: DOES NOT INCLUDE OFFSET!
   psi2 <- psi^2 + VXb
   return(psi2)
 }
 
 #' Fit a logistic single effect regression model using univariate VB approximation
 #' @export
-fit_uvb_ser_re <- function(X, y, o = NULL, prior_variance = 1.0, intercept.init = logodds(mean(y) + 1e-10), estimate_intercept = T, estimate_prior_variance = F, prior_weights = NULL) {
+fit_uvb_ser_re <- function(X, y, o = NULL,
+                           prior_variance = 1.0,
+                           intercept.init = logodds(mean(y) + 1e-10),
+                           estimate_intercept = T,
+                           estimate_prior_variance = F,
+                           prior_weights = NULL) {
   tau0 <- 1 / prior_variance
   X <- as.matrix(X)
   p <- dim(X)[2]
   if (is.null(o)) {
     # fixed offsets
     o <- list(mu = 0, mu2 = 0)
+    null_likelihood <- sum(dbinom(y, 1, mean(y), log = T))
+  } else {
+    # if there is a random effect fit the null model accounting for that
+    null_model <- fit_univariate_vb_re(X[, 1], y,
+      o = o, tau0 = 1e10,
+      delta.init = intercept.init,
+      estimate_intercept = estimate_intercept,
+      estimate_prior_variance = F
+    )
+    null_likelihood <- tail(null_model$elbos, 1)
   }
-  null_likelihood <- sum(dbinom(y, 1, mean(y), log = T))
-  res <- purrr::map(1:p, ~ fit_univariate_vb_re(X[, .x], y, o = o, tau0 = tau0, delta.init = intercept.init, estimate_intercept = estimate_intercept, estimate_prior_variance = estimate_prior_variance)) %>%
+
+  # fit uvb_re for each column of X
+  res <- purrr::map(1:p, ~ fit_univariate_vb_re(
+    X[, .x], y,
+    o = o,
+    tau0 = tau0,
+    delta.init = intercept.init,
+    estimate_intercept = estimate_intercept,
+    estimate_prior_variance = estimate_prior_variance
+  )) %>%
     dplyr::tibble() %>%
     tidyr::unnest_wider(1) %>%
     dplyr::rowwise() %>%
@@ -167,13 +201,15 @@ fit_uvb_ser_re <- function(X, y, o = NULL, prior_variance = 1.0, intercept.init 
       alpha = exp(lbf - matrixStats::logSumExp(lbf))
     )
 
-  lbf_model <- sum(res$lbf * res$alpha) - categorical_kl(res$alpha, rep(1 / p, p))
+  # compute LBF for model
+  lbf_model <- sum(res$lbf * res$alpha) -
+    categorical_kl(res$alpha, rep(1 / p, p))
   loglik <- lbf_model + null_likelihood
 
   psi <- drop(X %*% (res$alpha * res$mu)) + sum(res$alpha * res$delta)
   psi2 <- compute_psi2_ser_re(X, res$alpha, res$mu, 1 / res$tau, res$delta)
 
-  res <- list(
+  res2 <- list(
     mu = res$mu,
     var = 1 / res$tau,
     alpha = res$alpha,
@@ -181,16 +217,19 @@ fit_uvb_ser_re <- function(X, y, o = NULL, prior_variance = 1.0, intercept.init 
     lbf = res$lbf,
     elbo = res$elbo,
     lbf_model = lbf_model,
-    prior_variance = prior_variance,
+    elbo_model = lbf_model + null_likelihood,
+    prior_variance = ifelse(estimate_prior_variance,
+      list(1 / res$tau0),
+      list(prior_variance)
+    )[[1]],
     loglik = loglik,
     null_loglik = null_likelihood,
     o = o,
     psi = psi,
     psi2 = psi2
   )
-  return(res)
+  return(res2)
 }
-
 
 
 # IBSS2 ---------
@@ -216,12 +255,116 @@ valid_offset <- function(o) {
 }
 
 
+jj_bound_re <- function(X, y, psi) {
+  xi <- sqrt(psi$mu2)
+  Xb <- psi$mu
+  kappa <- y - 0.5
+  n <- 1
+  bound <- n * log(sigmoid(xi)) + (kappa * Xb) - (0.5 * xi)
+  return(bound)
+}
+
+compute_elbo_susie_re <- function(X, y, psi, fits, prior_weights) {
+  jj <- jj_bound_re(X, y, psi) # E[log p(y, w | b) - logp(w)]
+  kl <- purrr::map_dbl(fits, ~ .compute_ser_kl(
+    .x$alpha, prior_weights, .x$mu, .x$var, 0, .x$prior_var
+  )) # KL(q(b) || p(b))
+  elbo <- sum(jj) - sum(kl)
+  return(elbo)
+}
+
+# GLOBAL AND SER-centric BOUNDS
+
+# Compute JJ bound using global optimum of xi
+ibss2_compute_jj <- function(y, post) {
+  # compute overall prediction moments
+  psi <- colSums(post$psi)
+  psi2 <- colSums(post$psi)^2 + colSums(post$psi2 - post$psi^2)
+
+  # optimal xi
+  xi <- sqrt(psi2)
+
+  # global jj bound
+  jj <- log(sigmoid(xi)) - 0.5 * xi + (y - 0.5) * psi
+  return(sum(jj))
+}
+
+# compute optimal jj bound partitioning over \gamma_l
+ibss2_compute_jj_l <- function(X, y, post, l) {
+  n <- dim(X)[1]
+  psi_ml <- colSums(post$psi[-l, ])
+  Vpsi_ml <- colSums(post$psi2[-l, ] - post$psi[-l, ]^2)
+
+  psi <- do.call(rbind, purrr::map(
+    1:n, ~ X[.x, ] * post$mu[l, ] + post$delta[l, ] + psi_ml[.x]
+  ))
+  Vpsi <- do.call(rbind, purrr::map(
+    1:n, ~ X[.x, ]^2 * post$var[l, ] + Vpsi_ml[.x]
+  ))
+  psi2 <- psi^2 + Vpsi
+
+  xi <- sqrt(psi2)
+  jj <- log(sigmoid(xi)) - 0.5 * xi + (y - 0.5) * psi
+  jj <- drop(jj %*% post$alpha[l, ])
+  return(sum(jj))
+}
+
+#' compute KL divergence of SERs
+ibss2_compute_kl <- function(post) {
+  L <- dim(post$mu)[1]
+  kl <- purrr::map_dbl(1:L, ~ .compute_ser_kl(
+    alpha = post$alpha[.x, ],
+    mu = post$mu[.x, ],
+    var = post$var[.x, ],
+    pi = post$pi[.x, ],
+    prior_mean = 0, var0 = post$prior_variance[.x, ]
+  ))
+  return(kl)
+}
+
+#' compute ELBO for ibss2 fit
+ibss2_compute_elbo <- function(y, post) {
+  sum(ibss2_compute_jj(y, post)) - sum(ibss2_compute_kl(post))
+}
+
+#' compute global and SER-centric ELBOs
+compute_all_elbos <- function(X, y, post) {
+  L <- dim(post$mu)[1]
+  jj_global <- ibss2_compute_jj(y, post)
+  jj_l <- purrr::map_dbl(1:L, ~ ibss2_compute_jj_l(X, y, post, .x))
+  kl <- sum(ibss2_compute_kl(post))
+  elbos <- c(jj_global, jj_l) - kl
+  names(elbos) <- c("global", paste0("L", 1:L))
+  return(list(elbos))
+}
+
+#' extract posterior summaries from list of uvb_re fits
+make_post_re <- function(fits) {
+  p <- length(fits[[1]]$mu)
+  L <- length(fits)
+  post <- list(
+    mu = do.call(rbind, purrr::map(fits, ~ purrr::pluck(.x, "mu"))),
+    var = do.call(rbind, purrr::map(fits, ~ purrr::pluck(.x, "var"))),
+    alpha = do.call(rbind, purrr::map(fits, ~ purrr::pluck(.x, "alpha"))),
+    pi = matrix(rep(1 / p, L * p), nrow = L),
+    prior_variance = do.call(rbind, purrr::map(fits, ~ purrr::pluck(.x, "prior_variance"))),
+    delta = do.call(rbind, purrr::map(fits, ~ purrr::pluck(.x, "intercept"))),
+    psi = do.call(rbind, purrr::map(fits, ~ purrr::pluck(.x, "psi"))),
+    psi2 = do.call(rbind, purrr::map(fits, ~ purrr::pluck(.x, "psi2")))
+  )
+  return(post)
+}
+
 #' 2 moments Iterative Bayesian Stepwise Selectioin
 #' @export
-ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol = 1e-3, maxit = 100, estimate_intercept = TRUE) {
+ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol = 1e-3, maxit = 100, estimate_intercept = T, estimate_prior_variance = F) {
   # data dimensions
   p <- ncol(X)
   n <- nrow(X)
+
+  if (is.null(prior_weights)) {
+    prior_weights <- rep(1 / p, p)
+  }
 
   # place to store posterior info for each l = 1, ..., L
   alpha <- matrix(NA, nrow = L, ncol = p)
@@ -229,7 +372,7 @@ ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol 
   var <- matrix(NA, nrow = L, ncol = p)
 
   # store posterior effect estimates
-  beta_post <- matrix(0, nrow = L, ncol = p)
+  elbos <- c(-Inf)
 
   # fixed portion, estimated from l' != l other SER models
   fixed <- list(mu = rep(0, n), mu2 = rep(0, n))
@@ -247,13 +390,14 @@ ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol 
     psi2 = rep(0, n)
   )
 
+  # initialize
   fits <- vector(mode = "list", length = L)
   for (l in 1:L) {
     fits[[l]] <- empty_ser
   }
-  beta_post_history <- vector(mode = "list", length = maxit)
+
   # repeat until posterior means converge (ELBO not calculated here, so use this convergence criterion instead)
-  while (ibss_l2(beta_post_history, iter - 1) > tol) {
+  for (iter in 1:maxit) {
     for (l in 1:L) {
       # remove effect from previous iteration
       ser_l <- fits[[l]]
@@ -264,16 +408,9 @@ ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol 
         o = fixed,
         prior_variance = prior_variance,
         estimate_intercept = estimate_intercept,
+        estimate_prior_variance = estimate_prior_variance,
         prior_weights = prior_weights
       )
-
-      # store
-      alpha[l, ] <- ser_l$alpha
-      mu[l, ] <- ser_l$mu
-      var[l, ] <- ser_l$var
-
-      # update beta_post
-      beta_post[l, ] <- ser_l$alpha * ser_l$mu
 
       # add back new (random) fixed portion
       fixed <- add_re(fixed, ser_l, X)
@@ -281,8 +418,18 @@ ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol 
       # save current ser
       fits[[l]] <- ser_l
     }
-    iter <- iter + 1
-    beta_post_history[[iter]] <- beta_post
+
+    post <- make_post_re(fits)
+    elbos <- c(elbos, compute_all_elbos(X, y, post))
+
+    # call converged if all bounds converged
+    # NOTE: updates are not necessarily monotonic
+    # this is just a measure of how much q has changed since last iteration
+    elbo_diff <- tail(elbos, 2)
+    elbo_diff <- max(elbo_diff[[2]] - elbo_diff[[1]])
+    if (elbo_diff < tol) {
+      break
+    }
 
     if (iter > maxit) {
       warning("Maximum number of iterations reached")
@@ -293,23 +440,33 @@ ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol 
 
 
   # now, get intercept w/ MLE, holding our final estimate of beta to be fixed
-  beta <- colSums(alpha * mu)
+  beta <- colSums(post$alpha * post$mu)
   pred <- (X %*% beta)[, 1]
   int <- coef(glm(y ~ 1 + offset(pred), family = "binomial"))
 
   # add the final ser fits
   names(fits) <- paste0("L", 1:L)
 
+  # post$pip <- get_pip(post$alpha)
+  # post$elbos <- as.data.frame(do.call(rbind, tail(elbos, -1)))
+  # post$elapsed_time <- unname(timer$toc - timer$tic)
+  # return(post)
+
+  elbos <- as.data.frame(do.call(rbind, tail(elbos, -1)))
   res <- list(
-    alpha = alpha,
-    mu = mu,
-    var = var,
+    alpha = post$alpha,
+    mu = post$mu,
+    var = post$var,
+    pip = get_pip(post$alpha),
     intercept = int,
     fits = fits,
     iter = iter,
     elapsed_time = unname(timer$toc - timer$tic),
-    beta_post_history = head(beta_post_history, iter),
-    psi = fixed
+    elbo = elbos,
+    psi = fixed,
+    converged = iter < maxit,
+    # monotone = .monotone(elbos),
+    tol = tol
   )
   return(res)
 }
