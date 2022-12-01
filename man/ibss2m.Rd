@@ -13,7 +13,8 @@ ibss2m(
   tol = 0.001,
   maxit = 100,
   estimate_intercept = T,
-  estimate_prior_variance = F
+  estimate_prior_variance = F,
+  track_elbo = F
 )
 }
 \description{

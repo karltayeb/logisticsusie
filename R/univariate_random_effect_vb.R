@@ -254,25 +254,6 @@ valid_offset <- function(o) {
   return(all(o$mu2 - o$mu^2 >= 0))
 }
 
-
-jj_bound_re <- function(X, y, psi) {
-  xi <- sqrt(psi$mu2)
-  Xb <- psi$mu
-  kappa <- y - 0.5
-  n <- 1
-  bound <- n * log(sigmoid(xi)) + (kappa * Xb) - (0.5 * xi)
-  return(bound)
-}
-
-compute_elbo_susie_re <- function(X, y, psi, fits, prior_weights) {
-  jj <- jj_bound_re(X, y, psi) # E[log p(y, w | b) - logp(w)]
-  kl <- purrr::map_dbl(fits, ~ .compute_ser_kl(
-    .x$alpha, prior_weights, .x$mu, .x$var, 0, .x$prior_var
-  )) # KL(q(b) || p(b))
-  elbo <- sum(jj) - sum(kl)
-  return(elbo)
-}
-
 # GLOBAL AND SER-centric BOUNDS
 
 # Compute JJ bound using global optimum of xi
@@ -357,7 +338,7 @@ make_post_re <- function(fits) {
 
 #' 2 moments Iterative Bayesian Stepwise Selectioin
 #' @export
-ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol = 1e-3, maxit = 100, estimate_intercept = T, estimate_prior_variance = F) {
+ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol = 1e-3, maxit = 100, estimate_intercept = T, estimate_prior_variance = F, track_elbo = F) {
   # data dimensions
   p <- ncol(X)
   n <- nrow(X)
@@ -371,8 +352,9 @@ ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol 
   mu <- matrix(NA, nrow = L, ncol = p)
   var <- matrix(NA, nrow = L, ncol = p)
 
-  # store posterior effect estimates
+  # init for monitoring convergence
   elbos <- c(-Inf)
+  psi <- Inf
 
   # fixed portion, estimated from l' != l other SER models
   fixed <- list(mu = rep(0, n), mu2 = rep(0, n))
@@ -419,16 +401,27 @@ ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol 
       fits[[l]] <- ser_l
     }
 
-    post <- make_post_re(fits)
-    elbos <- c(elbos, compute_all_elbos(X, y, post))
+    if (track_elbo) {
+      post <- make_post_re(fits)
+      elbos <- c(elbos, compute_all_elbos(X, y, post))
 
-    # call converged if all bounds converged
-    # NOTE: updates are not necessarily monotonic
-    # this is just a measure of how much q has changed since last iteration
-    elbo_diff <- tail(elbos, 2)
-    elbo_diff <- max(elbo_diff[[2]] - elbo_diff[[1]])
-    if (elbo_diff < tol) {
-      break
+      # call converged if all bounds converged
+      # NOTE: updates are not necessarily monotonic
+      # this is just a measure of how much q has changed since last iteration
+      elbo_diff <- tail(elbos, 2)
+      elbo_diff <- max(elbo_diff[[2]] - elbo_diff[[1]])
+      if (elbo_diff < tol) {
+        break
+      }
+    } else {
+      # monitor convergence by the predictions
+      psi_new <- do.call(rbind, purrr::map(fits, ~ purrr::pluck(.x, "psi")))
+      psi_diff <- max((psi - psi_new)^2)
+      print(psi_diff)
+      if (psi_diff < tol) {
+        break
+      }
+      psi <- psi_new
     }
 
     if (iter > maxit) {
@@ -438,6 +431,10 @@ ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol 
   }
   timer <- tictoc::toc()
 
+  post <- make_post_re(fits)
+  if (track_elbo) {
+    elbos <- as.data.frame(do.call(rbind, tail(elbos, -1)))
+  }
 
   # now, get intercept w/ MLE, holding our final estimate of beta to be fixed
   beta <- colSums(post$alpha * post$mu)
@@ -447,12 +444,6 @@ ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol 
   # add the final ser fits
   names(fits) <- paste0("L", 1:L)
 
-  # post$pip <- get_pip(post$alpha)
-  # post$elbos <- as.data.frame(do.call(rbind, tail(elbos, -1)))
-  # post$elapsed_time <- unname(timer$toc - timer$tic)
-  # return(post)
-
-  elbos <- as.data.frame(do.call(rbind, tail(elbos, -1)))
   res <- list(
     alpha = post$alpha,
     mu = post$mu,
