@@ -70,6 +70,7 @@ init.mococomo.beta <- function(data, max_class, mult = 2,upper=FALSE,...) {
       alpha   <- seq(1.1,100,length.out=max_class)
       upper_l <- list( alpha=alpha, beta=1)
     }else{
+      alpha   = 1
       upper_l = NULL
     }
     #mixture to fit component close to 0

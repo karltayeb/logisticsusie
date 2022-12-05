@@ -264,14 +264,17 @@ sim_mococomo <- function(n = 1000, p = 50, L = 3, N = 1, beta, alpha = 0) {
   return(sim)
 }
 
+#' @title Simulate data under mococomo model with beta distribution
+#' @details Simulate data under mococomo model with beta distribution
 #' @export
-#' #not the actual underlying model we are aiming at fitting but this is just
-#' to have something that look a like and fast to implement
+
+
 sim_mococomo_beta <- function(n = 1000, p = 50, L = 3, N = 1, beta) {
   if (missing(beta)) {
     sim <- sim_mococomo(n = n, p = p, L = L, N = N)
   } else {
     sim <- sim_mococomo(n = n, p = p, L = L, N = N, beta = beta)
+
   }
 
   sim$p <- 1 - pnorm(sim$betahat)
