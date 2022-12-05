@@ -59,11 +59,13 @@ prep_out_FDR_wrapper <- function(fit){
     est    <- post_mean_sd.mococomo (fit)
     lfdr   <- get_lfdr_mixnorm(fit)
     qvalue <- cal_qvalue(lfdr)
-    cbind(fit$data$betahat,
-          fit$data$se,
-          est,
-          lfdr,
-          qvalue)
+    data.frame(betahat       = fit$data$betahat,
+               se            = fit$data$se,
+               lfdr          = lfdr,
+               qvalue        = qvalue,
+               PosteriorMean = est[,1],
+               PosteriorSD   = est[,2]
+          )
   }
 }
 
