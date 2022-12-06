@@ -42,13 +42,17 @@ compute_lbf_variable <- function(X, y, o, fit) {
 #' @export
 fit_bin_ser <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept = T, estimate_prior_variance = F, prior_weights = NULL) {
   if (is.null(o)) {
+    # fixed offsets
     o <- 0
+    null_likelihood <- sum(dbinom(y, 1, mean(y), log = T))
+  } else {
+    null_likelihood <- tail(fit_univariate_vb(X[, 1], y, o = o, tau0 = 1e10)$elbos, 1)
   }
+
   fit <- binser(X, y, o = o, center = F, prior_variance = prior_variance, estimate_prior_variance = estimate_prior_variance)
   p <- dim(X)[2]
   loglik <- tail(fit$elbo, 1)
   intercept <- rep(fit$params$delta, )
-  null_likelihood <- sum(dbinom(y, 1, mean(y), log = T))
   fit <- list(
     alpha = fit$params$alpha,
     mu = fit$params$mu,
