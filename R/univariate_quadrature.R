@@ -51,12 +51,13 @@ fit_quad_1d_fixed_int <- function(x, y, b0, b_sigma, n = 2^10) {
 
 
 #' @export
-fit_quad_ser <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept = T, prior_weights = NULL, n = 2^10) {
+fit_quad_ser <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept = T, prior_weights = NULL, n = 2^10, parallel = F) {
   p <- dim(X)[2]
   glm_ser <- fit_glm_ser(X, y, prior_variance = prior_variance)
 
   null_loglik <- sum(dbinom(y, 1, mean(y), log = T))
-  lbf <- purrr::map_dbl(1:p, ~ fit_quad_1d_fixed_int(
+  mapper <- ifelse(parallel, furrr::future_map_dbl, purrr::map_dbl)
+  lbf <- mapper(1:p, ~ fit_quad_1d_fixed_int(
     X[, .x], y,
     b0 = glm_ser$intercept[.x], b_sigma = sqrt(prior_variance), n = n
   )) - null_loglik

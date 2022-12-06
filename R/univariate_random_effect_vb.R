@@ -417,7 +417,6 @@ ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol 
       # monitor convergence by the predictions
       psi_new <- do.call(rbind, purrr::map(fits, ~ purrr::pluck(.x, "psi")))
       psi_diff <- max((psi - psi_new)^2)
-      print(psi_diff)
       if (psi_diff < tol) {
         break
       }
@@ -440,6 +439,7 @@ ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol 
   beta <- colSums(post$alpha * post$mu)
   pred <- (X %*% beta)[, 1]
   int <- coef(glm(y ~ 1 + offset(pred), family = "binomial"))
+  lbf_ser <- purrr::map_dbl(fits, ~ purrr::pluck(.x, "lbf_model"))
 
   # add the final ser fits
   names(fits) <- paste0("L", 1:L)
@@ -456,6 +456,7 @@ ibss2m <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol 
     elbo = elbos,
     psi = fixed,
     converged = iter < maxit,
+    lbf = lbf_ser,
     # monotone = .monotone(elbos),
     tol = tol
   )
