@@ -1,8 +1,8 @@
 Package: logisticsusie
 Title: Logistic SuSiE and its extensions
 Version: 0.0.0.9003
-Authors@R: c(person("Karl", "Tayeb", , "ktayeb@uchicago.edu", role = c("aut", "cre") ),
-              person("William ", "Denault", , "wdenault@uchicago.edu", role = c("aut") ))
+Authors@R: c(person("Karl", "Tayeb", ,  "ktayeb@uchicago.edu", role = c("aut", "cre") ),
+              person("William ", "Denault",  , "wdenault@uchicago.edu", role = c("aut") ))
 Description: Implements logistic, multinomial and categorical SuSiE as well as some additional FDR and shrinkage methods 
 License: MIT + file LICENSE
 Encoding: UTF-8
