@@ -68,6 +68,9 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
   pred <- (X %*% beta)[, 1]
   int <- coef(glm(y ~ 1 + offset(pred), family = "binomial"))
 
+  # get LBFs for each model
+  lbf_ser <- purrr::map_dbl(fits, ~ purrr::pluck(.x, "lbf_model"))
+
   # add the final ser fits
   names(fits) <- paste0("L", 1:L)
 
@@ -79,7 +82,8 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
     fits = fits,
     iter = iter,
     elapsed_time = unname(timer$toc - timer$tic),
-    beta_post_history = head(beta_post_history, iter)
+    beta_post_history = head(beta_post_history, iter),
+    lbf = lbf_ser
   )
   return(res)
 }
