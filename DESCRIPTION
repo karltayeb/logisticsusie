@@ -14,4 +14,12 @@ Suggests:
 Config/testthat/edition: 3
 Imports: 
     Matrix
+Config/reticulate:
+  list(
+    packages = list(
+      list(package = 'numpy', version = "1.23.5", pip=TRUE),
+      list(package = 'jax', version = "0.3.25", pip=TRUE),
+      list(package = 'jaxlib', version = "0.3.25", pip=TRUE)
+    )
+  )
 ByteCompile: yes
