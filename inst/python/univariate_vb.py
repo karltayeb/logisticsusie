@@ -242,13 +242,9 @@ def fit_uvb_ser_jax(data: dict, re: dict, params: dict, control : dict):
     return res
 
 
-def fit_uvb_ser_jax2(X, y, o = None, prior_variance=1.0):
+def fit_uvb_ser_jax2(X, y, prior_variance=1.0):
     n, p = X.shape
-    if o is None:
-        re = initialize_re(n)
-    else:
-        re = o
-
+    re = initialize_re(n)
     params = initialize_ser_params(n, p, 1/prior_variance)
     data = dict(X = np.array(X), y=np.array(y))
     fit = fit_uvb_ser_jax(data, re, params, {})

@@ -17,6 +17,7 @@ ibss2m_jax <- function(X, y, L = 10,
                        estimate_intercept = T,
                        estimate_prior_variance = F,
                        prior_weights = NULL, tol = 1e-5) {
+  reticulate::source_python(system.file("python", "univariate_vb.py", package = "logisticsusie"))
   reticulate::source_python(system.file("python", "ibss2m.py", package = "logisticsusie"))
   fit <- ibss2m_jax(X, y, as.integer(L), as.numeric(prior_variance), tol = tol)
   return(fit)
