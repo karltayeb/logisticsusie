@@ -3,7 +3,7 @@ import jax.numpy as jnp
 from jax.scipy.special import logsumexp
 from typing import List
 
-from inst.python.univariate_vb import fit_uvb_ser_jax, initialize_ser_params, initialize_re
+from univariate_vb import fit_uvb_ser_jax, initialize_ser_params, initialize_re
 
 def pluck(dicts: dict, k: str|list[str]) -> np.ndarray:
     """Pull key from dictionary of dictionaries
