@@ -1,5 +1,3 @@
-from inspect import trace
-import traceback
 import jax.numpy as jnp
 import jax
 from jax import vmap, jit

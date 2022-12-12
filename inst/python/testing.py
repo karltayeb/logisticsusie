@@ -1,5 +1,5 @@
-from inst.python.univariate_vb import initialize_re, initialize_ser_params, fit_univariate_vb, univariate_vb_vec_jax, fit_uvb_ser_jax, initialize_univariate_params
-from inst.python.ibss2m import ibss2m_jax
+from univariate_vb import initialize_re, initialize_ser_params, fit_univariate_vb, univariate_vb_vec_jax, fit_uvb_ser_jax, initialize_univariate_params
+from ibss2m import ibss2m_jax
 import numpy as np
 
 def simulate_data(n, p):
