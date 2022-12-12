@@ -3,7 +3,7 @@ import jax.numpy as jnp
 from jax.scipy.special import logsumexp
 # from python.univariate_vb import fit_uvb_ser_jax, initialize_ser_params, initialize_re
 
-def pluck(dicts: dict, k: str|list[str]) -> np.ndarray:
+def pluck(dicts: dict, k: str) -> np.ndarray:
     """Pull key from dictionary of dictionaries
 
     Args:
@@ -13,15 +13,7 @@ def pluck(dicts: dict, k: str|list[str]) -> np.ndarray:
     Returns:
         np.ndarray : array stacking the results of all dictionaries
     """
-    if isinstance(k, list) and len(k) > 1:
-        k0 = k[0]
-        k = k[1:]
-        peeled = {key: value[k0] for key, value in dicts.items()}
-        res = pluck(peeled, k)
-    else:
-        if isinstance(k, list):
-            k = k[0]
-        res = np.array([val[k] for _, val in dicts.items()])
+    res = np.array([val[k] for _, val in dicts.items()])
     return res
 
 
