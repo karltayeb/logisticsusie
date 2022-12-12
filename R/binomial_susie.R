@@ -19,13 +19,13 @@ coef.binsusie <- function(fit, k, idx = NULL) {
 }
 
 #' Expected linear prediction
-compute_Xb.binsusie <- function(fit, k) {
+compute_Xb.binsusie <-function(fit, k) {
   if (missing(k)) {
     Xb <- drop(fit$data$X %*% colSums(.get_alpha(fit) * .get_mu(fit)))
     Zd <- drop(fit$data$Z %*% colSums(.get_delta(fit)))
   } else {
-    Xb <- drop(fit$data$X %*% colSums(.get_alpha(fit$logreg_list[[k]]) * .get_mu(fit$logreg_list[[k]])))
-    Zd <- drop(fit$data$Z %*% colSums(.get_delta(fit$logreg_list[[k]])))
+    Xb <- drop(fit$data$X %*% colSums(.get_alpha(fit,k=k) * .get_mu(fit,k=k)))
+    Zd <- drop(fit$data$Z %*% colSums(.get_delta(fit,k=k)))
   }
 
   return(Matrix::drop(Xb + Zd))
@@ -45,12 +45,12 @@ compute_Xb2.binsusie <- function(fit, k) {
     Xb2 <- Matrix::drop(fit$data$X2 %*% b2) + Xb**2 - rowSums(XB^2)
     Xb2 <- Xb2 + 2 * Xb * Zd + Zd^2
   } else {
-    B <- .get_alpha(fit$logreg_list[[k]]) * .get_mu(fit$logreg_list[[k]])
+    B <- .get_alpha(fit, k=k ) * .get_mu(fit, k=k )
     XB <- fit$data$X %*% t(B)
     Xb <- rowSums(XB)
-    Zd <- drop(fit$data$Z %*% colSums(.get_delta(fit$logreg_list[[k]])))
+    Zd <- drop(fit$data$Z %*% colSums(.get_delta(fit,k=k)))
 
-    B2 <- .get_alpha(fit$logreg_list[[k]]) * (.get_mu(fit$logreg_list[[k]])^2 + .get_var(fit$logreg_list[[k]]))
+    B2 <- .get_alpha(fit,k=k) * (.get_mu(fit,k=k)^2 + .get_var(fit,k=k))
     b2 <- colSums(B2)
 
     Xb2 <- Matrix::drop(fit$data$X2 %*% b2) + Xb**2 - rowSums(XB^2)
@@ -75,14 +75,17 @@ compute_kl.binsusie <- function(fit, k) {
       .get_var0(fit, .x)
     )))
   } else {
-    kl <- sum(purrr::map_dbl(seq(fit$logreg_list[[k]]$hypers$L), ~ .compute_ser_kl(
-      .get_alpha(fit$logreg_list[[k]], .x),
-      .get_pi(fit$logreg_list[[k]], .x),
-      .get_mu(fit$logreg_list[[k]], .x),
-      .get_var(fit$logreg_list[[k]], .x),
-      .get_prior_mean(fit$logreg_list[[k]], .x),
-      .get_var0(fit$logreg_list[[k]], .x)
-    )))
+    kl <-Reduce("+",lapply(1:fit$logreg_list[[k]]$hypers$L,
+                           function(l)  .compute_ser_kl(
+                             alpha      = .get_alpha(fit,k=k,idx=l),
+                             pi         = .get_pi(fit, k=k, idx=l),
+                             mu         = .get_mu(fit, k=k, idx=l),
+                             var        = .get_var(fit, k=k, idx=l),
+                             prior_mean = .get_prior_mean(fit, k=k, idx=l),
+                             var0       = .get_var0(fit, k=k, idx=l)
+                           )
+    )
+    )
   }
 
   return(kl)
@@ -170,7 +173,12 @@ compute_elbo2.binsusie <- function(fit, k) {
 
 
 #' update alpha, mu, and var
-update_b.binsusie <- function(fit, k, fit_intercept = TRUE, fit_prior_variance = TRUE, fit_alpha = TRUE, update_idx = NULL) {
+update_b.binsusie <-function(fit,
+                             k,
+                             fit_intercept = TRUE,
+                             fit_prior_variance = TRUE,
+                             fit_alpha = TRUE,
+                             update_idx = NULL) {
   if (missing(k)) {
     if (is.null(update_idx)) {
       update_idx <- seq(fit$hypers$L)
@@ -202,6 +210,8 @@ update_b.binsusie <- function(fit, k, fit_intercept = TRUE, fit_prior_variance =
       # add current effect estimate
       shift <- shift + compute_Xb.binser(fit, k = k, idx = l)
     }
+
+    return(fit)
   } else {
     if (is.null(update_idx)) {
       update_idx <- seq(fit$logreg_list[[k]]$hypers$L)
@@ -213,29 +223,35 @@ update_b.binsusie <- function(fit, k, fit_intercept = TRUE, fit_prior_variance =
 
       # update SER
       post_l <- update_b.binser(fit, k = k, idx = l, shift = shift)
-      fit$params$mu[l, ] <- post_l$mu
-      fit$params$var[l, ] <- post_l$var
+      fit$logreg_list[[k]]$params$mu[l, ] <- post_l$mu
+      fit$logreg_list[[k]]$params$var[l, ] <- post_l$var
 
       if (fit_alpha) {
-        fit$params$alpha[l, ] <- post_l$alpha
+        fit$logreg_list[[k]]$params$alpha[l, ] <- post_l$alpha
       }
 
       # update intercept/fixed effect covariates
       if (fit_intercept) {
-        fit$params$delta[l, ] <- update_delta.binser(fit, k = k, idx = l, shift = shift)
+        fit$logreg_list[[k]]$params$delta[l, ] <- update_delta.binser(fit,
+                                                                      k = k,
+                                                                      idx = l,
+                                                                      shift = shift)
       }
 
       # update prior_variance
       if (fit_prior_variance) {
-        fit$hypers$prior_variance[l] <- update_prior_variance.binser(fit, k = k, idx = l)
+        fit$logreg_list[[k]]$hypers$prior_variance[l] <- update_prior_variance.binser(fit,
+                                                                                      k = k,
+                                                                                      idx = l)
       }
 
       # add current effect estimate
       shift <- shift + compute_Xb.binser(fit, k = k, idx = l)
     }
+
+    return( fit$logreg_list[[k]])
   }
 
-  return(fit)
 }
 
 
@@ -299,33 +315,64 @@ update_xi.binsusie <- function(fit, k) {
 }
 
 #' initialize SER
-init.binsusie <- function(data, L = 5, prior_mean = 0, prior_variance = 1, prior_weights = NULL, kidx = NULL) {
+init.binsusie <- function(data,
+                          L = 5,
+                          prior_mean = 0,
+                          prior_variance = 1,
+                          prior_weights = NULL,
+                          kidx = NULL,
+                          from_init_moco=FALSE) {
   n <- nrow(data$X)
   p <- ncol(data$X)
+  if(is.null(data$Z))
+  { data$Z <- matrix(1, nrow= nrow(data$X), ncol=1) }
   p2 <- ncol(data$Z)
 
   params <- .init.binsusie.params(n, p, p2, L)
-  hypers <- .init.binsusie.hypers(n, p, L, prior_mean, prior_variance, prior_weights)
+  hypers <- .init.binsusie.hypers(n, p, L,
+                                  prior_mean,
+                                  prior_variance,
+                                  prior_weights
+                                  )
 
   data$X2 <- data$X^2
 
+
   # TODO: check that data has y, N, X, Z
-  fit.init <- list(
-    data = data,
-    params = params,
-    hypers = hypers,
-    elbo = c(-Inf)
-  )
-  fit.init$kidx <- kidx
-  fit.init$params$tau <- compute_tau(fit.init)
+  if(from_init_moco){
+    fit.init <- list(
+      data = data,
+      params = params,
+      hypers = hypers,
+      elbo = c(-Inf)
+    )
+    fit.init$kidx <- kidx
+    fit.init$params$tau <- compute_tau(fit.init )
+  }else{
+    fit.init <- list(
+      data = data,
+      params = params,
+      hypers = hypers,
+      elbo = c(-Inf)
+    )
+    fit.init$kidx <- kidx
+    fit.init$params$tau <- compute_tau(fit.init)
+  }
+
+
   return(fit.init)
 }
 
 
-iter.binsusie <- function(fit, k, fit_intercept = TRUE, fit_prior_variance = TRUE, fit_xi = TRUE, fit_alpha = TRUE) {
+iter.binsusie <- function(fit,
+                          k,
+                          fit_intercept = TRUE,
+                          fit_prior_variance = TRUE,
+                          fit_xi = TRUE,
+                          fit_alpha = TRUE) {
   if (missing(k)) {
     # update b
-    fit <- update_b.binsusie(fit,
+      fit <- update_b.binsusie(fit,
       fit_intercept = fit_intercept,
       fit_prior_variance = fit_prior_variance,
       fit_alpha = fit_alpha
@@ -555,9 +602,9 @@ binsusie_wrapup <- function(fit, k, prior_tol = 0) {
     X <- fit$data$X
 
     fit$alpha <- fit$params$alpha
-    fit$mu <- fit$params$mu
-    fit$var <- fit$params$var
-    fit$V <- fit$hypers$prior_variance
+    fit$mu    <- fit$params$mu
+    fit$var   <- fit$params$var
+    fit$V     <- fit$hypers$prior_variance
 
     colnames(fit$alpha) <- colnames(X)
     colnames(fit$mu) <- colnames(X)

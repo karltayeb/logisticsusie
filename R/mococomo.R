@@ -33,6 +33,13 @@
 #' post_mean_ash <- t_ash$result$PosteriorMean
 #' plot(est$mean, post_mean_ash)
 #' # TODO make a more convincing example
+#'
+#'  sim  <- logisticsusie:::sim_mococomo_beta(n=100)
+#'#preparing the data
+#'data <- set_data_mococomo(p = sim$p,
+#'                          X = sim$X)
+#'
+#' fit <- fit.mococomo(data, maxiter=20)
 
 fit.mococomo <- function(data,
                          dist      = "normal",
@@ -55,7 +62,9 @@ fit.mococomo <- function(data,
   fit$elbo <- compute_elbo3.mococomo(fit)
   for (i in 1:maxiter) {
 
-    fit <- iter.mococomo(fit, is.even(i), is.odd(i))
+    fit <- iter.mococomo(fit,
+                         update_assignment =is.even(i),
+                         update_logreg = is.odd(i))
 
     fit$elbo <- c(fit$elbo, compute_elbo3.mococomo(fit))
 

@@ -63,14 +63,14 @@ compute_data_loglikelihood <- function(fit,...)
 #'
 #'
 #' @export
-compute_data_loglikelihood.mococomo_normal <- function(fit) {
+compute_data_loglikelihood.mococomo_normal <- function(fit,data) {
 
 
     # compute loglikelihood of each data point under each component distribution
     # TODO: replace with generic convolved_logpdf function
     data_loglik <- do.call(cbind,
                            purrr::map(
-                    fit$f_list, ~ convolved_logpdf(.x, fit$data$betahat, fit$data$se)
+                    fit$f_list, ~ convolved_logpdf(.x,  data$betahat,  data$se)
                                    )
                           )
     return(data_loglik)
@@ -84,14 +84,14 @@ compute_data_loglikelihood.mococomo_normal <- function(fit) {
 #'
 #'
 #' @export
-compute_data_loglikelihood.mococomo_beta <- function(fit) {
+compute_data_loglikelihood.mococomo_beta <- function(fit,data) {
 
 
     if( !is.null(fit$upper_l)){
       up_df <- do.call( cbind,
                         lapply( 1:length(fit$f_list$alpha),
                                 function(i){
-                                  logp <- dbeta(fit$data$p,
+                                  logp <- dbeta( data$p,
                                                 shape1 = fit$f_list$alpha[[i]],
                                                 shape2 = 1
                                   )
@@ -103,7 +103,7 @@ compute_data_loglikelihood.mococomo_beta <- function(fit) {
     lw_df <- do.call( cbind,
                       lapply( 1:length(fit$f_list$beta),
                               function(i){
-                                logp <- dbeta(fit$data$p,
+                                logp <- dbeta( data$p,
                                               shape1 =1,
                                               shape2 =  fit$f_list$beta[[i]]
                                 )

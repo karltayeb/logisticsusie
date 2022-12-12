@@ -38,17 +38,20 @@ init.mococomo.normal <- function(data, max_class, mult = 2,upper=FALSE,...) {
 
     data$y <- Y
     data$N <- N
+    if(is.null(data$Z))
+    { data$Z <- matrix(1, nrow= nrow(data$X), ncol=1) }
 
     # it's multinational regression + some other stuff
-    fit                 <- init.mnsusie(data)
+    fit                 <- init.mnsusie(data, from_init_moco=TRUE)
     fit$f_list          <- f_list
     fit$post_assignment <- Y
     fit$N               <- N
     fit$dist            <- dist
     fit$K               <- length(fit$f_list)
+    fit$data            <- data
     class(fit) <- "mococomo_normal"
     # only need to do this once when component probabilities are fixed
-    fit$data_loglik <- compute_data_loglikelihood(fit)
+    fit$data_loglik <- compute_data_loglikelihood(fit,data)
 
     return(fit)
 }
@@ -89,8 +92,12 @@ init.mococomo.beta <- function(data, max_class, mult = 2,upper=FALSE,...) {
     data$y <- Y
     data$N <- N
 
+    data$X2 <- data$X^2
+    if(is.null(data$Z))
+    { data$Z <- matrix(1, nrow= nrow(data$X), ncol=1) }
+
     # it's multinational regression + some other stuff
-    fit                 <- init.mnsusie(data)
+    fit                 <- init.mnsusie(data, from_init_moco=TRUE)
     fit$f_list          <- f_list
     fit$upper_l         <- upper_l
     fit$lower_l         <- lower_l
@@ -98,26 +105,41 @@ init.mococomo.beta <- function(data, max_class, mult = 2,upper=FALSE,...) {
     fit$N               <- N
     fit$dist            <- dist
     fit$K               <- K
+    fit$data            <- data
     class(fit)          <- "mococomo_beta"
     # only need to do this once when component probabilities are fixed
-    fit$data_loglik     <- compute_data_loglikelihood(fit)
+    fit$data_loglik     <- compute_data_loglikelihood(fit,data)
 
     return(fit)
 
 }
 #' Compute Expected Assignment Log Likelihood
 #' @return N x K matrix each row has E[p(z=k | \beta, \omega)] for k = 1,..., K
+
+
 compute_assignment_loglikelihood.mococomo <- function(fit, normalize = TRUE) {
   K <- fit$K
-  Xb <- compute_Xb.mnsusie(fit) # N x K-1
+  Xb <- do.call(cbind, lapply( 1: length(fit$logreg_list),
+                               function (k)  compute_Xb.binsusie(fit,k)
+                             )
+                )
+
   Xbcum <- do.call(rbind, apply(Xb, 1, cumsum, simplify = F))
   kln2 <- seq(K - 1) * log(2)
 
   # second moments only appear in normalizing constant
   C <- 0
   if (normalize) {
-    Xb2 <- do.call(cbind, purrr::map(fit$logreg_list, compute_Xb2.binsusie)) # N x K - 1
-    omega <- do.call(cbind, purrr::map(fit$logreg_list, compute_omega)) # N x K-1
+    Xb2 <- do.call(cbind, lapply( 1: length(fit$logreg_list),
+                                  function (k)  compute_Xb2.binsusie(fit,k)
+                                 )
+                  )  # N x K - 1
+    omega <- do.call(cbind, lapply( 1: length(fit$logreg_list),
+                                    function (k)  compute_omega(fit$logreg_list[[k]],
+                                                                data=fit$data,
+                                                                k =k)
+                                  )
+                      )  # N x K - 1
     C <- -0.5 * rowSums(Xb2 * omega)
   }
 
@@ -131,9 +153,15 @@ compute_assignment_loglikelihood.mococomo <- function(fit, normalize = TRUE) {
 
 
 
+
 compute_assignment_jj_bound.mococomo <- function(fit) {
   K <- fit$K
-  Xb <- do.call(cbind, purrr::map(fit$logreg_list, compute_Xb.binsusie)) # N x K-1
+  Xb <- do.call(cbind,
+                lapply(1:length(fit$logreg_list),
+                       function( k) compute_Xb.binsusie(fit,k)
+                       )
+                ) # N x K-1
+
   Xi <- do.call(cbind, purrr::map(fit$logreg_list, ~ purrr::pluck(.x, "params", "xi"))) # N x K-1
 
   f <- function(xi, xb) {
@@ -177,27 +205,44 @@ compute_elbo3.mococomo <- function(fit) {
   data_loglik <- fit$data_loglik
   jj <- compute_assignment_jj_bound.mococomo(fit)
 
-  kl_susie <- sum(purrr::map_dbl(fit$logreg_list, compute_kl.binsusie))
+  kl_susie <- Reduce("+", lapply(1:length(fit$logreg_list),
+                                 function(k) compute_kl.binsusie(fit,k)
+                                 )
+                    )
+
   assignment_entropy <- sum(apply(post_assignment, 1, categorical_entropy))
 
   elbo <- sum(post_assignment * (jj + data_loglik)) + assignment_entropy - kl_susie
   return(elbo)
 }
 
-compute_elbo2.mococomo <- function(fit) {
+
+compute_elbo2.mococomo<-  function(fit) {
   post_assignment <- fit$post_assignment
   assignment_loglik <- compute_assignment_loglikelihood.mococomo(fit)
   ll <- sum(post_assignment * (fit$data_loglik + assignment_loglik))
   assignment_entropy <- sum(apply(post_assignment, 1, categorical_entropy))
 
-  kl_susie <- sum(purrr::map_dbl(fit$logreg_list, compute_kl.binsusie))
-  kl_omega <- sum(purrr::map_dbl(fit$logreg_list, function(x) sum(pg_kl(x$data$N, x$params$xi))))
+  kl_susie <- Reduce("+", lapply( 1:length(fit$logreg_list),
+                                  function(k) compute_kl.binsusie(fit,k)))  # sum(purrr::map_dbl(fit$logreg_list, compute_kl.binsusie))
+  kl_omega <-  Reduce("+", lapply( 1:length(fit$logreg_list),
+                                   function(k) sum(pg_kl(fit$data$N[,k],
+                                                         fit$logreg_list[[k]]$params$xi)#sum(purrr::map_dbl(fit$logreg_list, function(x) sum(pg_kl(x$data$N, x$params$xi))))
+                                   )
+  )
+  )
+
+
   kl <- kl_susie + kl_omega
 
   return(ll + assignment_entropy - kl)
+
 }
 
+
 compute_elbo.mococomo <- function(fit) {
+
+
   K <- fit$K
   N <- .expected_trials(fit$post_assignment)
 
@@ -206,8 +251,10 @@ compute_elbo.mococomo <- function(fit) {
   for (k in seq(K - 1)) {
     fit$logreg_list[[k]]$data$y <- fit$post_assignment[, k]
     fit$logreg_list[[k]]$data$N <- N[, k]
-    fit$logreg_list[[k]]$params$xi <- update_xi.binsusie(fit$logreg_list[[k]])
-    fit$logreg_list[[k]]$params$tau <- compute_tau(fit$logreg_list[[k]])
+    fit$logreg_list[[k]]$params$xi <- update_xi.binsusie(fit ,k)
+    fit$logreg_list[[k]]$params$tau <- compute_tau(fit$logreg_list[[k]],
+                                                   data=fit$data,
+                                                   k =k)
   }
 
 
@@ -217,8 +264,9 @@ compute_elbo.mococomo <- function(fit) {
 
   ll <- sum(post_assignment * data_loglik)
   assignment_entropy <- sum(apply(post_assignment, 1, categorical_entropy))
-  mnsusie_elbo <- compute_elbo.mnsusie(fit)
+  mnsusie_elbo <- compute_elbo.mnsusie(fit, from_init_moco = TRUE)
   elbo <- ll + assignment_entropy + mnsusie_elbo
+
   return(elbo)
 }
 
@@ -248,7 +296,7 @@ iter.mococomo <- function(fit, update_assignment = T, update_logreg = T) {
     }
 
     if (update_logreg) {
-      fit <- iter.mnsusie(fit)
+      fit <- iter.mnsusie(fit, from_init_moco = TRUE)
     }
 
     return(fit)
