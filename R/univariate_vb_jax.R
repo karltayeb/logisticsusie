@@ -1,5 +1,5 @@
 
-
+#' @export
 fit_uvb_ser_re_jax <- function(X, y, o = NULL,
                                prior_variance = 1.0,
                                intercept.init = logodds(mean(y) + 1e-10),
@@ -11,6 +11,7 @@ fit_uvb_ser_re_jax <- function(X, y, o = NULL,
   return(fit)
 }
 
+#' @export
 ibss2m_jax <- function(X, y, L = 10,
                        prior_variance = 1.0,
                        intercept.init = logodds(mean(y) + 1e-10),
