@@ -341,13 +341,14 @@ init.binsusie <- function(data,
   # TODO: check that data has y, N, X, Z
   if(from_init_moco){
     fit.init <- list(
-      data = data,
+      data   = data,
       params = params,
       hypers = hypers,
-      elbo = c(-Inf)
+      elbo   = c(-Inf)
     )
     fit.init$kidx <- kidx
     fit.init$params$tau <- compute_tau(fit.init )
+    fit.init <- fit.init[ - which(names(fit.init) == "data")]#remove data to reduce storage
   }else{
     fit.init <- list(
       data = data,
