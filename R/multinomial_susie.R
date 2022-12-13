@@ -58,20 +58,44 @@ compute_jj_bound.mnsusie <- function(fit) {
 }
 
 
-compute_elbo.mnsusie <- function(fit) {
-  K <- length(fit$logreg_list) + 1
+compute_elbo.mnsusie <- function(fit, from_init_moco=FALSE) {
 
-  # update omega so jj bound is tight
-  for (k in seq(K - 1)) {
-    fit$logreg_list[[k]]$params$xi <- update_xi.binsusie(fit$logreg_list[[k]])
-    fit$logreg_list[[k]]$params$tau <- compute_tau(fit$logreg_list[[k]])
+
+  if(from_init_moco){
+    K <- length(fit$logreg_list) + 1
+
+    # update omega so jj bound is tight
+    for (k in seq(K - 1)) {
+      fit$logreg_list[[k]]$params$xi <- update_xi.binsusie(fit ,k=k)
+      fit$logreg_list[[k]]$params$tau <- compute_tau(fit ,
+                                                     k=k)
+    }
+
+    elbo <- Reduce ("+", lapply( 1:length(fit$logreg_list) ,
+                                 function(k) compute_elbo.binsusie(fit,k=k)
+    )
+    )
+
+
+  }else{
+    K <- length(fit$logreg_list) + 1
+
+    # update omega so jj bound is tight
+    for (k in seq(K - 1)) {
+      fit$logreg_list[[k]]$params$xi <- update_xi.binsusie(fit$logreg_list[[k]])
+      fit$logreg_list[[k]]$params$tau <- compute_tau(fit$logreg_list[[k]])
+    }
+
+    elbo <- sum(purrr::map_dbl(fit$logreg_list, compute_elbo.binsusie))
   }
 
-  elbo <- sum(purrr::map_dbl(fit$logreg_list, compute_elbo.binsusie))
   return(elbo)
 }
 
-init.mnsusie <- function(data, L = 5) {
+
+
+
+init.mnsusie <- function(data, L = 5, from_init_moco=FALSE) {
   data$X2 <- data$X^2
 
   K <- dim(data$y)[2]
@@ -86,41 +110,78 @@ init.mnsusie <- function(data, L = 5) {
   data$N <- N
 
   # initialize K-1 logistic SuSiE
-  .init_logreg <- function(y, N) {
+  .init_logreg <- function(y, N ) {
     dat <- list(
       X = data$X,
       Z = data$Z,
       y = y,
       N = N
     )
-    fit <- init.binsusie(dat, L = L)
+    fit <- init.binsusie(dat,
+                         L = L,
+                         from_init_moco=from_init_moco)
     return(fit)
   }
   logreg_list <- purrr::map(seq(K - 1), ~ .init_logreg(Y[, .x], N[, .x]))
 
-  fit <- list(
-    data = data,
-    logreg_list = logreg_list,
-    elbo = c(-Inf)
-  )
+  if( from_init_moco){
+    fit <- list(
+      logreg_list = logreg_list,
+      elbo = c(-Inf)
+    )
+  }else{
+    fit <- list(
+      data = data,
+      logreg_list = logreg_list,
+      elbo = c(-Inf)
+    )
+  }
+
+
   return(fit)
 }
 
 
-iter.mnsusie <- function(fit, fit_intercept = T, fit_prior_variance = T) {
-  K <- length(fit$logreg_list) + 1
+iter.mnsusie <- function(fit,
+                         fit_intercept = T,
+                         fit_prior_variance = T,
+                         from_init_moco = FALSE) {
 
-  logreg_list <- list()
-  for (k in seq(K - 1)) {
-    logreg <- fit$logreg_list[[k]]
 
-    # update logreg
-    logreg_list[[k]] <- iter.binsusie(logreg,
-                                      fit_intercept = fit_intercept,
-                                      fit_prior_variance = fit_prior_variance
-                                     )
+  if(from_init_moco){
+    K <- length(fit$logreg_list) + 1
+
+    logreg_list <- list()
+    for (k in seq(K - 1)) {
+      # logreg <- fit$logreg_list[[k]]
+
+      # update logreg
+      fit$logreg_list[[k]] <- iter.binsusie(fit=fit,
+                                            k=k,
+                                            fit_intercept = fit_intercept,
+                                            fit_prior_variance = fit_prior_variance
+      )$logreg_list[[k]]
+
+    }
+
+
+  }else{
+    K <- length(fit$logreg_list) + 1
+
+    logreg_list <- list()
+    for (k in seq(K - 1)) {
+      logreg <- fit$logreg_list[[k]]
+
+      # update logreg
+      logreg_list[[k]] <- iter.binsusie(logreg,
+                                        fit_intercept = fit_intercept,
+                                        fit_prior_variance = fit_prior_variance
+      )
+    }
+
+
   }
-  fit$logreg_list <- logreg_list
+
 
   return(fit)
 }

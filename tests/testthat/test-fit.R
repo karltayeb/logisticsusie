@@ -266,28 +266,28 @@ test_twococomo_N <- function(N = 1) {
 }
 
 
-testthat::test_that("Two CoCoMo Monotone", {
-  for (i in seq(5)) {
-    testthat::expect_true(test_twococomo_N(1)$monotone)
-  }
-})
+#testthat::test_that("Two CoCoMo Monotone", {
+#  for (i in seq(5)) {
+#    testthat::expect_true(test_twococomo_N(1)$monotone)
+#  }
+#})
 
 
-test_twococomo_sparse <- function(N = 1) {
-  data <- sim_twococomo_sparse(N = N)
-  fit <- fit.twococomo(data)
-  return(list(
-    fit = fit,
-    monotone = .monotone(fit$elbo)
-  ))
-}
+#test_twococomo_sparse <- function(N = 1) {
+#  data <- sim_twococomo_sparse(N = N)
+#  fit <- fit.twococomo(data)
+#  return(list(
+#    fit = fit,
+#    monotone = .monotone(fit$elbo)
+#  ))
+#}
 
 
-testthat::test_that("Two CoCoMo Monotone (SPARSE)", {
-  for (i in seq(5)) {
-    testthat::expect_true(test_twococomo_sparse(1)$monotone)
-  }
-})
+#testthat::test_that("Two CoCoMo Monotone (SPARSE)", {
+#  for (i in seq(5)) {
+#    testthat::expect_true(test_twococomo_sparse(1)$monotone)
+#  }
+#})
 
 ###
 # Multinomial susie
@@ -326,6 +326,7 @@ test_mococomo_N <- function(N = 1) {
 
 testthat::test_that("More CoCoMo Monotone", {
   for (i in seq(5)) {
-    testthat::expect_true(test_mococomo_N(1)$monotone)
+    testthat::expect_true(test_mococomo_N(2)$monotone)
   }
 })
+

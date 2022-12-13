@@ -8,66 +8,134 @@
 ###
 
 #' idx is for indexing when we run susie
-.get_alpha <- function(fit, idx = NULL) {
-  if (is.null(idx)) {
-    alpha <- fit$params$alpha
-  } else {
-    alpha <- fit$params$alpha[idx, ]
+.get_alpha <- function(fit,k, idx = NULL) {
+
+
+  if(missing(k)){
+    if (is.null(idx)) {
+      alpha <- fit$params$alpha
+    } else {
+      alpha <- fit$params$alpha[idx, ]
+    }
+  }else{
+    if (is.null(idx)) {
+      alpha <- fit$logreg_list[[k]]$params$alpha
+    } else {
+      alpha <- fit$logreg_list[[k]]$params$alpha[idx, ]
+    }
   }
+
   return(alpha)
 }
 
-.get_mu <- function(fit, idx = NULL) {
-  if (is.null(idx)) {
-    mu <- fit$params$mu
-  } else {
-    mu <- fit$params$mu[idx, ]
+.get_mu <- function(fit,k, idx = NULL) {
+
+  if(missing(k)){
+    if (is.null(idx)) {
+      mu <- fit$params$mu
+    } else {
+      mu <- fit$params$mu[idx, ]
+    }
+  }else{
+    if (is.null(idx)) {
+      mu <- fit$logreg_list[[k]]$params$mu
+    } else {
+      mu <- fit$logreg_list[[k]]$params$mu[idx, ]
+    }
   }
+
   return(mu)
 }
 
-.get_var <- function(fit, idx = NULL) {
-  if (is.null(idx)) {
-    var <- fit$params$var
-  } else {
-    var <- fit$params$var[idx, ]
+.get_var <- function(fit,k, idx = NULL) {
+  if(missing(k)){
+    if (is.null(idx)) {
+      var <- fit$params$var
+    } else {
+      var <- fit$params$var[idx, ]
+    }
+  }else{
+    if (is.null(idx)) {
+      var <- fit$logreg_list[[k]]$params$var
+    } else {
+      var <- fit$logreg_list[[k]]$params$var[idx, ]
+    }
   }
+
   return(var)
 }
 
-.get_pi <- function(fit, idx = NULL) {
-  if (is.null(idx)) {
-    pi <- fit$hypers$pi
-  } else {
-    pi <- fit$hypers$pi[idx, ]
+.get_pi <- function(fit,k , idx = NULL) {
+
+  if( missing(k)){
+    if (is.null(idx)) {
+      pi <- fit$hypers$pi
+    } else {
+      pi <- fit$hypers$pi[idx, ]
+    }
+  }else{
+    if (is.null(idx)) {
+      pi <- fit$logreg[[k]]$hypers$pi
+    } else {
+      pi <- fit$logreg[[k]]$hypers$pi[idx, ]
+    }
   }
+
   return(pi)
 }
 
-.get_delta <- function(fit, idx = NULL) {
-  if (is.null(idx)) {
-    delta <- fit$params$delta
-  } else {
-    delta <- fit$params$delta[idx, ]
+.get_delta <- function(fit,k, idx = NULL) {
+
+  if(missing(k)){
+    if (is.null(idx)) {
+      delta <- fit$params$delta
+    } else {
+      delta <- fit$params$delta[idx, ]
+    }
+  }else{
+    if (is.null(idx)) {
+      delta <- fit$logreg_list[[k]]$params$delta
+    } else {
+      delta <- fit$logreg_list[[k]]$params$delta[idx, ]
+    }
   }
+
   return(delta)
 }
 
-.get_prior_mean <- function(fit, idx = NULL) {
-  if (is.null(idx)) {
-    prior_mean <- fit$hypers$prior_mean
-  } else {
-    prior_mean <- fit$hypers$prior_mean[idx]
+.get_prior_mean <- function(fit,k, idx = NULL) {
+  if(missing(k)){
+    if (is.null(idx)) {
+      prior_mean <- fit$hypers$prior_mean
+    } else {
+      prior_mean <- fit$hypers$prior_mean[idx]
+    }
+  }else{
+    if (is.null(idx)) {
+      prior_mean <- fit$logreg_list[[k]]$hypers$prior_mean
+    } else {
+      prior_mean <- fit$logreg_list[[k]]$hypers$prior_mean[idx]
+    }
   }
+
   return(prior_mean)
 }
 
-.get_var0 <- function(fit, idx = NULL) {
-  if (is.null(idx)) {
-    var0 <- fit$hypers$prior_variance
-  } else {
-    var0 <- fit$hypers$prior_variance[idx]
+.get_var0 <- function(fit, k,idx = NULL) {
+  if(missing(k)){
+    if (is.null(idx)) {
+      var0 <- fit$hypers$prior_variance
+    } else {
+      var0 <- fit$hypers$prior_variance[idx]
+    }
+  }else{
+    if (is.null(idx)) {
+      var0 <- fit$logreg_list[[k]]$hypers$prior_variance
+    } else {
+      var0 <- fit$logreg_list[[k]]$hypers$prior_variance[idx]
+    }
   }
+
   return(var0)
 }
 
@@ -75,31 +143,52 @@
 # K-indexed getters
 ###
 
-.get_y <- function(fit, kidx = NULL) {
-  if (is.null(fit$kidx)) {
-    y <- fit$data$y
-  } else {
-    y <- fit$data$y[, fit$kidx]
-  }
+.get_y <- function(fit,k, kidx = NULL) {
+  if(missing(k)){
+    if (is.null(fit$kidx)) {
+      y <- fit$data$y
+    } else {
+      y <- fit$data$y[, fit$kidx]
+    }
+  }else{
+      y <- fit$data$y[, k]
+    }
+
+
   return(y)
 }
 
-.get_N <- function(fit, kidx = NULL) {
-  if (is.null(fit$kidx)) {
-    N <- fit$data$N
-  } else {
-    N <- fit$data$N[, fit$kidx]
+.get_N <- function(fit,k, kidx = NULL) {
+
+  if(missing(k)){
+    if (is.null(fit$kidx)) {
+      N <- fit$data$N
+    } else {
+      N <- fit$data$N[, fit$kidx]
+    }
+  }else{
+
+      N <- fit$data$N[, k]
+
   }
+
   return(N)
 }
 
-.get_xi <- function(fit, kidx = NULL) {
+.get_xi <- function(fit,k, kidx = NULL) {
   # if(is.null(fit$kidx)){
   #   xi <- fit$params$xi
   # } else{
   #   xi <- fit$params$xi[, fit$kidx]
   # }
-  xi <- fit$params$xi
+  if(missing(k)){
+    xi <- fit$params$xi
+
+  }else{
+    xi <- fit$logreg_list[[k]]$params$xi
+  }
+
+
   return(xi)
 }
 
@@ -108,8 +197,15 @@
 #' Extract regression coefficients from binomial SER fit
 #' @param fit Binomial SER object
 #' @return Return E[\beta]
-coef.binser <- function(fit, idx = NULL) {
-  b <- Matrix::drop(.get_alpha(fit, idx) * .get_mu(fit, idx))
+coef.binser <- function(fit,k, idx = NULL) {
+
+  if(missing(k)){
+    b <- Matrix::drop(.get_alpha(fit, idx=idx) * .get_mu(fit, idx=idx))
+
+  }else{
+    b <- Matrix::drop(.get_alpha(fit, k=k, idx=idx) * .get_mu(fit, k=k , idx=idx))
+
+  }
   return(b)
 }
 
@@ -138,8 +234,13 @@ compute_kl.binser <- function(fit) {
 }
 
 #' fixed effects, intercept, shift
-compute_Zd.binser <- function(fit, idx = NULL, shift = 0) {
-  Zd <- Matrix::drop(fit$data$Z %*% .get_delta(fit, idx)) + shift
+compute_Zd.binser <- function(fit,k, idx = NULL, shift = 0) {
+  if(missing(k)){
+    Zd <- Matrix::drop(fit$data$Z %*% .get_delta(fit, idx=idx)) + shift
+  }else{
+    Zd <- Matrix::drop(fit$data$Z %*% .get_delta(fit,k=k, idx=idx)) + shift
+  }
+
   return(Zd)
 }
 
@@ -149,12 +250,12 @@ compute_Zd.binser <- function(fit, idx = NULL, shift = 0) {
 #' @return Return E[Xb]
 compute_Xb.binser <- function(fit, k, idx = NULL, shift = 0) {
   if (missing(k)) {
-    Xb <- Matrix::drop(fit$data$X %*% coef.binser(fit, idx))
-    Zd <- compute_Zd.binser(fit, idx, shift)
+    Xb <- Matrix::drop(fit$data$X %*% coef.binser(fit, idx=idx))
+    Zd <- compute_Zd.binser(fit, idx=idx, shift=shift)
     Xb <- Xb + Zd
   } else {
-    Xb <- Matrix::drop(fit$data$X %*% coef.binser(fit$logreg_list[[k]], idx))
-    Zd <- compute_Zd.binser(fit$logreg_list[[k]], idx, shift)
+    Xb <- Matrix::drop(fit$data$X %*% coef.binser(fit,k=k, idx))
+    Zd <- compute_Zd.binser(fit, k=k , idx = idx,shift = shift)
     Xb <- Xb + Zd
   }
 
@@ -166,10 +267,10 @@ compute_Xb.binser <- function(fit, k, idx = NULL, shift = 0) {
 #' @param fit Binomial SER object
 #' @return Return E[Xb]
 compute_Xb2.binser <- function(fit, idx = NULL, shift = 0) {
-  Xb <- Matrix::drop(fit$data$X %*% coef.binser(fit, idx))
-  Zd <- compute_Zd.binser(fit, idx, shift)
+  Xb <- Matrix::drop(fit$data$X %*% coef.binser(fit, idx=idx))
+  Zd <- compute_Zd.binser(fit, idx=idx, shift=shift)
 
-  b2 <- .get_alpha(fit, idx) * (.get_mu(fit, idx)^2 + .get_var(fit, idx))
+  b2 <- .get_alpha(fit, idx=idx) * (.get_mu(fit, idx=idx)^2 + .get_var(fit, idx=idx))
   Xb2 <- Matrix::drop(fit$data$X2 %*% b2)
 
   Xb2 <- Xb2 + 2 * Xb * Zd + Zd^2
@@ -177,37 +278,69 @@ compute_Xb2.binser <- function(fit, idx = NULL, shift = 0) {
 }
 
 #' Compute E[y - N/2]
-compute_kappa <- function(fit, kidx = NULL) {
-  kappa <- .get_y(fit, kidx) - 0.5 * .get_N(fit, kidx)
+compute_kappa <- function(fit,k, kidx = NULL) {
+  if(missing(k)){
+    kappa <- .get_y(fit, kidx=kidx) - 0.5 * .get_N(fit, kidx=kidx)
+  }else{
+    kappa <- .get_y(fit,k=k, kidx=kidx) - 0.5 * .get_N(fit,k=k, kidx=kidx)
+  }
+
   return(kappa)
 }
 
 #' Compute E[w] where w are the PG random variables in the augmented model
-compute_omega <- function(fit, kidx = NULL) {
-  omega <- pg_mean(.get_N(fit, kidx), .get_xi(fit, kidx))
+compute_omega <- function(fit,k , kidx = NULL ) {
+  if( missing(k)){
+    omega <- pg_mean(.get_N(fit, kidx =kidx), .get_xi(fit, kidx =kidx))
+  }else{
+    omega <- pg_mean(ifelse(is.null(k ), fit$data$N,fit$data$N[,k]),
+                     .get_xi(fit,k=k, kidx=kidx))
+  }
+
   return(omega)
 }
 
 #' Compute a scaled posterior mean
 #' TODO: add support for non-zero prior mean
 #' @param fit a SER object
-compute_nu.binser <- function(fit, idx = NULL, kidx = NULL, shift = 0) {
-  prior_mean <- .get_prior_mean(fit, idx = idx)
-  tau0 <- 1. / .get_var0(fit, idx = idx)
+compute_nu.binser <- function(fit, k, idx = NULL, kidx = NULL, shift = 0) {
 
-  kappa <- compute_kappa(fit, kidx)
-  Zd <- compute_Zd.binser(fit, idx, shift)
-  omega <- compute_omega(fit)
-  tmp <- kappa - omega * Zd
-  nu <- Matrix::drop(tmp %*% fit$data$X) + (prior_mean * tau0)
+  if( missing(k)){
+    prior_mean <- .get_prior_mean(fit, idx = idx)
+    tau0  <- 1. / .get_var0(fit, idx = idx)
+    kappa <- compute_kappa(fit, kidx=kidx)
+    Zd    <- compute_Zd.binser(fit, idx=idx, shift=shift)
+    omega <- compute_omega(fit)
+    tmp   <- kappa - omega * Zd
+    nu    <- Matrix::drop(tmp %*% fit$data$X) + (prior_mean * tau0)
+  }else{
+    prior_mean <- .get_prior_mean(fit$logreg_list[[k]], idx = idx)
+    tau0  <- 1. / .get_var0(fit$logreg_list[[k]], idx = idx)
+    kappa <- compute_kappa(fit,k=k, kidx)
+    Zd    <- compute_Zd.binser(fit, k=k,idx=idx, shift)
+    omega <- compute_omega(fit,k=k)
+    tmp   <- kappa - omega * Zd
+    nu    <- Matrix::drop(tmp %*% fit$data$X) + (prior_mean * tau0)
+  }
+
   return(nu)
 }
 
+
+
 #' Compute partial posterior variance
 #' use this immediately after updating xi
-compute_tau <- function(fit) {
-  omega <- compute_omega(fit)
-  tau <- Matrix::drop(omega %*% fit$data$X2)
+compute_tau <- function(fit,  k, kidx=NULL ) {
+  if(missing(k)){
+    omega <- compute_omega(fit,kidx=kidx)
+    tau   <- Matrix::drop(omega %*% fit$data$X2)
+  }else{
+    omega <- compute_omega(fit,
+                           kidx=kidx,
+                           k   =k )
+    tau <- Matrix::drop(omega %*%  fit$data$X2)
+  }
+
   return(tau)
 }
 
@@ -220,12 +353,21 @@ update_xi.binser <- function(fit, shift = 0) {
 }
 
 #' update intercept and fixed effect covariates
-update_delta.binser <- function(fit, idx = NULL, kidx = NULL, shift = 0) {
-  Z <- fit$data$Z
-  omega <- compute_omega(fit)
-  Xb <- fit$data$X %*% coef.binser(fit, idx) + shift
-  kappa <- compute_kappa(fit, kidx)
-  delta <- Matrix::drop(Matrix::solve((omega * t(Z)) %*% Z, t(Z) %*% (kappa - omega * Xb)))
+update_delta.binser <- function(fit,k, idx = NULL, kidx = NULL, shift = 0) {
+  if(missing(k)){
+    Z <- fit$data$Z
+    omega <- compute_omega(fit)
+    Xb <- fit$data$X %*% coef.binser(fit, idx=idx) + shift
+    kappa <- compute_kappa(fit, kidx=kidx)
+    delta <- Matrix::drop(Matrix::solve((omega * t(Z)) %*% Z, t(Z) %*% (kappa - omega * Xb)))
+  }else{
+    Z <- fit$data$Z
+    omega <- compute_omega(fit,k=k)
+    Xb <- fit$data$X %*% coef.binser(fit, k=k, idx=idx) + shift
+    kappa <- compute_kappa(fit, k=k, kidx=kidx)
+    delta <- Matrix::drop(Matrix::solve((omega * t(Z)) %*% Z, t(Z) %*% (kappa - omega * Xb)))
+  }
+
   return(delta)
 }
 
@@ -247,23 +389,50 @@ update_delta.binser <- function(fit, idx = NULL, kidx = NULL, shift = 0) {
 }
 
 #' update q(b)
-update_b.binser <- function(fit, idx = NULL, kidx = NULL, shift = 0) {
-  nu <- Matrix::drop(compute_nu.binser(fit, idx, kidx, shift))
-  tau0 <- 1 / .get_var0(fit, idx)
-  tau <- tau0 + fit$params$tau
-  post <- .update_b_ser(nu, tau, .get_pi(fit, idx))
+update_b.binser <- function(fit,k, idx = NULL, kidx = NULL, shift = 0) {
+
+  if(missing(k)){
+    nu <- Matrix::drop(compute_nu.binser(fit,
+                                         idx   = idx,
+                                         kidx  = kidx,
+                                         shift = shift)
+                       )
+    tau0 <- 1 / .get_var0(fit, idx=idx)
+    tau <- tau0 + fit$params$tau
+    post <- .update_b_ser(nu, tau, .get_pi(fit, idx=idx))
+  }else{
+    nu <- Matrix::drop(compute_nu.binser(fit,
+                                         k     = k,
+                                         idx   = idx,
+                                         kidx  = kidx,
+                                         shift = shift))
+    tau0 <- 1 / .get_var0(fit,k=k, idx)
+    tau <- tau0 + fit$logreg_list[[k]]$params$tau
+    post <- .update_b_ser(nu, tau, .get_pi(fit,k=k, idx=idx))
+  }
+
   return(post)
 }
 
 
 #' Variational M step for updating prior_variance
 #' Optimize ELBO wrt to prior effect standard deviation
-update_prior_variance.binser <- function(fit, idx = NULL) {
-  b2 <- .get_alpha(fit, idx) * (.get_mu(fit, idx)^2 + .get_var(fit, idx))
-  b <- coef.binser(fit, idx)
-  prior_mean <- .get_prior_mean(fit, idx)
-  prior_variance <- sum(b2 - 2 * b * prior_mean) + prior_mean^2
+update_prior_variance.binser <- function(fit,k, idx=NULL){
+
+
+  if(missing(k)){
+    b2 <- .get_alpha(fit, idx=idx) * (.get_mu(fit, idx=idx)^2 + .get_var(fit, idx=idx))
+    b <- coef.binser(fit, idx=idx)
+    prior_mean <- .get_prior_mean(fit, idx=idx)
+    prior_variance <- sum(b2 - 2 * b * prior_mean) + prior_mean^2
+  }else{
+    b2 <- .get_alpha(fit,k=k, idx=idx) * (.get_mu(fit,k=k, idx=idx)^2 + .get_var(fit, k=k, idx=idx))
+    b <- coef.binser(fit,k=k, idx=idx)
+    prior_mean <- .get_prior_mean(fit,k=k, idx=idx)
+    prior_variance <- sum(b2 - 2 * b * prior_mean) + prior_mean^2
+  }
   return(prior_variance)
+
 }
 
 
@@ -301,9 +470,9 @@ explicit_elbo.binser <- function(fit) {
 
 #' More explicit, only works for Bernoulli observations
 jj_bound.logistic <- function(fit, shift = 0, kidx = NULL) {
-  xi <- .get_xi(fit, kidx)
+  xi <- .get_xi(fit, kidx=kidx)
   Xb <- compute_Xb.binser(fit, shift = shift)
-  kappa <- compute_kappa(fit, kidx)
+  kappa <- compute_kappa(fit, kidx=kidx)
 
   Xb2 <- compute_Xb2.binser(fit, shift = shift)
   omega <- compute_omega(fit)

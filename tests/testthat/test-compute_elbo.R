@@ -8,8 +8,8 @@ testthat::test_that("Different MoCoCoMo ELBO functions agree", {
   for(k in seq(K-1)){
     fit$logreg_list[[k]]$data$y <- fit$post_assignment[, k]
     fit$logreg_list[[k]]$data$N <- N[, k]
-    fit$logreg_list[[k]]$params$xi <- update_xi.binsusie(fit$logreg_list[[k]])
-    fit$logreg_list[[k]]$params$tau <- compute_tau(fit$logreg_list[[k]])
+    fit$logreg_list[[k]]$params$xi <- update_xi.binsusie(fit , k=k)
+    fit$logreg_list[[k]]$params$tau <- compute_tau(fit,k=k)
   }
 
   elbo1 <- compute_elbo.mococomo(fit)
