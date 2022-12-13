@@ -1,8 +1,8 @@
+import numpy as np
 import jax.numpy as jnp
 import jax
 from jax import vmap, jit
 from jax.lax import while_loop
-import numpy as np
 from jax.scipy.special import logsumexp
 
 def polya_gamma_mean(b, c):

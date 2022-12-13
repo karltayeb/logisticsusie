@@ -47,19 +47,23 @@ def compute_pips(alpha: jnp.array):
     return pips
 
 
-def add_re(re, ser):
+def add_re(re, ser, keep_2m=True):
     new_re = dict(
         mu = re['mu'] + ser['summary']['psi'],
-        mu2 = re['mu2'] + ser['summary']['psi2'] + 2 * re['mu'] * ser['summary']['psi']
+        mu2 = (re['mu2'] + ser['summary']['psi2'] + 2 * re['mu'] * ser['summary']['psi'])
     )
+    if not keep_2m:
+        new_re['mu2'] = new_re['mu']**2
     return new_re
 
 
-def subtract_re(re, ser):
+def subtract_re(re, ser, keep_2m=True):
     new_re = dict(
         mu = re['mu'] - ser['summary']['psi'],
-        mu2 = re['mu2'] - ser['summary']['psi2'] - 2 * (re['mu'] - ser['summary']['psi']) * ser['summary']['psi']
+        mu2 = (re['mu2'] - ser['summary']['psi2'] - 2 * (re['mu'] - ser['summary']['psi']) * ser['summary']['psi'])
     )
+    if not keep_2m:
+        new_re['mu2'] = new_re['mu']**2
     return new_re
 
 
@@ -68,19 +72,20 @@ def check_offset(re: dict):
     return(jnp.all(var >= 0))
 
 
-def ibss2m_iter(data, sers, re):
+def ibss2m_iter(data, sers, re, control):
     """
     complete 1 loop over SERs in IBSS2M
     """
     L = len(sers)
     n, p = data['X'].shape
+    keep_2m = control.get('keep_2m', True)
 
     diff = 0
     new_sers = dict()
     for l in range(L):
         # remove the effect of old SER
         ser_l = sers[l]
-        re = subtract_re(re, ser_l)
+        re = subtract_re(re, ser_l, keep_2m)
 
         # fit new SER
         params = ser_l['params']
@@ -89,7 +94,7 @@ def ibss2m_iter(data, sers, re):
         new_ser_l = fit_uvb_ser_jax(data, re, params, {})
 
         # add back effect, record SER
-        re = add_re(re, new_ser_l)
+        re = add_re(re, new_ser_l, keep_2m)
         new_sers[l] = new_ser_l
         diff = diff + jnp.sum((ser_l['summary']['psi'] - new_ser_l['summary']['psi'])**2)
 
@@ -109,11 +114,13 @@ def ibss2m_driver(data: dict , params: dict, control: dict):
         dict: a dictionary with fit variational parameters and posterior summaries
     """
     n, p = data['X'].shape
-    re = initialize_re(n)
 
     L = params['L']
     pi = params['pi']
     tau0 = params['tau0']
+
+    # ignore second moment-- reverts to IBSS
+    keep_2m = control.get('keep_2m', True)
 
     # first iteration, initialize SERs and add to re
     # tau0 = 1 / params['prior_variance'] 
@@ -122,13 +129,13 @@ def ibss2m_driver(data: dict , params: dict, control: dict):
     for l in range(L):
         ser_params = initialize_ser_params(n, p, tau0)
         ser_params['pi'] = pi  # use prior weights specified
-        ser_l = fit_uvb_ser_jax(data, re, ser_params, {})  # fit SER
-        re = add_re(re, ser_l)  # add SER to random effect
+        ser_l = fit_uvb_ser_jax(data, re, ser_params, {})# fit SER
+        re = add_re(re, ser_l, keep_2m)  # add SER to random effect
         sers[l] = ser_l  # store fit SER
 
     # iterate ibss2m until convergence
     for i in range(control['maxit']):
-        sers, re, diff = ibss2m_iter(data, sers, re)
+        sers, re, diff = ibss2m_iter(data, sers, re, control)
         if (diff < control['tol']): 
            break 
 
@@ -143,7 +150,8 @@ def ibss2m_jax(X, y, L = 10,
     tol = 1e-3,
     maxit = 100,
     estimate_intercept = True,
-    estimate_prior_variance = False):
+    estimate_prior_variance = False,
+    keep_2m = True):
 
     data = dict(X=np.array(X), y=np.array(y))
 
@@ -161,7 +169,8 @@ def ibss2m_jax(X, y, L = 10,
         tol=tol,
         maxit=maxit,
         estimate_intercept=estimate_intercept,
-        estimate_prior_variance=estimate_prior_variance
+        estimate_prior_variance=estimate_prior_variance,
+        keep_2m = keep_2m
     )
 
     fit = ibss2m_driver(data, params, control)

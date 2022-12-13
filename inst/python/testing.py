@@ -35,3 +35,6 @@ fit3 = fit_uvb_ser_jax(data, re, params, {})
 
 # fit IBSS2m
 ibss_fit = ibss2m_jax(data['X'], data['y'], L=3)
+ibss_fit = ibss2m_jax(data['X'], data['y'], L=3, keep_2m=False)
+
+
