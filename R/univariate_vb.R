@@ -159,10 +159,10 @@ fit_uvb_ser <- function(X, y, o = NULL,
   if (is.null(o)) {
     # fixed offsets
     o <- 0
+    null_likelihood <- sum(dbinom(y, 1, mean(y), log = T))
+  } else {
+    null_likelihood <- tail(fit_univariate_vb(X[, 1], y, o = o, tau0 = 1e10)$elbos, 1)
   }
-
-  # null_model_elbo <- tail(fit_univariate_vb(X[, 1], y, o = o, tau0 = 1e10)$elbos, 1)
-  null_likelihood <- sum(dbinom(y, 1, mean(y), log = T))
 
   res <- purrr::map(1:p, ~ fit_univariate_vb(
     X[, .x], y,

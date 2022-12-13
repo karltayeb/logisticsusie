@@ -4,8 +4,7 @@
 \alias{compute_data_loglikelihood}
 \alias{compute_data_loglikelihood.mococomo_normal}
 \alias{compute_data_loglikelihood.mococomo_beta}
-\title{Compute Data Log Likelihood
-Compute p(betahat_i| z=k, se_i) i = 1..., n, k=1... K}
+\title{Compute data likelihood}
 \usage{
 compute_data_loglikelihood(fit, ...)
 
@@ -20,6 +19,9 @@ compute_data_loglikelihood(fit, ...)
 n x K matrix of  log likelihood of each data point for each component
 }
 \description{
+Compute data likelihood
+}
+\details{
 Compute Data Log Likelihood
 Compute p(betahat_i| z=k, se_i) i = 1..., n, k=1... K
 }
