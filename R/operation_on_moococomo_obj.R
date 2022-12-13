@@ -115,13 +115,11 @@ init.mococomo.beta <- function(data, max_class, mult = 2,upper=FALSE,...) {
 }
 #' Compute Expected Assignment Log Likelihood
 #' @return N x K matrix each row has E[p(z=k | \beta, \omega)] for k = 1,..., K
-
-
 compute_assignment_loglikelihood.mococomo <- function(fit, normalize = TRUE) {
   K <- fit$K
   Xb <- do.call(cbind, lapply( 1: length(fit$logreg_list),
-                               function (k)  compute_Xb.binsusie(fit,k)
-                             )
+                               function (k)  compute_Xb.binsusie(fit,k=k)
+                              )
                 )
 
   Xbcum <- do.call(rbind, apply(Xb, 1, cumsum, simplify = F))
@@ -131,14 +129,13 @@ compute_assignment_loglikelihood.mococomo <- function(fit, normalize = TRUE) {
   C <- 0
   if (normalize) {
     Xb2 <- do.call(cbind, lapply( 1: length(fit$logreg_list),
-                                  function (k)  compute_Xb2.binsusie(fit,k)
+                                  function (k)  compute_Xb2.binsusie(fit,k=k)
                                  )
-                  )  # N x K - 1
+                    )  # N x K - 1
     omega <- do.call(cbind, lapply( 1: length(fit$logreg_list),
-                                    function (k)  compute_omega(fit$logreg_list[[k]],
-                                                                data=fit$data,
+                                    function (k)  compute_omega(fit ,
                                                                 k =k)
-                                  )
+                                    )
                       )  # N x K - 1
     C <- -0.5 * rowSums(Xb2 * omega)
   }
@@ -150,6 +147,8 @@ compute_assignment_loglikelihood.mococomo <- function(fit, normalize = TRUE) {
   logp <- cbind(logp, logpK)
   return(logp)
 }
+
+
 
 
 
@@ -239,7 +238,6 @@ compute_elbo2.mococomo<-  function(fit) {
 
 }
 
-
 compute_elbo.mococomo <- function(fit) {
 
 
@@ -251,9 +249,9 @@ compute_elbo.mococomo <- function(fit) {
   for (k in seq(K - 1)) {
     fit$logreg_list[[k]]$data$y <- fit$post_assignment[, k]
     fit$logreg_list[[k]]$data$N <- N[, k]
-    fit$logreg_list[[k]]$params$xi <- update_xi.binsusie(fit ,k)
-    fit$logreg_list[[k]]$params$tau <- compute_tau(fit$logreg_list[[k]],
-                                                   data=fit$data,
+    fit$logreg_list[[k]]$params$xi <- update_xi.binsusie(fit ,k=k)
+    fit$logreg_list[[k]]$params$tau <- compute_tau(fit ,
+
                                                    k =k)
   }
 
@@ -269,6 +267,7 @@ compute_elbo.mococomo <- function(fit) {
 
   return(elbo)
 }
+
 
 #' Expected Binomial Trials
 #' Compute expected  number of binomial trials

@@ -59,14 +59,14 @@ fit.mococomo <- function(data,
                        upper     = upper
                        )
 
-  fit$elbo <- compute_elbo3.mococomo(fit)
+  fit$elbo <- compute_elbo.mococomo(fit)
   for (i in 1:maxiter) {
 
     fit <- iter.mococomo(fit,
                          update_assignment =is.even(i),
                          update_logreg = is.odd(i))
 
-    fit$elbo <- c(fit$elbo, compute_elbo3.mococomo(fit))
+    fit$elbo <- c(fit$elbo, compute_elbo.mococomo(fit))
 
     # print(paste('asgn:', is.even(i), 'logreg:', is.odd(i), 'elbo: ', tail(fit$elbo, 1)))
     if (.converged(fit, tol)) {

@@ -66,14 +66,20 @@ compute_Xb2.binsusie <- function(fit, k) {
 #' since that gets computes as part of the JJ bound
 compute_kl.binsusie <- function(fit, k) {
   if (missing(k)) {
-    kl <- sum(purrr::map_dbl(seq(fit$hypers$L), ~ .compute_ser_kl(
-      .get_alpha(fit, .x),
-      .get_pi(fit, .x),
-      .get_mu(fit, .x),
-      .get_var(fit, .x),
-      .get_prior_mean(fit, .x),
-      .get_var0(fit, .x)
-    )))
+
+
+    kl <-Reduce("+",lapply(1:fit$hypers$L,
+                           function(l)   .compute_ser_kl(
+                             alpha      = .get_alpha(fit ,idx=l),
+                             pi         = .get_pi(fit, idx=l),
+                             mu         = .get_mu(fit,   idx=l),
+                             var        = .get_var(fit,   idx=l),
+                             prior_mean = .get_prior_mean(fit,  idx=l),
+                             var0       = .get_var0(fit,   idx=l)
+                            )
+                          )
+                )
+
   } else {
     kl <-Reduce("+",lapply(1:fit$logreg_list[[k]]$hypers$L,
                            function(l)  .compute_ser_kl(

@@ -67,15 +67,14 @@ compute_elbo.mnsusie <- function(fit, from_init_moco=FALSE) {
     # update omega so jj bound is tight
     for (k in seq(K - 1)) {
       fit$logreg_list[[k]]$params$xi <- update_xi.binsusie(fit ,k=k)
-      fit$logreg_list[[k]]$params$tau <- compute_tau(fit$logreg_list[[k]],
-                                                     data=fit$data,
+      fit$logreg_list[[k]]$params$tau <- compute_tau(fit ,
                                                      k=k)
     }
 
     elbo <- Reduce ("+", lapply( 1:length(fit$logreg_list) ,
-                                 function(k) compute_elbo.binsusie(fit,k)
-                                )
-                    )
+                                 function(k) compute_elbo.binsusie(fit,k=k)
+    )
+    )
 
 
   }else{
@@ -92,6 +91,9 @@ compute_elbo.mnsusie <- function(fit, from_init_moco=FALSE) {
 
   return(elbo)
 }
+
+
+
 
 init.mnsusie <- function(data, L = 5, from_init_moco=FALSE) {
   data$X2 <- data$X^2
