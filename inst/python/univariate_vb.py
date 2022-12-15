@@ -93,13 +93,13 @@ def vb_iter(val):
     
     xi = update_xi(x, y, mu, tau, xi, delta, tau0, offset, offset2)
     elbo_new = compute_elbo(x, y, mu, tau, xi, delta, tau0, offset, offset2)
-    
+    kl = normal_kl(mu, 1/tau, 0, 1/tau0)
+ 
     diff = elbo_new - track['elbo']
     it = track['it'] + 1
-    # val = (x, y, mu, tau, xi, delta, tau0, offset, offset2, elbo_new, diff, it)
 
     new_params = dict(mu=mu, tau=tau, xi=xi, delta=delta, tau0=tau0)
-    new_track = dict(diff = diff, elbo = elbo_new, it = it)
+    new_track = dict(diff = diff, elbo = elbo_new, kl=kl, it = it)
     new_val = dict(data = data, re=re, params = new_params, track=new_track)
     return new_val
 
@@ -111,7 +111,7 @@ def fit_univariate_vb(data: dict, re: dict, params: dict):
     # data = dict(x=x, y=y)
     # re = dict(mu=offset, mu2=offset2)
     # params = dict(mu=mu, tau=tau, xi=xi, delta=delta, tau0=tau0)
-    track = dict(elbo = -jnp.inf, diff=jnp.inf, it=0)
+    track = dict(elbo = -jnp.inf, kl=0, diff=jnp.inf, it=0)
     val_init = dict(data=data, re=re, params=params, track=track)
     
     # iterate updates until convergence
@@ -129,7 +129,7 @@ def fit_univariate_vb(data: dict, re: dict, params: dict):
 univariate_vb_vec_jax = jit(vmap( 
     fit_univariate_vb, 
     in_axes=({'X': 1, 'y': None}, {'mu': None, 'mu2':None}, {'mu': 0, 'tau': 0, 'xi': 1, 'delta': 0, 'tau0': 0}),
-    out_axes={'params': {'mu': 0, 'tau': 0, 'xi': 1, 'delta': 0, 'tau0': 0}, 'track': {'elbo': 0, 'diff': 0, 'it': 0}}
+    out_axes={'params': {'mu': 0, 'tau': 0, 'xi': 1, 'delta': 0, 'tau0': 0}, 'track': {'elbo': 0, 'kl': 0, 'diff': 0, 'it': 0}}
 ))
 
 def initialize_re(n: int, mu: float = 0, mu2: float = 0):
@@ -233,6 +233,8 @@ def fit_uvb_ser_jax(data: dict, re: dict, params: dict, control : dict):
     res['params']['pi'] = pi
 
     summary = dict(
+        elbo = elbo,
+        kl = kl,
         lbf_variable = lbf_variable,
         lbf = lbf,
         psi = psi,

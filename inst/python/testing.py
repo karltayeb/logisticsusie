@@ -35,6 +35,13 @@ fit3 = fit_uvb_ser_jax(data, re, params, {})
 
 # fit IBSS2m
 ibss_fit = ibss2m_jax(data['X'], data['y'], L=3)
-ibss_fit = ibss2m_jax(data['X'], data['y'], L=3, keep_2m=False)
+ibss_fit = ibss2m_jax(data['X'], data['y'], L=3, keep_2m=False, tol=1e-6)
+
+
+ibss_fit['sers'][0]['summary']['elbo']
+
+ibss_fit['track'].keys()
+
+pluck(ibss_fit['sers'], ['summary', 'elbo'])
 
 

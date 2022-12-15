@@ -134,13 +134,31 @@ def ibss2m_driver(data: dict , params: dict, control: dict):
         sers[l] = ser_l  # store fit SER
 
     # iterate ibss2m until convergence
+    diff_history = []
+    elbo_history = []
+    kl_history = []
+    lbf_history = []
     for i in range(control['maxit']):
         sers, re, diff = ibss2m_iter(data, sers, re, control)
+        diff_history.append(diff)
+        elbo_history.append(pluck(sers, ['track', 'elbo_ser']))
+        kl_history.append(pluck(sers, ['track', 'kl_ser']))
+        lbf_history.append(pluck(sers, ['summary', 'lbf']))
         if (diff < control['tol']): 
            break 
 
     # 0. stack up SER results
-    track = dict(diff = diff, converged = diff < control['tol'], it=i)
+    # elbo_hsitory and kl_history give the elbo and KL of each SER
+    # which can be used to get the ELBO for the full model
+    track = dict(
+        diff = diff,
+        converged = diff < control['tol'],
+        it=i,
+        diff_history=np.array(diff_history),
+        elbo_history=np.array(elbo_history),
+        kl_history=np.array(kl_history),
+        lbf_history=np.array(lbf_history)
+    )
     res = dict(sers=sers, re=re, track=track)
     return res
 
