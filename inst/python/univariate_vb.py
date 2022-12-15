@@ -209,6 +209,7 @@ def fit_uvb_ser_jax(data: dict, re: dict, params: dict, control : dict):
     logits = res['track']['elbo'] + jnp.log(pi)  # unnormalized
     alpha = jnp.exp(logits - logsumexp(logits))
     elbo = np.sum(res['track']['elbo'] * alpha) - categorical_kl(alpha, pi)
+    kl = np.sum(res['track']['kl'] * alpha) + categorical_kl(alpha, pi)
 
     # 2. compute psi and psi2 (first and second moments of predictions)
     Xb = data['X'] @ (alpha * res['params']['mu'])
@@ -232,9 +233,11 @@ def fit_uvb_ser_jax(data: dict, re: dict, params: dict, control : dict):
     res['params']['alpha'] = alpha
     res['params']['pi'] = pi
 
+    # add ser elbo to track
+    res['track']['elbo_ser'] = elbo
+    res['track']['kl_ser'] = kl
+
     summary = dict(
-        elbo = elbo,
-        kl = kl,
         lbf_variable = lbf_variable,
         lbf = lbf,
         psi = psi,
