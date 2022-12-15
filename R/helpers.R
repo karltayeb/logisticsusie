@@ -180,6 +180,7 @@ get_all_cs2 <- function(alpha, requested_coverage = 0.95) {
 #' Check if a CS covers a particular index
 get_coverage <- function(cs, idx) {
   cs$covered <- idx %in% cs$cs
+  cs$which_covered <- intersect(idx, cs$cs)
   names(cs$covered) <- idx
   return(cs)
 }
