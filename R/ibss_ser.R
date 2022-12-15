@@ -71,6 +71,7 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
   # get LBFs for each model
   lbf_ser <- purrr::map_dbl(fits, ~ purrr::pluck(.x, "lbf_model"))
 
+  diff_history <- purrr::map_dbl(2:iter, ~ ibss_l2(beta_post_history, .x))
   # add the final ser fits
   names(fits) <- paste0("L", 1:L)
 
@@ -83,6 +84,8 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
     iter = iter,
     elapsed_time = unname(timer$toc - timer$tic),
     beta_post_history = head(beta_post_history, iter),
+    diff_history = diff_history,
+    converged = tail(diff_history, 1) < tol,
     lbf = lbf_ser
   )
   return(res)
