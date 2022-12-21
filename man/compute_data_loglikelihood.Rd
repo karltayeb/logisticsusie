@@ -8,9 +8,9 @@
 \usage{
 compute_data_loglikelihood(fit, ...)
 
-\method{compute_data_loglikelihood}{mococomo_normal}(fit)
+\method{compute_data_loglikelihood}{mococomo_normal}(fit, data)
 
-\method{compute_data_loglikelihood}{mococomo_beta}(fit)
+\method{compute_data_loglikelihood}{mococomo_beta}(fit, data)
 }
 \arguments{
 \item{fit}{an MoCoCoMo fit object}

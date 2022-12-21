@@ -10,6 +10,7 @@ cFDR(
   pvalue,
   zscore,
   X,
+  coverage = 0.95,
   maxiter = 100,
   tol = 0.001,
   max_class = 10,

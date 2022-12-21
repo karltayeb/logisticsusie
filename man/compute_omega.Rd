@@ -4,7 +4,7 @@
 \alias{compute_omega}
 \title{Compute E\link{w} where w are the PG random variables in the augmented model}
 \usage{
-compute_omega(fit, kidx = NULL)
+compute_omega(fit, k, kidx = NULL)
 }
 \description{
 Compute E\link{w} where w are the PG random variables in the augmented model

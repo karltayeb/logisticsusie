@@ -4,7 +4,7 @@
 \alias{update_delta.binser}
 \title{update intercept and fixed effect covariates}
 \usage{
-update_delta.binser(fit, idx = NULL, kidx = NULL, shift = 0)
+update_delta.binser(fit, k, idx = NULL, kidx = NULL, shift = 0)
 }
 \description{
 update intercept and fixed effect covariates
