@@ -6,11 +6,13 @@ fit_uvb_ser_jax <- function(X, y, o = NULL,
                             estimate_intercept = T,
                             estimate_prior_variance = F,
                             prior_weights = NULL) {
-  sys <- reticulate::import("sys")
-  sys$path$append(system.file(package = "logisticsusie"))
+  path <- system.file("python", package = "logisticsusie")
+  sys <- reticulate::import("sys", convert = FALSE)
+  sys$path$append(path)
   reticulate::source_python(system.file("python", "ser.py", package = "logisticsusie"))
+
   tictoc::tic()
-  fit <- fit_uvb_ser(X, y, prior_variance)
+  fit <- fit_uvb_ser2(X, y, prior_variance)
   timer <- tictoc::toc()
   fit$elapsed_time <- with(timer, toc - tic)
   return(fit)
@@ -23,9 +25,13 @@ fit_tilted_ser_jax <- function(X, y, o = NULL,
                                estimate_intercept = T,
                                estimate_prior_variance = F,
                                prior_weights = NULL) {
+  path <- system.file("python", package = "logisticsusie")
+  sys <- reticulate::import("sys", convert = FALSE)
+  sys$path$append(path)
   reticulate::source_python(system.file("python", "ser.py", package = "logisticsusie"))
+
   tictoc::tic()
-  fit <- fit_tilted_ser(X, y, prior_variance)
+  fit <- fit_tilted_ser2(X, y, prior_variance)
   timer <- tictoc::toc()
   fit$elapsed_time <- with(timer, toc - tic)
   return(fit)
@@ -39,7 +45,11 @@ ibss2m_uvb_jax <- function(X, y, L = 10,
                            estimate_prior_variance = F,
                            prior_weights = NULL,
                            tol = 1e-5, maxit = 100, keep_2m = TRUE) {
+  path <- system.file("python", package = "logisticsusie")
+  sys <- reticulate::import("sys", convert = FALSE)
+  sys$path$append(path)
   reticulate::source_python(system.file("python", "ibss2m.py", package = "logisticsusie"))
+
   tictoc::tic()
   fit <- ibss2m_uvb(X, y, as.integer(L), as.numeric(prior_variance), tol = tol, maxit = as.integer(maxit), keep_2m = as.logical(keep_2m))
   timer <- tictoc::toc()
@@ -56,7 +66,11 @@ ibss2m_tilted <- function(X, y, L = 10,
                           estimate_prior_variance = F,
                           prior_weights = NULL,
                           tol = 1e-5, maxit = 100, keep_2m = TRUE) {
+  path <- system.file("python", package = "logisticsusie")
+  sys <- reticulate::import("sys", convert = FALSE)
+  sys$path$append(path)
   reticulate::source_python(system.file("python", "ibss2m.py", package = "logisticsusie"))
+
   tictoc::tic()
   fit <- ibss2m_tilted(X, y, as.integer(L), as.numeric(prior_variance), tol = tol, maxit = as.integer(maxit), keep_2m = as.logical(keep_2m))
   timer <- tictoc::toc()
