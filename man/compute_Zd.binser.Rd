@@ -4,7 +4,7 @@
 \alias{compute_Zd.binser}
 \title{fixed effects, intercept, shift}
 \usage{
-compute_Zd.binser(fit, idx = NULL, shift = 0)
+compute_Zd.binser(fit, k, idx = NULL, shift = 0)
 }
 \description{
 fixed effects, intercept, shift

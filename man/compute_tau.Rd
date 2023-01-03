@@ -5,7 +5,7 @@
 \title{Compute partial posterior variance
 use this immediately after updating xi}
 \usage{
-compute_tau(fit)
+compute_tau(fit, k, kidx = NULL)
 }
 \description{
 Compute partial posterior variance

@@ -4,7 +4,7 @@
 \alias{compute_kappa}
 \title{Compute E\link{y - N/2}}
 \usage{
-compute_kappa(fit, kidx = NULL)
+compute_kappa(fit, k, kidx = NULL)
 }
 \description{
 Compute E\link{y - N/2}

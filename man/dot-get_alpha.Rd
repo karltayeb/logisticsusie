@@ -4,7 +4,7 @@
 \alias{.get_alpha}
 \title{idx is for indexing when we run susie}
 \usage{
-.get_alpha(fit, idx = NULL)
+.get_alpha(fit, k, idx = NULL)
 }
 \description{
 idx is for indexing when we run susie

@@ -10,7 +10,8 @@ init.binsusie(
   prior_mean = 0,
   prior_variance = 1,
   prior_weights = NULL,
-  kidx = NULL
+  kidx = NULL,
+  from_init_moco = FALSE
 )
 }
 \description{

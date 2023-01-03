@@ -5,7 +5,7 @@
 \title{Variational M step for updating prior_variance
 Optimize ELBO wrt to prior effect standard deviation}
 \usage{
-update_prior_variance.binser(fit, idx = NULL)
+update_prior_variance.binser(fit, k, idx = NULL)
 }
 \description{
 Variational M step for updating prior_variance
