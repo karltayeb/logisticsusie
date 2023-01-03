@@ -1,9 +1,13 @@
 import numpy as np
 import jax.numpy as jnp
 from jax.scipy.special import logsumexp
+import matplotlib.pyplot as plt
 
 def sigmoid(x):
     return 0.5 * (jnp.tanh(x / 2) + 1)
+
+def logit(x):
+    return 2 * jnp.arctanh(2*x - 1)
 
 def polya_gamma_mean(b, c):
     """
@@ -19,3 +23,22 @@ def normal_kl(mu, var, mu0=0, var0=1):
 def categorical_kl(alpha, pi):
     kl = jnp.nansum(alpha * (jnp.log(alpha) - jnp.log(pi)))
     return kl
+
+def plot_contour(f, xrange: tuple = (-10, 10, 50), yrange: tuple = (-10, 10, 50)):
+    x = np.linspace(*xrange)
+    y = np.linspace(*yrange)
+
+    X, Y = np.meshgrid(x, y)
+    Z = f(X, Y)
+
+    plt.contourf(X, Y, Z, 20, cmap='RdGy')
+    plt.colorbar()
+    plt.show()
+    plt.close()
+
+def plot_1d(f, xrange: tuple= (-10, 10, 50)):
+    x = np.linspace(*xrange)
+    y = f(x)
+    plt.plot(x, y)
+    plt.show()
+    plt.close()
