@@ -106,67 +106,6 @@ get_all_cs <- function(fit, requested_coverage = 0.95) {
   return(sets)
 }
 
-
-#' @title Preparing data for mococomo fit
-#' @details Preparing data for mococomo fit for two type of input p-values or estimated regression coefficients
-#' currently only support one type of entry, whether betahat or p-values
-#'
-#' @param betahat numeric, vector of regression coefficients  list of containing the following element see
-#' @param se numeric, corresponding standard error
-#' @param p numeric observed p-values
-#' @param maxiter numeric, maximum numerous of iteration set to 100 by defaults
-#' @param tol tolerance in term of change in ELBO value for stopping criterion
-#' @export
-#' @example
-#' see \link{\code{fit.mococomo}}
-set_data_mococomo <- function(betahat, se, p, X, ...) {
-  if (!is.numeric(X)) {
-    stop("X should be numercial vector")
-  }
-  if (!is.matrix(X)) {
-    stop("X should be a matrix")
-  }
-
-
-  if (!missing(betahat)) {
-    if (!is.numeric(betahat)) {
-      stop("betahat should be numercial vector")
-    }
-    if (!is.numeric(se)) {
-      stop("se should be numercial vector")
-    }
-    if (!(sum(c(length(se) == length(betahat), length(se) == nrow(X))) == 2)) {
-      stop(" The number of lines in X should be equal to the number of entries in Betahat and se ")
-    }
-    dat <- list(
-      betahat = betahat,
-      se = se,
-      X = X
-    )
-    class(dat) <- c("normal", "data_mococomo")
-  }
-
-
-  if (!missing(p)) {
-    if (!is.numeric(p)) {
-      stop("p should be numercial vector")
-    }
-    if (!(length(p) == nrow(X)) == 1) {
-      stop(" The number of lines in X should be equal to the number of entries in p ")
-    }
-    dat <- list(
-      p = p,
-      se = rep(1, length(p)),
-      X = X
-    )
-    class(dat) <- c("beta", "data_mococomo")
-  }
-
-
-  return(dat)
-}
-
-
 get_all_cs2 <- function(alpha, requested_coverage = 0.95) {
   if (is.null(dim(alpha))) {
     alpha <- matrix(alpha, nrow = 1)
@@ -212,6 +151,7 @@ get_pip <- function(alpha) {
   pip <- purrr::map_dbl(1:p, ~ 1 - prod(1 - alpha[, .x]))
   return(pip)
 }
+
 #' set xi, update tau
 set_xi <- function(fit, xi) {
   fit$params$xi <- xi

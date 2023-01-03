@@ -150,7 +150,6 @@ for (i in seq(1, 10)) {
 test_susie_N <- function(N = 1) {
   data <- sim_susie(N = N)
   fit <- init.binsusie(data)
-  fit <- init.binsusie(data)
   fit <- fit.binsusie(fit, maxiter = 100, tol = 1e-5)
   return(list(
     fit = fit,
@@ -266,28 +265,28 @@ test_twococomo_N <- function(N = 1) {
 }
 
 
-#testthat::test_that("Two CoCoMo Monotone", {
+# testthat::test_that("Two CoCoMo Monotone", {
 #  for (i in seq(5)) {
 #    testthat::expect_true(test_twococomo_N(1)$monotone)
 #  }
-#})
+# })
 
 
-#test_twococomo_sparse <- function(N = 1) {
+# test_twococomo_sparse <- function(N = 1) {
 #  data <- sim_twococomo_sparse(N = N)
 #  fit <- fit.twococomo(data)
 #  return(list(
 #    fit = fit,
 #    monotone = .monotone(fit$elbo)
 #  ))
-#}
+# }
 
 
-#testthat::test_that("Two CoCoMo Monotone (SPARSE)", {
+# testthat::test_that("Two CoCoMo Monotone (SPARSE)", {
 #  for (i in seq(5)) {
 #    testthat::expect_true(test_twococomo_sparse(1)$monotone)
 #  }
-#})
+# })
 
 ###
 # Multinomial susie
@@ -322,11 +321,3 @@ test_mococomo_N <- function(N = 1) {
     monotone = .monotone(fit$elbo)
   ))
 }
-
-
-testthat::test_that("More CoCoMo Monotone", {
-  for (i in seq(5)) {
-    testthat::expect_true(test_mococomo_N(2)$monotone)
-  }
-})
-

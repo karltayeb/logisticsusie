@@ -1,0 +1,9 @@
+Metadata-Version: 2.1
+Name: logisticsusie
+Version: 1.0.0
+Summary: Python implimentation of logistic susie
+Home-page: https://github.com/karltayeb/logisticsusie.git
+Author: Karl Tayeb
+Author-email: karl.tayeb7@gmail.com
+License-File: LICENSE
+License-File: LICENSE.md

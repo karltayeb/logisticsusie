@@ -1,4 +1,3 @@
-
 #' @export
 fit_uvb_ser_jax <- function(X, y, o = NULL,
                             prior_variance = 1.0,
