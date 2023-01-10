@@ -53,8 +53,10 @@ fit_quad_1d_fixed_int <- function(x, y, b0, b_sigma, n = 2^10) {
 #' @export
 fit_quad_ser <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept = T, prior_weights = NULL, n = 2^10, parallel = F) {
   p <- dim(X)[2]
+  # fit glm for each column of X to get intercept
   glm_ser <- fit_glm_ser(X, y, prior_variance = prior_variance)
 
+  # likelihood under null mode of no effect (intercept-only model)
   null_loglik <- sum(dbinom(y, 1, mean(y), log = T))
   mapper <- ifelse(parallel, furrr::future_map_dbl, purrr::map_dbl)
   lbf <- mapper(1:p, ~ fit_quad_1d_fixed_int(

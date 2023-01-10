@@ -1,6 +1,6 @@
-# Functions for a generic IBSS algorithm
-# allows us to specify an SER function to run IBSS with...
-
+#' Functions for a generic IBSS algorithm
+#' allows us to specify an SER function to run IBSS with...
+#' @param ser_function a function for fitting SER, takes arguments `X`, `y`, `o` `prior_variance`, `estimate_intercept`, and `prior_weights`
 #' @export
 ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol = 1e-3, maxit = 100, estimate_intercept = TRUE, ser_function = NULL) {
   if (is.null(ser_function)) {
