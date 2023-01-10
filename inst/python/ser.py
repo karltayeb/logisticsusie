@@ -141,18 +141,20 @@ def make_ser(fit_fun):
 fit_uvb_ser = make_ser(fit_univariate_vb)
 fit_tilted_ser = make_ser(tilted_univariate_lr)
 
-def initialize_ser(X, y, tau0):
+def initialize_ser(X, y, tau0, o, o2):
     X = np.array(X)
     y = np.array(y)
     data = dict(X=X, y=y)
     n, p = X.shape
-    re = initialize_re(n)
+    
+    
+    re = initialize_re(n, o, o2)
     params = initialize_ser_params(n, p, tau0)
     return(dict(data=data, re=re, params=params, control={}))
 
-def fit_uvb_ser2(X, y, tau0):
+def fit_uvb_ser2(X, y, tau0, o, o2):
     return map_nested_dicts(
-      fit_uvb_ser(**initialize_ser(X, y, tau0)),
+      fit_uvb_ser(**initialize_ser(X, y, tau0, o, o2)),
       np.array
     )
 
