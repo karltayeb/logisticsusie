@@ -2,6 +2,16 @@ import numpy as np
 import jax.numpy as jnp
 from jax.scipy.special import logsumexp
 import matplotlib.pyplot as plt
+import collections
+
+def map_nested_dicts(ob, func):
+    """
+    Apply func to each element of a nested dict, recursively
+    """
+    if isinstance(ob, dict):
+        return {k: map_nested_dicts(v, func) for k, v in ob.items()}
+    else:
+        return func(ob)
 
 def sigmoid(x):
     return 0.5 * (jnp.tanh(x / 2) + 1)

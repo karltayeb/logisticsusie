@@ -1,7 +1,8 @@
 import numpy as np
 import jax.numpy as jnp
-from inst.python.ser import fit_tilted_ser, fit_uvb_ser
-from inst.python.ser import initialize_re, initialize_ser_params
+from ser import fit_tilted_ser, fit_uvb_ser
+from ser import initialize_re, initialize_ser_params
+from utils import map_nested_dicts
 
 def pluck(dicts: dict, k) -> np.ndarray:
     """Pull key from dictionary of dictionaries
@@ -214,6 +215,7 @@ def make_ibss2m(ser_fun):
             psi = psi,
             track = fit['track']
         )
+        susie = map_nested_dicts(susie, np.array)
         return susie
 
     return ibss2m_jax

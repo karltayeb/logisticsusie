@@ -1,8 +1,8 @@
 import jax.numpy as jnp
 import numpy as np
-from inst.python.utils import categorical_kl
-from inst.python.tilted import tilted_univariate_lr
-from inst.python.univariate_vb import fit_univariate_vb
+from utils import categorical_kl, map_nested_dicts
+from tilted import tilted_univariate_lr
+from univariate_vb import fit_univariate_vb
 
 from jax import jit, vmap
 from jax.scipy.special import logsumexp
@@ -151,7 +151,13 @@ def initialize_ser(X, y, tau0):
     return(dict(data=data, re=re, params=params, control={}))
 
 def fit_uvb_ser2(X, y, tau0):
-    return fit_uvb_ser(**initialize_ser(X, y, tau0))
+    return map_nested_dicts(
+      fit_uvb_ser(**initialize_ser(X, y, tau0)),
+      np.array
+    )
 
 def fit_tilted_ser2(X, y, tau0):
-    return fit_tilted_ser(**initialize_ser(X, y, tau0))
+    return map_nested_dicts(
+      fit_tilted_ser(**initialize_ser(X, y, tau0)),
+      np.array
+    )

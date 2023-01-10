@@ -4,7 +4,7 @@ import jax
 from jax import vmap, jit
 from jax.lax import while_loop
 from jax.scipy.special import logsumexp
-from inst.python.utils import polya_gamma_mean, normal_kl, categorical_kl
+from utils import polya_gamma_mean, normal_kl, categorical_kl
 
 def update_intercept(x, y, mu, tau, xi, delta, tau0, offset, offset2):
     kappa = y - 0.5

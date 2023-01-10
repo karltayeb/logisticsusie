@@ -4,7 +4,7 @@ from jax import grad, hessian
 from jax.lax import while_loop
 from jax import jit, vmap
 from jax.scipy.special import logsumexp
-from inst.python.utils import sigmoid, normal_kl, logit
+from utils import sigmoid, normal_kl, logit
 from jax.scipy.optimize import minimize
 
 def tilted_psi(data: dict, re: dict, params: dict):
