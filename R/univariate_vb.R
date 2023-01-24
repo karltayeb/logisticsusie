@@ -197,5 +197,6 @@ fit_uvb_ser <- function(X, y, o = NULL,
     null_loglik = null_likelihood,
     o = o
   )
+  class(res) <- "ser"
   return(res)
 }

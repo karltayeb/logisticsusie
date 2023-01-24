@@ -108,3 +108,8 @@ ibss_l2 <- function(beta_post_history, iter) {
 ibss_monitor_convergence <- function(fit) {
   purrr::map_dbl(2:(fit$iter), ~ ibss_l2(fit$beta_post_history, .x))
 }
+
+
+ser_from_univariate <- function() {
+  return(0)
+}

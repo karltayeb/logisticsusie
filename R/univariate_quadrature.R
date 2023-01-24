@@ -1,10 +1,7 @@
 # Compute likelihood conditional on effect size y ~ Bernoulli(sigmoid(x*b + delta))
-conditional_likelihood <- function(x, y, b, delta = 0, log = F) {
-  p <- sigmoid(x * b + delta)
-  ll <- sum(dbinom(y, 1, p, log = T))
-  if (!log) {
-    ll <- exp(ll) # rescale for numerical stability?
-  }
+conditional_log_likelihood <- function(x, y, o, b, b0) {
+  psi <- x * b + b0 + o
+  ll <- sum(y * psi + logsigmoid(-psi))
   return(ll)
 }
 
@@ -53,6 +50,7 @@ fit_quad_1d_fixed_int <- function(x, y, b0, b_sigma, n = 2^10) {
 #' @export
 fit_quad_ser <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept = T, prior_weights = NULL, n = 2^10, parallel = F) {
   p <- dim(X)[2]
+
   # fit glm for each column of X to get intercept
   glm_ser <- fit_glm_ser(X, y, prior_variance = prior_variance)
 
