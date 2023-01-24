@@ -96,7 +96,7 @@ fit_bayes_ser <- function(X, y, o = NULL, prior_variance = 1, estimate_intercept
 
   # use uvb intercepts as fixed intercept
   uvb <- logisticsusie::fit_uvb_ser(X, y, o = o)
-  fits <- bind_rows(purrr::map(1:p, ~ bayes_logistic(X[, .x], y, o, uvb$intercept[.x], s0, quad)))
+  fits <- dplyr::bind_rows(purrr::map(1:p, ~ bayes_logistic(X[, .x], y, o, uvb$intercept[.x], s0, quad)))
   fits$lbf <- fits$logpy - null_loglik
 
   # compute summaries
