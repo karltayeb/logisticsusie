@@ -22,6 +22,20 @@ softmax <- function(x) {
   return(exp(x - logSumExp(x)))
 }
 
+# numerically stable manner. For large entries of x, log(1 + exp(x)) is
+# effectively the same as x.
+logpexp <- function(x) {
+  y <- x
+  i <- which(x < 16)
+  y[i] <- log(1 + exp(x[i]))
+  return(y)
+}
+
+# Use this instead of log(sigmoid(x)) to avoid loss of numerical precision.
+logsigmoid <- function(x) {
+  -logpexp(-x)
+}
+
 .monotone <- function(v) {
   return(all(tail(v, -1) - head(v, -1) >= 0))
 }

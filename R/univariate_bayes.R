@@ -15,34 +15,6 @@ sigmoid <- function(x) {
 }
 
 # logpexp(x) returns log(1 + exp(x)). The computation is performed in a
-# numerically stable manner. For large entries of x, log(1 + exp(x)) is
-# effectively the same as x.
-logpexp <- function(x) {
-  y <- x
-  i <- which(x < 16)
-  y[i] <- log(1 + exp(x[i]))
-  return(y)
-}
-
-# Use this instead of log(sigmoid(x)) to avoid loss of numerical precision.
-logsigmoid <- function(x) {
-  -logpexp(-x)
-}
-
-# Compute the softmax of vector x in a more numerically prudent manner
-# that avoids overflow or underflow.
-softmax <- function(x) {
-  y <- exp(x - max(x))
-  return(y / sum(y))
-}
-
-# return log of the sum of the exponential of x
-# computed in a numerically stable manner
-logsumexp <- function(x) {
-  u <- max(x)
-  return(log(sum(exp(x - u))) + u)
-}
-
 # Inference -------
 # Compute likelihood conditional log likelihood
 conditional_log_likelihood <- function(x, y, o, b, b0) {
@@ -128,7 +100,7 @@ fit_bayes_ser <- function(X, y, o = NULL, prior_variance = 1, estimate_intercept
   fits$lbf <- fits$logpy - null_loglik
 
   # compute summaries
-  alpha <- exp(fits$lbf - logsumexp(fits$lbf))
+  alpha <- exp(fits$lbf - matrixStats::logSumExp(fits$lbf))
   lbf_model <- sum(alpha * fits$lbf) - categorical_kl(alpha, rep(1 / p, p))
 
   # return standard ouput: mu var alpha intercept, lbf
