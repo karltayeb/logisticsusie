@@ -2,6 +2,7 @@
 
 S3method(compute_data_loglikelihood,mococomo_beta)
 S3method(compute_data_loglikelihood,mococomo_normal)
+export("%>%")
 export(binser)
 export(binsusie)
 export(binsusie_get_cs)
@@ -39,3 +40,4 @@ export(sim_ser_with_covariates)
 export(sim_susie)
 export(sim_twococomo)
 importFrom(Matrix,rowSums)
+importFrom(magrittr,"%>%")
