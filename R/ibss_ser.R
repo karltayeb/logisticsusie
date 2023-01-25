@@ -110,6 +110,56 @@ ibss_monitor_convergence <- function(fit) {
 }
 
 
-ser_from_univariate <- function() {
-  return(0)
+#' Take a function for fitting univariate regression and
+#'
+#' this is a utlity function for generating SER fit function compatible with `ibss_from_ser`
+#' if you have a function for fitting a univariate regression this will create a function for fitting an SER
+#'
+#' @param uni_fun a function for fitting univariate regression
+#'  must take arguments: x, y, o, prior_variance, estimate_intercept
+#'    additional arguments passed via ...
+#'    hint: it may be useful to pass null model likelihood in ...
+#'  must return: a list with items lbf = log bayes factor, mu = posterior mean, var = posterior variance, intercept=intercept
+#'    note that posterior variance doesn't figure in computations so you can set it to a dummy value (e.g. 0)
+#' @export
+ser_from_univariate <- function(uni_fun) {
+  # a function for fitting SER
+  ser_fun <- function(X, y, o = NULL, prior_variance = 1, estimate_intercept = T, prior_weights = NULL, ...) {
+    # set=up
+    p <- dim(X)[2]
+
+    # 0 offset if not specified
+    if (is.null(o)) {
+      o <- rep(0, length(y))
+    }
+
+    # use uvb intercepts as fixed intercept
+    fits <- dplyr::bind_rows(purrr::map(1:p, ~ uni_fun(X[, .x], y, o, prior_variance = prior_variance, estimate_intercept = estimate_intercept, ...)))
+
+    # compute summaries
+    alpha <- exp(fits$lbf - matrixStats::logSumExp(fits$lbf))
+    lbf_model <- sum(alpha * fits$lbf) - categorical_kl(alpha, rep(1 / p, p))
+
+    # return standard ouput: mu var alpha intercept, lbf
+    res <- list(
+      mu = fits$mu,
+      var = fits$var,
+      alpha = alpha,
+      intercept = fits$intercept,
+      lbf = fits$lbf,
+      lbf_model = lbf_model,
+      prior_variance = prior_variance
+    )
+    class(res) <- "ser"
+    return(res)
+  }
+  return(ser_fun)
 }
+
+
+# uni_fun <- function(...){
+#   return(list(mu = 0, var=0, lbf=rnorm(1), intercept=0))
+# }
+# ser_fun <- ser_from_univariate(uni_fun)
+# fit <- with(sim, ser_fun(X, y))
+# fit$lbf_model
