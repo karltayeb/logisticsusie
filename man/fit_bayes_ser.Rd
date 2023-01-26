@@ -11,7 +11,8 @@ fit_bayes_ser(
   prior_variance = 1,
   estimate_intercept = T,
   prior_weights = NULL,
-  n = 2^10
+  n = 2^10,
+  optimize_b0 = F
 )
 }
 \description{

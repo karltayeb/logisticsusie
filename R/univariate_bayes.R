@@ -76,7 +76,7 @@ bayes_logistic <- function(x, y, o, b0_init, s0, quad, optimize_b0 = F) {
 #' Estimate a fixed intercept using UVB approximation
 #' and then numerically integrate over effect variable with normal prior
 #' @export
-fit_bayes_ser <- function(X, y, o = NULL, prior_variance = 1, estimate_intercept = T, prior_weights = NULL, n = 2^10) {
+fit_bayes_ser <- function(X, y, o = NULL, prior_variance = 1, estimate_intercept = T, prior_weights = NULL, n = 2^10, optimize_b0 = F) {
   # set=up
   p <- dim(X)[2]
   s0 <- sqrt(prior_variance)
@@ -95,8 +95,15 @@ fit_bayes_ser <- function(X, y, o = NULL, prior_variance = 1, estimate_intercept
   }
 
   # use uvb intercepts as fixed intercept
-  uvb <- logisticsusie::fit_uvb_ser(X, y, o = o)
-  fits <- dplyr::bind_rows(purrr::map(1:p, ~ bayes_logistic(X[, .x], y, o, uvb$intercept[.x], s0, quad)))
+  if (optimize_b0) {
+    # if we're optimizing the intercept we don't need to estimate it first
+    init_intercepts <- rep(0, p)
+  } else {
+    # use uvb intercept as a fixed intercept (it's very close to MLE in practice)
+    uvb <- logisticsusie::fit_uvb_ser(X, y, o = o)
+    init_intercepts <- uvb$intercept
+  }
+  fits <- dplyr::bind_rows(purrr::map(1:p, ~ bayes_logistic(X[, .x], y, o, init_intercepts[.x], s0, quad, optimize_b0 = optimize_b0)))
   fits$lbf <- fits$logpy - null_loglik
 
   # compute summaries
