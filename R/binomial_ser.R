@@ -169,18 +169,6 @@ compute_Xb2.binser <- function(fit, idx = NULL, shift = 0) {
   return(Xb2)
 }
 
-#' Compute E[y - N/2]
-compute_kappa <- function(fit, kidx = NULL) {
-  kappa <- .get_y(fit, kidx) - 0.5 * .get_N(fit, kidx)
-  return(kappa)
-}
-
-#' Compute E[w] where w are the PG random variables in the augmented model
-compute_omega <- function(fit, kidx = NULL) {
-  omega <- pg_mean(.get_N(fit, kidx), .get_xi(fit, kidx))
-  return(omega)
-}
-
 #' Compute a scaled posterior mean
 #' TODO: add support for non-zero prior mean
 #' @param fit a SER object
@@ -196,13 +184,6 @@ compute_nu.binser <- function(fit, idx = NULL, kidx = NULL, shift = 0) {
   return(nu)
 }
 
-#' Compute partial posterior variance
-#' use this immediately after updating xi
-compute_tau <- function(fit) {
-  omega <- compute_omega(fit)
-  tau <- Matrix::drop(omega %*% fit$data$X2)
-  return(tau)
-}
 
 
 #' update for variational parameter parameter xi q(w) = PG(N, xi)
