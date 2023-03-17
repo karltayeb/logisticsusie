@@ -36,9 +36,15 @@ coef.binsusie2 <- function(fit, data) {
 
 #' Expected linear prediction
 compute_Xb.binsusie2 <- function(fit, data) {
-  Xb <- drop(data$X %*% colSums(get_alpha(fit) * get_mu(fit)))
-  Zd <- drop(data$Z %*% colSums(get_delta(fit)))
-  return(Matrix::drop(Xb + Zd))
+  Xb <- Matrix::drop(data$X %*% colSums(get_alpha(fit) * get_mu(fit)))
+  return(Xb)
+}
+
+#' Expected linear prediction
+compute_psi.binsusie2 <- function(fit, data) {
+  Xb <- compute_Xb(fit, data)
+  Zd <- Matrix::drop(data$Z %*% colSums(get_delta(fit)))
+  return(Xb + Zd)
 }
 
 #' Second moment of linear prediction
@@ -46,57 +52,57 @@ compute_Xb2.binsusie2 <- function(fit, data) {
   B <- get_alpha(fit) * get_mu(fit)
   XB <- data$X %*% t(B)
   Xb <- rowSums(XB)
-  Zd <- drop(data$Z %*% colSums(get_delta(fit)))
 
   B2 <- get_alpha(fit) * (get_mu(fit)^2 + get_var(fit))
   b2 <- colSums(B2)
 
   Xb2 <- (data$X2 %*% b2)[, 1] + Xb**2 - rowSums(XB^2)
-  Xb2 <- drop(Xb2 + 2 * Xb * Zd + Zd^2)
   return(Xb2)
+}
+
+compute_psi2.binsusie2 <- function(fit, data){
+  Xb2 <- compute_Xb2(fit, data)
+  Xb <- compute_Xb(fit, data)
+  Zd <- drop(data$Z %*% colSums(get_delta(fit)))
+  psi2 <- drop(Xb2 + (2 * Xb * Zd) + Zd^2)
+  return(psi2)
 }
 
 #' Compute KL(q(\beta) || p(\beta)) for Sum of SERs
 #' Note this does not include KL(q(\omega) || p(\omega))
 #' since that gets computes as part of the JJ bound
 compute_kl.binsusie2 <- function(fit) {
-  kl <- sum(purrr::map_dbl(seq(fit$L), ~ .compute_ser_kl(
-    get_alpha(fit$sers[[.x]]),
-    get_pi(fit$sers[[.x]]),
-    get_mu(fit$sers[[.x]]),
-    get_var(fit$sers[[.x]]),
-    get_mu0(fit$sers[[.x]]),
-    get_var0(fit$sers[[.x]])
-  )))
+  kl <- sum(purrr::map_dbl(seq(fit$L), ~ compute_kl(fit$sers[[.x]])))
   return(kl)
 }
 
 #' Compute E[p(z, w| b) - q(w)], which is the same as
 #' the bound on the logistic function proposed by Jaakkola and Jordan
 #' NOTE: this only works when xi is updated!
-jj_bound.binsusie2 <- function(fit, data) {
-  xi <- get_xi(fit)
-  Xb <- compute_Xb.binsusie(fit, data)
+compute_jj.binsusie2 <- function(fit, data) {
+  xi <- fit$xi
+  psi <- compute_psi(fit, data)
   kappa <- data$y - 0.5 * data$N
   n <- data$N
 
-  bound <- n * log(sigmoid(xi)) + (kappa * Xb) - (0.5 * n * xi)
+  bound <- n * log(sigmoid(xi)) + (kappa * psi) - (0.5 * n * xi)
   return(bound)
 }
 
+
 compute_elbo.binsusie2 <- function(fit, data) {
-  jj <- sum(jj_bound.binsusie2(fit, data)) # E[log p(y, w | b) - logp(w)]
-  kl <- compute_kl.binsusie2(fit) # KL(q(b) || p(b))
+  jj <- sum(compute_jj(fit, data)) # E[p(y | w, b)] - KL[q(b) || p(b)]
+  kl <- compute_kl(fit) # KL[q(b) || p(b)]
   return(jj - kl)
 }
 
 #' Compute E[p(z, w| b) - q(w)], which is the same as
 #' the bound on the logistic function proposed by Jaakkola and Jordan
-jj_bound2.binsusie2 <- function(fit, data) {
+compute_jj2.binsusie2 <- function(fit, data) {
   jj <- jj_bound.binsusie2(fit, data)
-  Xb2 <- compute_Xb2(fit, data)
+  psi2 <- compute_psi2(fit, data)
   omega <- pg_kl(data$N, fit$xi)
-  bound <- jj + 0.5 * omega * (xi^2 - Xb2)
+  bound <- jj + 0.5 * omega * (xi^2 - psi2)
   return(bound)
 }
 
@@ -110,6 +116,17 @@ compute_elbo2.binsusie <- function(fit, data) {
 # Updates ----
 ###
 
+add_re <- function(mu, mu2, psi, psi2){
+  new_mu = mu + psi
+  new_mu2 = mu2 + psi2 + (2 * mu * psi)
+  return(list(mu=new_mu, mu2=new_mu2))
+}
+
+sub_re <- function(mu, mu2, psi, psi2){
+  new_mu = mu - psi
+  new_mu2 = mu2 - psi2 - (2 * (mu-psi) * psi)
+  return(list(mu=new_mu, mu2=new_mu2))
+}
 
 #' update alpha, mu, and var
 update_model.binsusie2 <- function(fit, data,
@@ -117,198 +134,76 @@ update_model.binsusie2 <- function(fit, data,
                                fit_prior_variance = TRUE,
                                fit_alpha = TRUE,
                                fit_xi = TRUE,
-                               update_idx = NULL) {
+                               update_idx = NULL,
+                               track_elbo=TRUE) {
   if (is.null(update_idx)) {
     update_idx <- seq(fit$L)
   }
-  shift <- compute_Xb(fit, data)
+
+  re = list(
+    mu = compute_psi(fit, data),
+    mu2 = compute_psi2(fit, data)
+  )
   for (l in update_idx) {
     # remove current effect estimate
-    shift <- Matrix::drop(shift - compute_Xb(fit$sers[[l]], data))
+    re = sub_re(re$mu,
+                re$mu2,
+                compute_psi(fit$sers[[l]], data),
+                compute_psi2(fit$sers[[l]], data))
+
+    data$shift <- re$mu
+    data$shift_var <- re$mu2 - re$mu^2
 
     # update SER
-    data$shift <- shift
     fit$sers[[l]]$xi <- fit$xi
+    fit$sers[[l]]$tau <- fit$tau
     fit$sers[[l]] <- update_model(fit$sers[[l]], data,
                                   fit_intercept = fit_intercept,
                                   fit_prior_variance = fit_prior_variance,
-                                  fit_alpha = fit_alpha)
-    # add current effect estimate
-    data$shift <- 0
-    shift <- shift + compute_Xb(fit$ser[[l]], data)
+                                  fit_alpha = fit_alpha,
+                                  fit_xi = T)
 
-    # update xi
-    if (fit_xi) {
-      fit$params$xi <- update_xi(fit, data)
-      fit$params$tau <- compute_tau(fit, data)
-    }
+
+    # add current effect estimate
+    re = add_re(re$mu,
+                re$mu2,
+                compute_psi(fit$sers[[l]], data),
+                compute_psi2(fit$sers[[l]], data))
+
+    fit$xi <- fit$sers[[l]]$xi
+    fit$tau <- fit$sers[[l]]$tau
+  }
+
+  if(track_elbo){
+    fit$elbo <- c(fit$elbo, compute_elbo(fit, data))
   }
   return(fit)
 }
 
-
-###
-# Fitting ----
-###
-
-.init.binsusie.params <- function(n, p, p2, L) {
-  params <- list(
-    alpha = matrix(rep(1, p * L) / p, nrow = L),
-    mu = matrix(rep(0, L * p), nrow = L),
-    var = matrix(rep(1, L * p), nrow = L),
-    delta = matrix(rep(0, p2 * L, nrow = L)),
-    xi = rep(1e-3, n),
-    tau = 0 # initialized at end of this function
-  )
-  return(params)
+# Initialization -------
+initialize_binsusie2 <- function(L, n, p, p2, mu0=0, var0=1, pi = rep(1/p, p)){
+  if(length(mu0) < L){
+    mu0 <- rep(mu0, L)
+  }
+  if(length(var0) < L){
+    var0 <- rep(var0, L)
+  }
+  sers <- purrr::map(1:L, ~initialize_binser(n, p, p2, mu0[.x], var0[.x], pi))
+  xi <- rep(1e-3, n)
+  fit <- list(sers=sers, xi=xi, L=L, elbo=-Inf)
+  class(fit) <- 'binsusie2'
+  return(fit)
 }
 
-.init.binsusie.hypers <- function(n, p, L, prior_mean, prior_variance, prior_weights) {
-  stopifnot("`prior_mean` must be scalar of length L`" = length(prior_mean) %in% c(1, L))
-  if (length(prior_mean) == 1) {
-    prior_mean <- rep(prior_mean, L)
-  }
-  stopifnot("`prior_variance` must be scalar of length L`" = length(prior_variance) %in% c(1, L))
-  if (length(prior_variance) == 1) {
-    prior_variance <- rep(prior_variance, L)
-  }
-
-  if (is.null(prior_weights)) {
-    prior_weights <- matrix(rep(1 / p, p * L), nrow = L)
-  } else if (is.matrix(prior_weights)) {
-    stopifnot("`prior weights must be a L x p matrix or p vector" = all(dim(prior_weights) == c(L, p)))
-    stopifnot("`prior weights must sum to one" = all(rowSums(prior_weights) == 1))
-  } else {
-    stopifnot("`prior weights must be a L x p matrix or p vector" = length(prior_weights) == p)
-    stopifnot("`prior weights must sum to one" = sum(prior_weights) == 1)
-    prior_weights <- matrix(rep(prior_weights, L), nrow = L, byrow = T)
-  }
-
-  hypers <- list(
-    L = L,
-    pi = prior_weights, # categorical probability of nonzero effect
-    prior_mean = prior_mean, # prior mean of effect
-    prior_variance = prior_variance # prior variance of effect, TODO: include as init arg,
-  )
-  return(hypers)
-}
-
-#' initialize SER
-init.binsusie <- function(data, L = 5, prior_mean = 0, prior_variance = 1, prior_weights = NULL, kidx = NULL) {
+data_initialize_binsusie2 <- function(data, L, mu0=0, var0=1){
   n <- nrow(data$X)
   p <- ncol(data$X)
   p2 <- ncol(data$Z)
-
-  params <- .init.binsusie.params(n, p, p2, L)
-  hypers <- .init.binsusie.hypers(n, p, L, prior_mean, prior_variance, prior_weights)
-
-  data$X2 <- data$X^2
-
-  # TODO: check that data has y, N, X, Z
-  fit.init <- list(
-    data = data,
-    params = params,
-    hypers = hypers,
-    elbo = c(-Inf)
-  )
-  fit.init$kidx <- kidx
-  fit.init$params$tau <- compute_tau(fit.init)
-  return(fit.init)
-}
-
-
-#' Fit the binomial single effect regression
-fit.binsusie <- function(fit,
-                         maxiter = 10,
-                         tol = 1e-3,
-                         fit_intercept = TRUE,
-                         fit_prior_variance = TRUE,
-                         fit_xi = TRUE,
-                         fit_alpha = TRUE,
-                         fast_elbo = TRUE,
-                         kidx = NULL) {
-  for (i in 1:maxiter) {
-    fit <- iter.binsusie(fit, fit_intercept, fit_prior_variance, fit_xi, fit_alpha)
-    # update elbo
-    if (fast_elbo) {
-      fit$elbo <- c(fit$elbo, compute_elbo.binsusie(fit))
-    } else {
-      fit$elbo <- c(fit$elbo, compute_elbo2.binsusie(fit))
-    }
-    if (.converged(fit, tol)) {
-      break
-    }
-  }
+  fit <- initialize_binsusie2(L, n, p, p2, mu0, var0)
+  fit$xi <- update_xi(fit, data)
+  fit$tau <- compute_tau(fit, data)
   return(fit)
 }
-
-#' remove a single effect and refit model
-#' This function zeros out a single effect and refits the model
-#' Used as a subroutine for `prune_model` which removes irrelevant features
-prune_model_idx <- function(fit, idx, fit_intercept = T, fit_prior_variance = F, tol = 1e-3, maxiter = 10) {
-  # copy the susie model
-  fit2 <- fit
-
-  # don't update this index
-  update_idx <- seq(fit2$hypers$L)
-  update_idx <- update_idx[idx != update_idx]
-
-  # instead, fix in to 0
-  fit2$params$mu[idx, ] <- 0
-  fit2$params$var[idx, ] <- 1e-10
-  fit2$params$delta[idx, ] <- 0
-  fit2$hypers$prior_mean[idx] <- 0
-  fit2$hypers$prior_variance[idx] <- 1e-10
-
-  # new elbo
-  fit2$elbo <- compute_elbo.binsusie(fit2)
-
-  # CAVI loop
-  for (i in 1:maxiter) {
-    # update b
-    fit2 <- update_b.binsusie(fit2,
-      fit_intercept = fit_intercept,
-      fit_prior_variance = fit_prior_variance,
-      update_idx = update_idx
-    )
-    # update xi
-    fit2$params$xi <- update_xi.binsusie(fit2)
-    fit2$params$tau <- compute_tau(fit2)
-
-    # update elbo
-    fit2$elbo <- c(fit2$elbo, compute_elbo.binsusie(fit2))
-    if (.converged(fit2, tol)) {
-      break
-    }
-  }
-  return(fit2)
-}
-
-#' Prune Model
-#' Remove irrelevant features from logistic SuSiE fit
-#' @param fit a fit logistic Susie model
-#' @param check_null_threshold if ELBO_null + check_null_threshold > ELBO drop the single effect
-#' @param fit_intercept boolean to re-estimate intercept in simplified model, defaul TRUE
-#' @param fit_prior_variance boolean to re-estimate prior variance in simplified model, default FALSE
-#' @param tol tolerance to declare convergence when fitting simplified model
-prune_model <- function(fit, check_null_threshold, fit_intercept = T, fit_prior_variance = F, tol = 1e-3) {
-  # order by explained variance
-  var0 <- purrr::map_dbl(seq(fit$hypers$L), ~ update_prior_variance.binser(fit, idx = .x))
-  idx_order <- order(var0, decreasing = F)
-
-  for (idx in idx_order) {
-    fit2 <- prune_model_idx(fit, idx = idx, fit_intercept = fit_intercept, fit_prior_variance = fit_prior_variance, tol = tol)
-    null_diff <- tail(fit2$elbo, 1) - tail(fit$elbo, 1)
-    if (null_diff + check_null_threshold > 0) {
-      message(paste0("Null ELBO diff: ", null_diff, "... REMOVING effect"))
-      fit <- fit2
-    } else {
-      message(paste0("Null ELBO diff: ", null_diff, "... KEEPING effect"))
-    }
-  }
-  return(fit)
-}
-
 
 #' BinSuSiE Wrapup
 #' Compute fit summaries (PIPs, CSs, etc) and
