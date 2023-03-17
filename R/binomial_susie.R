@@ -4,22 +4,22 @@
 
 # Getters------
 
-get_alpha.binsusie2 <- function(fit){
+get_alpha.binsusie <- function(fit){
   do.call(rbind, purrr::map(1:fit$L, ~get_alpha(fit$sers[[.x]])))
 }
-get_mu.binsusie2 <- function(fit){
+get_mu.binsusie <- function(fit){
   do.call(rbind, purrr::map(1:fit$L, ~get_mu(fit$sers[[.x]])))
 }
-get_var.binsusie2 <- function(fit){
+get_var.binsusie <- function(fit){
   do.call(rbind, purrr::map(1:fit$L, ~get_var(fit$sers[[.x]])))
 }
-get_delta.binsusie2 <- function(fit){
+get_delta.binsusie <- function(fit){
   do.call(rbind, purrr::map(1:fit$L, ~get_delta(fit$sers[[.x]])))
 }
-get_var0.binsusie2 <- function(fit){
+get_var0.binsusie <- function(fit){
   do.call(rbind, purrr::map(1:fit$L, ~get_var0(fit$sers[[.x]])))
 }
-get_mu0.binsusie2 <- function(fit){
+get_mu0.binsusie <- function(fit){
   do.call(rbind, purrr::map(1:fit$L, ~get_mu0(fit$sers[[.x]])))
 }
 
@@ -29,26 +29,26 @@ get_mu0.binsusie2 <- function(fit){
 #' Extract regression coefficients from binomial SER fit
 #' @param fit Binomial SER object
 #' @return Return E[\beta]
-coef.binsusie2 <- function(fit, data) {
+coef.binsusie <- function(fit, data) {
   b <- colSums(get_alpha(fit) * get_mu(fit))
   return(b)
 }
 
 #' Expected linear prediction
-compute_Xb.binsusie2 <- function(fit, data) {
+compute_Xb.binsusie <- function(fit, data) {
   Xb <- Matrix::drop(data$X %*% colSums(get_alpha(fit) * get_mu(fit)))
   return(Xb)
 }
 
 #' Expected linear prediction
-compute_psi.binsusie2 <- function(fit, data) {
+compute_psi.binsusie <- function(fit, data) {
   Xb <- compute_Xb(fit, data)
   Zd <- Matrix::drop(data$Z %*% colSums(get_delta(fit)))
   return(Xb + Zd)
 }
 
 #' Second moment of linear prediction
-compute_Xb2.binsusie2 <- function(fit, data) {
+compute_Xb2.binsusie <- function(fit, data) {
   B <- get_alpha(fit) * get_mu(fit)
   XB <- data$X %*% t(B)
   Xb <- rowSums(XB)
@@ -60,7 +60,7 @@ compute_Xb2.binsusie2 <- function(fit, data) {
   return(Xb2)
 }
 
-compute_psi2.binsusie2 <- function(fit, data){
+compute_psi2.binsusie <- function(fit, data){
   Xb2 <- compute_Xb2(fit, data)
   Xb <- compute_Xb(fit, data)
   Zd <- drop(data$Z %*% colSums(get_delta(fit)))
@@ -71,7 +71,7 @@ compute_psi2.binsusie2 <- function(fit, data){
 #' Compute KL(q(\beta) || p(\beta)) for Sum of SERs
 #' Note this does not include KL(q(\omega) || p(\omega))
 #' since that gets computes as part of the JJ bound
-compute_kl.binsusie2 <- function(fit) {
+compute_kl.binsusie <- function(fit) {
   kl <- sum(purrr::map_dbl(seq(fit$L), ~ compute_kl(fit$sers[[.x]])))
   return(kl)
 }
@@ -79,7 +79,7 @@ compute_kl.binsusie2 <- function(fit) {
 #' Compute E[p(z, w| b) - q(w)], which is the same as
 #' the bound on the logistic function proposed by Jaakkola and Jordan
 #' NOTE: this only works when xi is updated!
-compute_jj.binsusie2 <- function(fit, data) {
+compute_jj.binsusie <- function(fit, data) {
   xi <- fit$xi
   psi <- compute_psi(fit, data)
   kappa <- data$y - 0.5 * data$N
@@ -90,7 +90,7 @@ compute_jj.binsusie2 <- function(fit, data) {
 }
 
 
-compute_elbo.binsusie2 <- function(fit, data) {
+compute_elbo.binsusie <- function(fit, data) {
   jj <- sum(compute_jj(fit, data)) # E[p(y | w, b)] - KL[q(b) || p(b)]
   kl <- compute_kl(fit) # KL[q(b) || p(b)]
   return(jj - kl)
@@ -98,8 +98,8 @@ compute_elbo.binsusie2 <- function(fit, data) {
 
 #' Compute E[p(z, w| b) - q(w)], which is the same as
 #' the bound on the logistic function proposed by Jaakkola and Jordan
-compute_jj2.binsusie2 <- function(fit, data) {
-  jj <- jj_bound.binsusie2(fit, data)
+compute_jj2.binsusie <- function(fit, data) {
+  jj <- jj_bound.binsusie(fit, data)
   psi2 <- compute_psi2(fit, data)
   omega <- pg_kl(data$N, fit$xi)
   bound <- jj + 0.5 * omega * (xi^2 - psi2)
@@ -129,7 +129,7 @@ sub_re <- function(mu, mu2, psi, psi2){
 }
 
 #' update alpha, mu, and var
-update_model.binsusie2 <- function(fit, data,
+update_model.binsusie <- function(fit, data,
                                fit_intercept = TRUE,
                                fit_prior_variance = TRUE,
                                fit_alpha = TRUE,
@@ -181,7 +181,7 @@ update_model.binsusie2 <- function(fit, data,
 }
 
 # Initialization -------
-initialize_binsusie2 <- function(L, n, p, p2, mu0=0, var0=1, pi = rep(1/p, p)){
+initialize_binsusie <- function(L, n, p, p2, mu0=0, var0=1, pi = rep(1/p, p)){
   if(length(mu0) < L){
     mu0 <- rep(mu0, L)
   }
@@ -191,15 +191,15 @@ initialize_binsusie2 <- function(L, n, p, p2, mu0=0, var0=1, pi = rep(1/p, p)){
   sers <- purrr::map(1:L, ~initialize_binser(n, p, p2, mu0[.x], var0[.x], pi))
   xi <- rep(1e-3, n)
   fit <- list(sers=sers, xi=xi, L=L, elbo=-Inf)
-  class(fit) <- 'binsusie2'
+  class(fit) <- 'binsusie'
   return(fit)
 }
 
-data_initialize_binsusie2 <- function(data, L, mu0=0, var0=1){
+data_initialize_binsusie <- function(data, L, mu0=0, var0=1){
   n <- nrow(data$X)
   p <- ncol(data$X)
   p2 <- ncol(data$Z)
-  fit <- initialize_binsusie2(L, n, p, p2, mu0, var0)
+  fit <- initialize_binsusie(L, n, p, p2, mu0, var0)
   fit$xi <- update_xi(fit, data)
   fit$tau <- compute_tau(fit, data)
   return(fit)
