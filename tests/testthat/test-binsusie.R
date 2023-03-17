@@ -5,7 +5,7 @@
 test_susie_N <- function(N = 1) {
   data <- sim_ser(N = N)
   data <- with(data, binsusie_prep_data(X, y, N, Z))
-  fit <- data_initialize_binsusie2(data, L=5)
+  fit <- data_initialize_binsusie(data, L=5)
   fit <- fit_model(fit, data, fit_prior_variance=F, track_elbo=T)
   .monotone(fit$elbo)
 
@@ -33,7 +33,7 @@ testthat::test_that("p=2 doesn't fail", {
   data <- sim_ser(N = N)
   data$X <- data$X[, 1:2]
   data <- with(data, binsusie_prep_data(X, y, N, Z))
-  fit <- data_initialize_binsusie2(data, 1)
+  fit <- data_initialize_binsusie(data, 1)
   fit <- fit_model(fit, data, track_elbo=T)
   testthat::expect_true(.monotone(fit$elbo))
 })
@@ -42,7 +42,7 @@ testthat::test_that("p=1 doesn't fail", {
   data <- sim_ser(N = N)
   data$X <- data$X[, 1, drop = F]
   data <- with(data, binsusie_prep_data(X, y, N, Z))
-  fit <- data_initialize_binsusie2(data, 1)
+  fit <- data_initialize_binsusie(data, 1)
   fit <- fit_model(fit, data, track_elbo=T)
   testthat::expect_true(.monotone(fit$elbo))
 })
@@ -61,7 +61,7 @@ testthat::test_that("X a vector throws error", {
 test_susie_sparse <- function(N = 1) {
   data <- sim_susie_sparse(N = N)
   data2 <- with(data, binsusie_prep_data(X, y, N, Z))
-  fit <- data_initialize_binsusie2(data2, 1)
+  fit <- data_initialize_binsusie(data2, 1)
   fit <- fit_model(fit, data2, track_elbo=T)
   return(list(
     fit = fit,
@@ -82,9 +82,9 @@ test_susie_mu0_sigma0 <- function(N = 1, mu0 = 0, var0 = 1, fit_prior_variance =
   set.seed(1)
   data <- sim_susie_sparse(N = N)
   data2 <- with(data, binsusie_prep_data(X, y, N, Z))
-  fit <- data_initialize_binsusie2(data2, L=5, mu0=mu0, var0=var0)
+  fit <- data_initialize_binsusie(data2, L=5, mu0=mu0, var0=var0)
 
-  fit <- data_initialize_binsusie2(data2, L=5, mu0=0, var0=1)
+  fit <- data_initialize_binsusie(data2, L=5, mu0=0, var0=1)
   fit <- fit_model(fit, data2, track_elbo=T)
   .monotone(fit$elbo)
   return(list(
