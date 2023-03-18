@@ -1,12 +1,12 @@
-# Updates --------
-update_intercept <- function(x, y, o, mu, tau, xi, delta, tau0) {
+# Univariate VB Updates --------
+update_intercept_vb <- function(x, y, o, mu, tau, xi, delta, tau0) {
   kappa <- y - 0.5
   xb <- (x * mu) + o
   omega <- logisticsusie:::pg_mean(1, xi)
   return(sum(kappa - xb * omega) / sum(omega))
 }
 
-update_b <- function(x, y, o, mu, tau, xi, delta, tau0) {
+update_b_vb <- function(x, y, o, mu, tau, xi, delta, tau0) {
   delta <- delta + o
   omega <- logisticsusie:::pg_mean(1, xi)
   kappa <- y - 0.5
@@ -15,13 +15,13 @@ update_b <- function(x, y, o, mu, tau, xi, delta, tau0) {
   return(list(mu = nu / tau, tau = tau))
 }
 
-update_xi <- function(x, y, o, mu, tau, xi, delta, tau0) {
+update_xi_vb <- function(x, y, o, mu, tau, xi, delta, tau0) {
   delta <- delta + o
   xb2 <- x^2 * (mu^2 + 1 / tau) + 2 * x * mu * delta + delta^2
   return(sqrt(xb2))
 }
 
-compute_elbo <- function(x, y, o, mu, tau, xi, delta, tau0) {
+compute_elbo_vb <- function(x, y, o, mu, tau, xi, delta, tau0) {
   kappa <- y - 0.5
   delta <- delta + o
   xb <- (x * mu) + delta
@@ -31,7 +31,7 @@ compute_elbo <- function(x, y, o, mu, tau, xi, delta, tau0) {
 }
 
 # include the term that cancels out when xi is up-to-date
-compute_elbo2 <- function(x, y, o, mu, tau, xi, delta, tau0) {
+compute_elbo_vb2 <- function(x, y, o, mu, tau, xi, delta, tau0) {
   kappa <- y - 0.5
   delta <- delta + o
   xb <- (x * mu) + delta
@@ -43,7 +43,7 @@ compute_elbo2 <- function(x, y, o, mu, tau, xi, delta, tau0) {
 }
 
 # update xi on the fly, so bound is tight
-compute_elbo3 <- function(x, y, o, mu, tau, xi, delta, tau0) {
+compute_elbo_vb3 <- function(x, y, o, mu, tau, xi, delta, tau0) {
   kappa <- y - 0.5
   delta <- delta + o
   xb <- (x * mu) + delta
@@ -56,7 +56,7 @@ compute_elbo3 <- function(x, y, o, mu, tau, xi, delta, tau0) {
 }
 
 # deal with offsets so you can compute BFs for each individual SER?
-compute_elbo4 <- function(x, y, o, mu, tau, xi, delta, tau0, offset, offset2) {
+compute_elbo_vb4 <- function(x, y, o, mu, tau, xi, delta, tau0, offset, offset2) {
   kappa <- y - 0.5
   delta <- delta + o
   xb <- (x * mu) + delta
@@ -69,7 +69,7 @@ compute_elbo4 <- function(x, y, o, mu, tau, xi, delta, tau0, offset, offset2) {
 }
 
 #' Update prior precision of effect
-update_tau0 <- function(x, y, o, mu, tau, xi, delta, tau0) {
+update_tau0_vb <- function(x, y, o, mu, tau, xi, delta, tau0) {
   b2 <- (mu^2 + 1 / tau)
   return(1 / b2)
 }
@@ -89,22 +89,22 @@ fit_univariate_vb <- function(x, y, o = 0,
   mu <- 0
   tau <- 1
   delta <- delta.init
-  xi <- update_xi(x, y, o, mu, tau, 1, delta, tau0)
+  xi <- update_xi_vb(x, y, o, mu, tau, 1, delta, tau0)
   xi <- pmax(xi, 1e-3)
 
-  elbos <- compute_elbo(x, y, o, mu, tau, xi, delta, tau0)
+  elbos <- compute_elbo_vb(x, y, o, mu, tau, xi, delta, tau0)
   for (i in seq(maxit)) {
     # rep
     if (estimate_intercept) {
-      delta <- update_intercept(x, y, o, mu, tau, xi, delta, tau0)
+      delta <- update_intercept_vb(x, y, o, mu, tau, xi, delta, tau0)
     }
 
-    b <- update_b(x, y, o, mu, tau, xi, delta, tau0)
+    b <- update_b_vb(x, y, o, mu, tau, xi, delta, tau0)
     mu <- b$mu
     tau <- b$tau
 
-    xi <- update_xi(x, y, o, mu, tau, xi, delta, tau0)
-    elbos <- c(elbos, compute_elbo(x, y, o, mu, tau, xi, delta, tau0))
+    xi <- update_xi_vb(x, y, o, mu, tau, xi, delta, tau0)
+    elbos <- c(elbos, compute_elbo_vb(x, y, o, mu, tau, xi, delta, tau0))
 
     if (diff(tail(elbos, 2)) < tol) {
       break
