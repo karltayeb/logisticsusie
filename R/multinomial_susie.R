@@ -2,21 +2,17 @@
 #' TODO: deprecate this when we call update functions directly rather than
 #' passing to logistic susie subroutine
 get_xi.mnsusie <- function(fit) {
-  xi <- do.call(cbind, purrr::map(fit$logreg_list, ~ purrr::pluck(.x, "params", "xi"))) # N x K-1
+  xi <- do.call(cbind, purrr::map(fit$logreg_list, ~ purrr::pluck(.x, "xi"))) # N x K-1
   return(xi)
 }
 
-#' Conditional number of binomial trials
-#' @param Y an N x K matrix of assignment probabilities
-compute_N.mnsusie <- function(Y) {
-  cumY <- do.call(rbind, apply(Y, 1, cumsum, simplify = F))
-  K <- dim(Y)[2]
-  N <- cumY[, K] - cumY + Y
-  return(N)
+compute_Xb.mnsusie <- function(fit, data) {
+  Xb <- do.call(cbind, purrr::map(fit$logreg_list, ~compute_Xb(.x, data))) # N x K-1
+  return(Xb)
 }
 
-compute_Xb.mnsusie <- function(fit) {
-  Xb <- do.call(cbind, purrr::map(fit$logreg_list, compute_Xb.binsusie)) # N x K-1
+compute_psi.mnsusie <- function(fit, data) {
+  Xb <- do.call(cbind, purrr::map(fit$logreg_list, ~compute_psi(.x, data))) # N x K-1
   return(Xb)
 }
 
@@ -41,10 +37,9 @@ compute_prior_assignment <- function(fit) {
 }
 
 
-
-compute_jj_bound.mnsusie <- function(fit) {
-  K <- length(fit$f_list)
-  Xb <- compute_Xb.mnsusie(fit) # N x K-1
+compute_jj.mnsusie <- function(fit, data) {
+  K <- fit$K
+  Xb <- compute_Xb.mnsusie(fit, data) # N x K-1
   Xi <- get_xi.mnsusie(fit)
 
   f <- function(xi, xb) {
@@ -58,90 +53,60 @@ compute_jj_bound.mnsusie <- function(fit) {
 }
 
 
-compute_elbo.mnsusie <- function(fit) {
-  K <- length(fit$logreg_list) + 1
-
-  # update omega so jj bound is tight
-  for (k in seq(K - 1)) {
-    fit$logreg_list[[k]]$params$xi <- update_xi.binsusie(fit$logreg_list[[k]])
-    fit$logreg_list[[k]]$params$tau <- compute_tau(fit$logreg_list[[k]])
-  }
-
-  elbo <- sum(purrr::map_dbl(fit$logreg_list, compute_elbo.binsusie))
+compute_elbo.mnsusie <- function(fit, data) {
+  elbo <- sum(purrr::map_dbl(fit$logreg_list, ~tail(.x$elbo, 1)))
   return(elbo)
 }
 
-init.mnsusie <- function(data, L = 5) {
-  data$X2 <- data$X^2
-
-  K <- dim(data$y)[2]
-  p <- ncol(data$X)
-  n <- nrow(data$X)
-
-  # initialize posterior assignment
-  Y <- data$y
-  N <- compute_N.mnsusie(Y)
-
-  data$y <- Y
-  data$N <- N
-
-  # initialize K-1 logistic SuSiE
-  .init_logreg <- function(y, N) {
-    dat <- list(
-      X = data$X,
-      Z = data$Z,
-      y = y,
-      N = N
-    )
-    fit <- init.binsusie(dat, L = L)
-    return(fit)
-  }
-  logreg_list <- purrr::map(seq(K - 1), ~ .init_logreg(Y[, .x], N[, .x]))
-
-  fit <- list(
-    data = data,
-    logreg_list = logreg_list,
-    elbo = c(-Inf)
-  )
-  return(fit)
-}
-
-
-iter.mnsusie <- function(fit, fit_intercept = T, fit_prior_variance = T) {
-  K <- length(fit$logreg_list) + 1
-
-  logreg_list <- list()
-  for (k in seq(K - 1)) {
+update_model.mnsusie <- function(fit, data,
+                                 fit_intercept=T,
+                                 fit_prior_variance=T,
+                                 track_elbo=T){
+  for (k in seq(fit$K - 1)) {
     logreg <- fit$logreg_list[[k]]
 
+    # set data for this regression problem
+    data$y <- data$Y[, k]
+    data$N <- data$Nk[, k]
+
     # update logreg
-    logreg_list[[k]] <- iter.binsusie(logreg,
-      fit_intercept = fit_intercept,
-      fit_prior_variance = fit_prior_variance
+    # note we calculate the elbo here since the multinomial susie ELBO is just
+    # the sum of it's stick-breaking components
+    fit$logreg_list[[k]] <- update_model(fit$logreg_list[[k]], data,
+                                         fit_intercept = fit_intercept,
+                                         fit_prior_variance = fit_prior_variance,
+                                         track_elbo = T
     )
   }
-  fit$logreg_list <- logreg_list
 
-  return(fit)
-}
-
-
-#' Fit the binomial single effect regression
-fit.mnsusie <- function(data,
-                        L = 5,
-                        maxiter = 10,
-                        tol = 1e-3,
-                        fit_intercept = TRUE,
-                        fit_prior_variance = TRUE) {
-  fit <- init.mnsusie(data, L = L)
-
-  for (i in 1:maxiter) {
-    fit <- iter.mnsusie(fit, fit_intercept, fit_prior_variance)
-    # update elbo
-    fit$elbo <- c(fit$elbo, compute_elbo.mnsusie(fit))
-    if (.converged(fit, tol)) {
-      break
-    }
+  if(track_elbo){
+    fit$elbo <- c(fit$elbo, compute_elbo(fit, data))
   }
   return(fit)
 }
+
+initialize_sbmn_susie <- function(){
+  return(0)
+}
+
+initialize_sbmn_susie <- function(K, n, p, p2, L, mu0=0, var0=1){
+  logreg_list <- purrr::map(1:(K-1), ~initialize_binsusie(L, n, p, p2, mu0, var0))
+
+  fit <- list(
+    logreg_list = logreg_list,
+    K = K, L = L,
+    elbo = c(-Inf)
+  )
+  class(fit) <- 'mnsusie'
+  return(fit)
+}
+
+data_initialize_sbmn_susie <- function(data, L = 5, mu0=0, var0=1) {
+  K <- ncol(data$Y)
+  p <- ncol(data$X)
+  n <- nrow(data$X)
+  p2 <- ncol(data$Z)
+  fit <- initialize_sbmn_susie(K, n, p, p2, L, mu0, var0)
+}
+
+
