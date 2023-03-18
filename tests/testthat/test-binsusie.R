@@ -3,11 +3,14 @@
 ##
 
 test_susie_N <- function(N = 1) {
-  data <- sim_ser(N = N)
-  data <- with(data, binsusie_prep_data(X, y, N, Z))
+  sim <- sim_susie(N = N, ls=20)
+  data <- with(sim, binsusie_prep_data(X, y, N, Z))
   fit <- data_initialize_binsusie(data, L=5)
-  fit <- fit_model(fit, data, fit_prior_variance=F, track_elbo=T)
-  .monotone(fit$elbo)
+  fit <- fit_model(fit, data, fit_prior_variance=T, track_elbo=T, max_iter=1000)
+
+  # .monotone(fit$elbo)
+  # cs <- get_all_cs2(get_alpha(fit))
+  # purrr::map(cs, ~ .x$cs)
 
   return(list(
     fit = fit,
