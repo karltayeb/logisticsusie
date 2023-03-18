@@ -172,6 +172,9 @@ update_model.binsusie <- function(fit, data,
 
     fit$xi <- fit$sers[[l]]$xi
     fit$tau <- fit$sers[[l]]$tau
+
+    fit$sers[[l]]$xi <- NULL
+    fit$sers[[l]]$tau <- NULL
   }
 
   if(track_elbo){
@@ -190,7 +193,8 @@ initialize_binsusie <- function(L, n, p, p2, mu0=0, var0=1, pi = rep(1/p, p)){
   }
   sers <- purrr::map(1:L, ~initialize_binser(n, p, p2, mu0[.x], var0[.x], pi))
   xi <- rep(1e-3, n)
-  fit <- list(sers=sers, xi=xi, L=L, elbo=-Inf)
+  tau <- rep(1, p)
+  fit <- list(sers=sers, xi=xi, tau=tau, L=L, elbo=-Inf)
   class(fit) <- 'binsusie'
   return(fit)
 }
