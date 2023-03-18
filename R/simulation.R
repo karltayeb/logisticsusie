@@ -139,8 +139,8 @@ sim_ser_with_random_effects <- function(n = 1000,
 #' @param alpha numeric intercept in the lostic regression (control sparsity)
 #' @export
 
-sim_susie <- function(n = 1000, p = 50, L = 3, N = 1, beta, alpha = 0) {
-  X <- sim_X(n, p)
+sim_susie <- function(n = 1000, p = 50, L = 3, N = 1, ls=1, beta, beta0 = 0) {
+  X <- sim_X(n, p, length_scale = ls)
   Z <- matrix(rep(1, n), nrow = n)
   if (missing(beta)) {
     beta <- seq(L) * .2
@@ -149,8 +149,8 @@ sim_susie <- function(n = 1000, p = 50, L = 3, N = 1, beta, alpha = 0) {
     beta <- rep(beta, L)
   }
 
-
-  logits <- alpha + Matrix::drop(X[, seq(L) * 10] %*% beta)
+  idx <- seq(L) * 10
+  logits <- beta0 + Matrix::drop(X[, idx] %*% beta)
   p <- sigmoid(logits)
   y <- rbinom(n, N, p)
 
@@ -161,7 +161,8 @@ sim_susie <- function(n = 1000, p = 50, L = 3, N = 1, beta, alpha = 0) {
     N         = N,
     logits    = logits,
     effect    = beta,
-    intercept = alpha
+    intercept = beta0,
+    idx = idx
   )
   return(data)
 }
@@ -226,10 +227,10 @@ sim_mn_susie <- function(n = 1000, p = 50, L = 3, N = 1, K = 10) {
   Beta <- matrix(rnorm(p * K), nrow = p) / 10
   logits <- X %*% Beta
 
-  Y <- t(do.call(cbind, purrr::map(seq(n), ~ rmultinom(1, 50, softmax(logits[.x, ])))))
+  Y <- t(do.call(cbind, purrr::map(seq(n), ~ rmultinom(1, N, softmax(logits[.x, ])))))
 
   data <- list(
-    X = X, Z = Z, y = Y, logits = logits
+    X = X, Z = Z, y = Y, N=N, logits = logits
   )
   return(data)
 }
