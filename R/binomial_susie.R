@@ -231,9 +231,6 @@ binsusie_wrapup <- function(fit, prior_tol = 0) {
 
   fit$sets <- susieR::susie_get_cs(fit, X = X)
   fit$intercept <- colSums(fit$params$delta)[1]
-
-
-
   return(fit)
 }
 
