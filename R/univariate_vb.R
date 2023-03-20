@@ -2,13 +2,13 @@
 update_intercept_vb <- function(x, y, o, mu, tau, xi, delta, tau0) {
   kappa <- y - 0.5
   xb <- (x * mu) + o
-  omega <- logisticsusie:::pg_mean(1, xi)
+  omega <- pg_mean(1, xi)
   return(sum(kappa - xb * omega) / sum(omega))
 }
 
 update_b_vb <- function(x, y, o, mu, tau, xi, delta, tau0) {
   delta <- delta + o
-  omega <- logisticsusie:::pg_mean(1, xi)
+  omega <- pg_mean(1, xi)
   kappa <- y - 0.5
   tau <- sum(omega * x^2) + tau0
   nu <- sum((kappa - omega * delta) * x)
@@ -26,7 +26,7 @@ compute_elbo_vb <- function(x, y, o, mu, tau, xi, delta, tau0) {
   delta <- delta + o
   xb <- (x * mu) + delta
   bound <- log(sigmoid(xi)) + (kappa * xb) - (0.5 * xi)
-  kl <- logisticsusie:::normal_kl(mu, 1 / tau, 0, 1 / tau0)
+  kl <- normal_kl(mu, 1 / tau, 0, 1 / tau0)
   return(sum(bound) - kl)
 }
 
@@ -36,9 +36,9 @@ compute_elbo_vb2 <- function(x, y, o, mu, tau, xi, delta, tau0) {
   delta <- delta + o
   xb <- (x * mu) + delta
   xb2 <- x^2 * (mu^2 + 1 / tau) + 2 * x * mu * delta + delta^2
-  omega <- logisticsusie:::pg_mean(1, xi)
+  omega <- pg_mean(1, xi)
   bound <- log(sigmoid(xi)) + (kappa * xb) - (0.5 * xi) + 0.5 * omega * (xi^2 - xb2)
-  kl <- logisticsusie:::normal_kl(mu, 1 / tau, 0, 1 / tau0)
+  kl <- normal_kl(mu, 1 / tau, 0, 1 / tau0)
   return(sum(bound) - kl)
 }
 
@@ -49,9 +49,9 @@ compute_elbo_vb3 <- function(x, y, o, mu, tau, xi, delta, tau0) {
   xb <- (x * mu) + delta
   xb2 <- x^2 * (mu^2 + 1 / tau) + 2 * x * mu * delta + delta^2
   xi <- sqrt(xb2)
-  omega <- logisticsusie:::pg_mean(1, xi)
+  omega <- pg_mean(1, xi)
   bound <- log(sigmoid(xi)) + (kappa * xb) - (0.5 * xi)
-  kl <- logisticsusie:::normal_kl(mu, 1 / tau, 0, 1 / tau0)
+  kl <- normal_kl(mu, 1 / tau, 0, 1 / tau0)
   return(sum(bound) - kl)
 }
 
@@ -62,9 +62,9 @@ compute_elbo_vb4 <- function(x, y, o, mu, tau, xi, delta, tau0, offset, offset2)
   xb <- (x * mu) + delta
   xb2 <- x^2 * (mu^2 + 1 / tau) + 2 * x * mu * delta + delta^2
   xi <- sqrt(xb2)
-  omega <- logisticsusie:::pg_mean(1, xi)
+  omega <- pg_mean(1, xi)
   bound <- log(sigmoid(xi)) + (kappa * xb) - (0.5 * xi)
-  kl <- logisticsusie:::normal_kl(mu, 1 / tau, 0, 1 / tau0)
+  kl <- normal_kl(mu, 1 / tau, 0, 1 / tau0)
   return(sum(bound) - kl)
 }
 
@@ -112,7 +112,7 @@ fit_univariate_vb <- function(x, y, o = 0,
   }
 
   converged <- diff(tail(elbos, 2)) < tol
-  monotone <- logisticsusie:::.monotone(elbos)
+  monotone <- .monotone(elbos)
   return(list(
     x = x, y = y, o = o,
     mu = mu, tau = tau, xi = xi, delta = delta, tau0 = tau0,
