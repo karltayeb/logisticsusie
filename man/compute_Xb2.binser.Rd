@@ -5,7 +5,7 @@
 \title{compute_Xb2.binser
 Compute second moments of predicted log odds}
 \usage{
-compute_Xb2.binser(fit, idx = NULL, shift = 0)
+\method{compute_Xb2}{binser}(fit, data)
 }
 \arguments{
 \item{fit}{Binomial SER object}

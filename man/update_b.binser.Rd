@@ -4,7 +4,7 @@
 \alias{update_b.binser}
 \title{update q(b)}
 \usage{
-update_b.binser(fit, idx = NULL, kidx = NULL, shift = 0)
+update_b.binser(fit, data)
 }
 \description{
 update q(b)

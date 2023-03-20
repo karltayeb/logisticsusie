@@ -5,7 +5,7 @@
 \title{compute_kl.binser
 Compute KL divergence between approximate posterior and prior}
 \usage{
-compute_kl.binser(fit)
+\method{compute_kl}{binser}(fit)
 }
 \arguments{
 \item{fit}{Binomial SER object}

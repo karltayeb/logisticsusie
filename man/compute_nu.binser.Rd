@@ -5,7 +5,7 @@
 \title{Compute a scaled posterior mean
 TODO: add support for non-zero prior mean}
 \usage{
-compute_nu.binser(fit, idx = NULL, kidx = NULL, shift = 0)
+compute_nu.binser(fit, data)
 }
 \arguments{
 \item{fit}{a SER object}

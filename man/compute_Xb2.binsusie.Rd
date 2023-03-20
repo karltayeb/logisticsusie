@@ -4,7 +4,7 @@
 \alias{compute_Xb2.binsusie}
 \title{Second moment of linear prediction}
 \usage{
-compute_Xb2.binsusie(fit)
+\method{compute_Xb2}{binsusie}(fit, data)
 }
 \description{
 Second moment of linear prediction
