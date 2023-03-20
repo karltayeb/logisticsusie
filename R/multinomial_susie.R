@@ -12,8 +12,8 @@ compute_Xb.mnsusie <- function(fit, data) {
 }
 
 compute_psi.mnsusie <- function(fit, data) {
-  Xb <- do.call(cbind, purrr::map(fit$logreg_list, ~compute_psi(.x, data))) # N x K-1
-  return(Xb)
+  psi <- do.call(cbind, purrr::map(fit$logreg_list, ~compute_psi(.x, data))) # N x K-1
+  return(psi)
 }
 
 #' Compute Log Prior Assignment Probabilities
@@ -37,19 +37,22 @@ compute_prior_assignment <- function(fit) {
 }
 
 
-compute_jj.mnsusie <- function(fit, data) {
+predict_assignment_mnsusie <- function(fit, data) {
   K <- fit$K
-  Xb <- compute_Xb.mnsusie(fit, data) # N x K-1
+  Xb <- compute_psi(fit, data) # N x K-1
   Xi <- get_xi.mnsusie(fit)
 
   f <- function(xi, xb) {
     tmp <- cumsum(log(sigmoid(xi)) - 0.5 * xi - 0.5 * xb) + xb
     tmpK <- sum(log(sigmoid(xi)) - 0.5 * xi - 0.5 * xb)
     jj <- c(tmp, tmpK)
-    return(jj)
+    assignment <- softmax(jj)
+    return(assignment)
   }
-  jj <- do.call(rbind, purrr::map(seq(nrow(Xb)), ~ f(Xi[.x, ], Xb[.x, ])))
-  return(jj)
+
+  assignment <- do.call(rbind, purrr::map(seq(nrow(Xb)), ~ f(Xi[.x, ], Xb[.x, ])))
+
+  return(assignment)
 }
 
 
@@ -85,9 +88,6 @@ update_model.mnsusie <- function(fit, data,
   return(fit)
 }
 
-initialize_sbmn_susie <- function(){
-  return(0)
-}
 
 initialize_sbmn_susie <- function(K, n, p, p2, L, mu0=0, var0=1){
   logreg_list <- purrr::map(1:(K-1), ~initialize_binsusie(L, n, p, p2, mu0, var0))

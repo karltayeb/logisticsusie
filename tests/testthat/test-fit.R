@@ -3,14 +3,23 @@
 ###
 
 test_mn_susie <- function() {
-  data <- sim_mn_susie()
-  data <- with(data, mnsusie_prep_data(X, y, Z))
+  sim <- sim_mn_susie()
+  data <- with(sim, mnsusie_prep_data(X, y, Z))
   data$shift <- 0
   data$shift_var <- 0
   fit <- data_initialize_sbmn_susie(data, L=5)
   fit <- update_model(fit, data, track_elbo=F)
   fit <- fit_model(fit, data)
 
+  assignment_logp <- predict_assignment_mnsusie(fit, data)
+  z <- purrr::map_int(1:nrow(assignment_logp), ~which.max(assignment_logp[.x,]))
+  zsim <-  purrr::map_int(1:nrow(sim$y), ~which.max(sim$y[.x,]))
+
+  confusion <- table(zsim, z)
+  image(scale(confusion, center=F, scale=T))
+  table(z, zsim)
+  compute_assi
+  psi <- compute_psi(fit, data)
 
   z <- purrr::map_int(1:nrow(data$Y), ~which.max(data$Y[.x,]))
   psi <- compute_psi(fit, data)
