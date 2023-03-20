@@ -16,8 +16,8 @@ test_mn_susie <- function() {
   psi <- compute_psi(fit, data)
   pi_tilde <- sigmoid(psi)
 
-  logpi <- do.call(rbind, purrr::map(1:nrow(psi), ~.predict2logpi(psi[.x,])))
-  zpred <- purrr::map_int(1:nrow(logpi), ~which.max(logpi[.x,]))
+  # logpi <- do.call(rbind, purrr::map(1:nrow(psi), ~.predict2logpi(psi[.x,])))
+  # zpred <- purrr::map_int(1:nrow(logpi), ~which.max(logpi[.x,]))
 
   return(list(
     fit = fit,

@@ -33,7 +33,7 @@ for (i in seq(1, 10)) {
 }
 
 testthat::test_that("p=2 doesn't fail", {
-  data <- sim_ser(N = N)
+  data <- sim_ser(N = 1)
   data$X <- data$X[, 1:2]
   data <- with(data, binsusie_prep_data(X, y, N, Z))
   fit <- data_initialize_binsusie(data, 1)
@@ -42,7 +42,7 @@ testthat::test_that("p=2 doesn't fail", {
 })
 
 testthat::test_that("p=1 doesn't fail", {
-  data <- sim_ser(N = N)
+  data <- sim_ser(N = 1)
   data$X <- data$X[, 1, drop = F]
   data <- with(data, binsusie_prep_data(X, y, N, Z))
   fit <- data_initialize_binsusie(data, 1)
@@ -51,7 +51,7 @@ testthat::test_that("p=1 doesn't fail", {
 })
 
 testthat::test_that("X a vector throws error", {
-  data <- sim_ser(N = N)
+  data <- sim_ser(N = 1)
   data$X <- data$X[, 1]
   testthat::expect_error(with(data, binsusie_prep_data(X, y, N, Z)))
 })
