@@ -1,17 +1,17 @@
 #' Get N x K-1 matrix of PG variational parameters
 #' TODO: deprecate this when we call update functions directly rather than
 #' passing to logistic susie subroutine
-get_xi.mnsusie <- function(fit) {
+get_xi.sbnmsusie <- function(fit) {
   xi <- do.call(cbind, purrr::map(fit$logreg_list, ~ purrr::pluck(.x, "xi"))) # N x K-1
   return(xi)
 }
 
-compute_Xb.mnsusie <- function(fit, data) {
+compute_Xb.sbnmsusie <- function(fit, data) {
   Xb <- do.call(cbind, purrr::map(fit$logreg_list, ~compute_Xb(.x, data))) # N x K-1
   return(Xb)
 }
 
-compute_psi.mnsusie <- function(fit, data) {
+compute_psi.sbnmsusie <- function(fit, data) {
   psi <- do.call(cbind, purrr::map(fit$logreg_list, ~compute_psi(.x, data))) # N x K-1
   return(psi)
 }
@@ -31,16 +31,16 @@ compute_psi.mnsusie <- function(fit, data) {
 compute_prior_assignment <- function(fit) {
   # TODO alias compute_Xb with predict so that it works with other functions?
   # TODO make sure GLM predict outputs log-odds scale?
-  Xb <- compute_Xb.mnsusie(fit) # N x K-1
+  Xb <- compute_Xb.sbnmsusie(fit) # N x K-1
   res <- do.call(rbind, apply(Xb, 1, .predict2logpi, simplify = F)) # N x K
   return(res)
 }
 
 
-predict_assignment_mnsusie <- function(fit, data) {
+predict_log_assignment_sbnmsusie <- function(fit, data) {
   K <- fit$K
   Xb <- compute_psi(fit, data) # N x K-1
-  Xi <- get_xi.mnsusie(fit)
+  Xi <- get_xi.sbnmsusie(fit)
 
   f <- function(xi, xb) {
     tmp <- cumsum(log(sigmoid(xi)) - 0.5 * xi - 0.5 * xb) + xb
@@ -56,12 +56,12 @@ predict_assignment_mnsusie <- function(fit, data) {
 }
 
 
-compute_elbo.mnsusie <- function(fit, data) {
+compute_elbo.sbnmsusie <- function(fit, data) {
   elbo <- sum(purrr::map_dbl(fit$logreg_list, ~tail(.x$elbo, 1)))
   return(elbo)
 }
 
-update_model.mnsusie <- function(fit, data,
+update_model.sbnmsusie <- function(fit, data,
                                  fit_intercept=T,
                                  fit_prior_variance=T,
                                  track_elbo=T){
@@ -97,7 +97,7 @@ initialize_sbmn_susie <- function(K, n, p, p2, L, mu0=0, var0=1){
     K = K, L = L,
     elbo = c(-Inf)
   )
-  class(fit) <- 'mnsusie'
+  class(fit) <- 'sbnmsusie'
   return(fit)
 }
 
