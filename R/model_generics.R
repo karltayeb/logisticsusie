@@ -1,12 +1,16 @@
 # A common interface for binomial SER, binomial SuSiE and multinomial SuSiE
 
+#' @export
 predict_model <- function(x, ...){
   UseMethod("predict_model", x)
 }
+
+#' @export
 predict_model.default <- function(fit, data){
   compute_psi(fit, data)
 }
 
+#' @export
 update_model <- function(x, ...){
   UseMethod("update_model", x)
 }
@@ -14,10 +18,12 @@ update_model <- function(x, ...){
 #' Fit model
 #'
 #' An outer loop for `update_model` that monitors convergence, etc.
+#' @export
 fit_model <- function(x, ...){
   UseMethod("fit_model", x)
 }
 
+#' @export
 fit_model.default <- function(fit, data, ..., max_iter=100, tol=1e-5){
   for(i in 1:max_iter){
     fit <- update_model(fit, data, ...)
@@ -31,71 +37,93 @@ fit_model.default <- function(fit, data, ..., max_iter=100, tol=1e-5){
   return(fit)
 }
 
-
+#' @export
 compute_coef <- function(x, ...){
   UseMethod("compute_coef")
 }
+
+#' @export
 compute_coef.default <- function(fit){
   b <- Matrix::drop(get_alpha(fit) * get_mu(fit))
 }
 
+#' @export
 compute_Xb <- function(x, ...){
   UseMethod("compute_Xb")
 }
+
+#' @export
 compute_psi <- function(x, ...){
   UseMethod("compute_psi")
 }
 
+#' @export
 compute_Xb2 <- function(x, ...){
   UseMethod("compute_Xb2")
 }
+
+#' @export
 compute_psi2 <- function(x, ...){
   UseMethod("compute_psi2")
 }
 
+
+#' @export
 coef <- function(x, ...){
   UseMethod("coef")
 }
 
+#' @export
 get_alpha <- function(x, ...){
   UseMethod("get_alpha", x)
 }
 
+#' @export
 get_mu <- function(x, ...){
   UseMethod("get_mu", x)
 }
 
+#' @export
 get_pi <- function(x, ...){
   UseMethod("get_pi", x)
 }
 
+#' @export
 get_var <- function(x, ...){
   UseMethod("get_var", x)
 }
 
+#' @export
 get_delta <- function(x, ...){
   UseMethod("get_delta", x)
 }
 
+#' @export
 get_mu0 <- function(x, ...){
   UseMethod("get_mu0", x)
 }
 
+#' @export
 get_var0 <- function(x, ...){
   UseMethod("get_var0", x)
 }
 
+#' @export
 compute_jj <- function(x, ...){
   UseMethod("compute_jj", x)
 }
 
+#' @export
 compute_kl <- function(x, ...){
   UseMethod("compute_kl", x)
 }
 
+#' @export
 compute_elbo <- function(x, ...){
   UseMethod("compute_elbo", x)
 }
+
+#' @export
 compute_elbo.default <- function(fit, data) {
   jj <- sum(compute_jj(fit, data)) # E[p(y | w, b)] - KL[q(b) || p(b)]
   kl <- compute_kl(fit) # KL[q(b) || p(b)]
