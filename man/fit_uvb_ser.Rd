@@ -8,6 +8,7 @@ fit_uvb_ser(
   X,
   y,
   o = NULL,
+  o2 = NULL,
   prior_variance = 1,
   intercept.init = logodds(mean(y) + 1e-10),
   estimate_intercept = T,

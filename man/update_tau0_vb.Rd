@@ -4,7 +4,7 @@
 \alias{update_tau0_vb}
 \title{Update prior precision of effect}
 \usage{
-update_tau0_vb(x, y, o, mu, tau, xi, delta, tau0)
+update_tau0_vb(x, y, o, o2, mu, tau, xi, delta, tau0)
 }
 \description{
 Update prior precision of effect
