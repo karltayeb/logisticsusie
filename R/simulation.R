@@ -230,7 +230,32 @@ sim_mn_susie <- function(n = 1000, p = 50, L = 3, N = 1, K = 10) {
   Y <- t(do.call(cbind, purrr::map(seq(n), ~ rmultinom(1, N, softmax(logits[.x, ])))))
 
   data <- list(
-    X = X, Z = Z, y = Y, N=N, logits = logits
+    X = X, Z = Z, y = Y, N=N, logits = logits, Beta = Beta
+  )
+  return(data)
+}
+
+sim_sbmn_susie <- function(n = 1000, p = 50, L = 3, N = 1, K = 5) {
+  X <- sim_X(n = n, p = p)
+  Z <- matrix(rep(1, n), nrow = n)
+
+  idx <- sort(sample(p, K, replace = F))
+  beta <- rnorm(K) * 5
+
+  logits <- list()
+  Y <- list()
+  N <- rep(1, n)
+  for (k in 1:K){
+    logits[[k]] <- X[, idx[k]] * beta[k]
+    Y[[k]] <- rbinom(n, N, sigmoid(logits[[k]]))
+    N <- N - Y[[k]]
+  }
+
+  Y <- do.call(cbind, Y)
+  logits <- do.call(cbind, logits)
+
+  data <- list(
+    X = X, Z = Z, Y = Y, N=N, logits = logits, beta = beta, idx=idx
   )
   return(data)
 }
