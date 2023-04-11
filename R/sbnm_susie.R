@@ -6,11 +6,13 @@ get_xi.sbnmsusie <- function(fit) {
   return(xi)
 }
 
+#' @export
 compute_Xb.sbnmsusie <- function(fit, data) {
   Xb <- do.call(cbind, purrr::map(fit$logreg_list, ~compute_Xb(.x, data))) # N x K-1
   return(Xb)
 }
 
+#' @export
 compute_psi.sbnmsusie <- function(fit, data) {
   psi <- do.call(cbind, purrr::map(fit$logreg_list, ~compute_psi(.x, data))) # N x K-1
   return(psi)
@@ -46,12 +48,11 @@ predict_log_assignment_sbnmsusie <- function(fit, data) {
     tmp <- cumsum(log(sigmoid(xi)) - 0.5 * xi - 0.5 * xb) + xb
     tmpK <- sum(log(sigmoid(xi)) - 0.5 * xi - 0.5 * xb)
     jj <- c(tmp, tmpK)
-    assignment <- softmax(jj)
+    assignment <- jj - logSumExp(jj)
     return(assignment)
   }
 
   assignment <- do.call(rbind, purrr::map(seq(nrow(Xb)), ~ f(Xi[.x, ], Xb[.x, ])))
-
   return(assignment)
 }
 
@@ -61,10 +62,20 @@ compute_elbo.sbnmsusie <- function(fit, data) {
   return(elbo)
 }
 
+#' @export
+predict_model.sbnmsusie <- function(fit, data, log=T){
+  res <- predict_log_assignment_sbnmsusie(fit, data)
+  if(!log){
+    res <- exp(res)
+  }
+  return(res)
+}
+
+#' @export
 update_model.sbnmsusie <- function(fit, data,
                                  fit_intercept=T,
                                  fit_prior_variance=T,
-                                 track_elbo=T){
+                                 track_elbo=T, max_iter=10){
   for (k in seq(fit$K - 1)) {
     logreg <- fit$logreg_list[[k]]
 
@@ -75,11 +86,10 @@ update_model.sbnmsusie <- function(fit, data,
     # update logreg
     # note we calculate the elbo here since the multinomial susie ELBO is just
     # the sum of it's stick-breaking components
-    fit$logreg_list[[k]] <- update_model(fit$logreg_list[[k]], data,
-                                         fit_intercept = fit_intercept,
-                                         fit_prior_variance = fit_prior_variance,
-                                         track_elbo = T
-    )
+    fit$logreg_list[[k]] <- fit_model(fit$logreg_list[[k]], data,
+                                      fit_intercept = fit_intercept,
+                                      fit_prior_variance = fit_prior_variance,
+                                      track_elbo = T, max_iter=max_iter)
   }
 
   if(track_elbo){
@@ -106,7 +116,16 @@ data_initialize_sbmn_susie <- function(data, L = 5, mu0=0, var0=1) {
   p <- ncol(data$X)
   n <- nrow(data$X)
   p2 <- ncol(data$Z)
+
   fit <- initialize_sbmn_susie(K, n, p, p2, L, mu0, var0)
+
+  for(k in 1:(K-1)){
+    data$y <- data$Y[, k]
+    data$N <- data$Nk[, k]
+    fit$logreg_list[[k]] <- data_initialize_binsusie(data, L, mu0, var0)
+  }
+
+  return(fit)
 }
 
 
