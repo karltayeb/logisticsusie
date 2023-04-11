@@ -6,6 +6,7 @@ prepare_data <- function(x, ...){
   stopifnot("data$X must be matrix/Matrix" = inherits(X, c("matrix", "Matrix")))
 }
 
+#' @export
 binsusie_prep_data <- function(X, y, N, Z, shift=0, shift_var=0, center = TRUE, scale = FALSE) {
   # center and scale data
   .check_X(X) # throws errors if something is wrong
@@ -64,6 +65,6 @@ mnsusie_prep_data <- function(X, Y, Z=NULL, shift=0, shift_var=0, center = TRUE,
 
   # Make data list
   # TODO: store X means and standard errors
-  data <- list(X = X, X2 = X^2, Z = Z, Y = Y, Nk = Nk)
+  data <- list(X = X, X2 = X^2, Z = Z, Y = Y, Nk = Nk, shift=0, shift_var=0)
   return(data)
 }

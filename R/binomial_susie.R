@@ -4,21 +4,32 @@
 
 # Getters------
 
+#' @export
 get_alpha.binsusie <- function(fit){
   do.call(rbind, purrr::map(1:fit$L, ~get_alpha(fit$sers[[.x]])))
 }
+
+#' @export
 get_mu.binsusie <- function(fit){
   do.call(rbind, purrr::map(1:fit$L, ~get_mu(fit$sers[[.x]])))
 }
+
+#' @export
 get_var.binsusie <- function(fit){
   do.call(rbind, purrr::map(1:fit$L, ~get_var(fit$sers[[.x]])))
 }
+
+#' @export
 get_delta.binsusie <- function(fit){
   do.call(rbind, purrr::map(1:fit$L, ~get_delta(fit$sers[[.x]])))
 }
+
+#' @export
 get_var0.binsusie <- function(fit){
   do.call(rbind, purrr::map(1:fit$L, ~get_var0(fit$sers[[.x]])))
 }
+
+#' @export
 get_mu0.binsusie <- function(fit){
   do.call(rbind, purrr::map(1:fit$L, ~get_mu0(fit$sers[[.x]])))
 }
@@ -41,6 +52,7 @@ compute_Xb.binsusie <- function(fit, data) {
 }
 
 #' Expected linear prediction
+#' @export
 compute_psi.binsusie <- function(fit, data) {
   Xb <- compute_Xb(fit, data)
   Zd <- Matrix::drop(data$Z %*% colSums(get_delta(fit)))
@@ -48,6 +60,7 @@ compute_psi.binsusie <- function(fit, data) {
 }
 
 #' Second moment of linear prediction
+#' @export
 compute_Xb2.binsusie <- function(fit, data) {
   B <- get_alpha(fit) * get_mu(fit)
   XB <- data$X %*% t(B)
@@ -60,6 +73,7 @@ compute_Xb2.binsusie <- function(fit, data) {
   return(Xb2)
 }
 
+#' @export
 compute_psi2.binsusie <- function(fit, data){
   Xb2 <- compute_Xb2(fit, data)
   Xb <- compute_Xb(fit, data)
@@ -129,6 +143,7 @@ sub_re <- function(mu, mu2, psi, psi2){
 }
 
 #' update alpha, mu, and var
+#' @export
 update_model.binsusie <- function(fit, data,
                                fit_intercept = TRUE,
                                fit_prior_variance = TRUE,
@@ -184,6 +199,7 @@ update_model.binsusie <- function(fit, data,
 }
 
 # Initialization -------
+#' @export
 initialize_binsusie <- function(L, n, p, p2, mu0=0, var0=1, pi = rep(1/p, p)){
   if(length(mu0) < L){
     mu0 <- rep(mu0, L)
@@ -199,6 +215,7 @@ initialize_binsusie <- function(L, n, p, p2, mu0=0, var0=1, pi = rep(1/p, p)){
   return(fit)
 }
 
+#' @export
 data_initialize_binsusie <- function(data, L, mu0=0, var0=1){
   n <- nrow(data$X)
   p <- ncol(data$X)
@@ -298,32 +315,16 @@ binsusie <- function(X,
                      # track_fit = FALSE,
                      # refine = FALSE,
                      n_purity = 100) {
-  # Initialize model
-  if (is.null(s_init)) {
-    fit <- binsusie_init(X, y, N, Z, L, scale, center, prior_mean, prior_variance, prior_weights)
-  } else {
-    fit <- s_init
-  }
 
-  # model fitting
-  for (i in 1:max_iter) {
-    fit <- iter.binsusie(
-      fit,
-      fit_intercept = intercept,
-      fit_prior_variance = estimate_prior_variance
-    )
-    fit$elbo <- c(fit$elbo, compute_elbo.binsusie(fit))
-    if (.converged(fit, tol)) {
-      break
-    }
-  }
+  data <- binsusie_prep_data(X, y, N, Z, center=center, scale=scale)
+  fit <- data_initialize_binsusie(data, L, mu0 = prior_mean, var0 = prior_variance)
+  fit <- fit_model(fit, data, max_iter=max_iter, tol=tol)
 
   # model pruning-- removes irrelevant components
-  if (prune) {
-    fit <- prune_model(fit, check_null_threshold, intercept, estimate_prior_variance, tol = tol)
-  }
-
+  # if (prune) {
+  #   fit <- prune_model(fit, check_null_threshold, intercept, estimate_prior_variance, tol = tol)
+  # }
   # wrapup (computing PIPs, CSs, etc)
-  fit <- binsusie_wrapup(fit, prior_tol)
+  # fit <- binsusie_wrapup(fit, prior_tol)
   return(fit)
 }

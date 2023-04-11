@@ -7,13 +7,28 @@
 # L-indexed getters
 ###
 
+#' @export
 get_alpha.binser <- function(fit){fit$alpha}
+
+#' @export
 get_pi.binser <- function(fit){fit$pi}
+
+#' @export
 get_mu.binser <- function(fit){fit$mu}
+
+#' @export
 get_var.binser <- function(fit){fit$var}
+
+#' @export
 get_delta.binser <- function(fit){fit$delta}
+
+#' @export
 get_xi.binser <- function(fit){fit$xi}
+
+#' @export
 get_mu0.binser <- function(fit){fit$mu0}
+
+#' @export
 get_var0.binser <- function(fit){fit$var0}
 
 #' Get Binomial SER coefficients
@@ -114,7 +129,7 @@ update_delta.binser <- function(fit, data) {
 #' @param pi prior probability vector (length p)
 update_b_ser <- function(nu, tau, pi) {
   logits <- log(pi) - 0.5 * log(tau) + 0.5 * nu^2 / tau
-  logits <- logits - logSumExp(logits)
+  logits <- logits - matrixStats::logSumExp(logits)
   alpha <- exp(logits)
 
   post <- list(
@@ -282,7 +297,7 @@ binser <- function(X,
   return(fit)
 }
 
-
+#' @export
 print.binser <- function(fit){
   cs <- get_cs(fit$alpha)
   if(cs$size < 10){

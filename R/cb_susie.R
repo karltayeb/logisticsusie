@@ -3,16 +3,19 @@
 #' Get N x K-1 matrix of PG variational parameters
 #' TODO: deprecate this when we call update functions directly rather than
 #' passing to logistic susie subroutine
+#' @export
 get_xi.cbsusie <- function(fit) {
   xi <- do.call(cbind, purrr::map(fit$logreg_list, ~ purrr::pluck(.x, "xi"))) # N x K-1
   return(xi)
 }
 
+#' @export
 compute_Xb.cbsusie <- function(fit, data) {
   Xb <- do.call(cbind, purrr::map(fit$logreg_list, ~compute_Xb(.x, data))) # N x K-1
   return(Xb)
 }
 
+#' @export
 compute_psi.cbsusie <- function(fit, data) {
   psi <- do.call(cbind, purrr::map(fit$logreg_list, ~compute_psi(.x, data))) # N x K-1
   return(psi)
@@ -39,6 +42,22 @@ predict_log_assignment_cbsusie <- function(fit, data) {
   return(assignment)
 }
 
+
+predict_log_assignment_cbsusie_marginal <- function(fit, data) {
+  K <- fit$K
+  Xb <- compute_psi(fit, data) # N x K-1
+  Xi <- get_xi.cbsusie(fit)
+
+  f <- function(xi, psi) {
+    jj1 <- log(sigmoid(xi)) - 0.5 * xi + 0.5 * psi
+    assignment <- jj1 - logSumExp(jj1)
+    return(assignment)
+  }
+
+  assignment <- do.call(rbind, purrr::map(seq(nrow(Xb)), ~ f(Xi[.x, ], Xb[.x, ])))
+  return(assignment)
+}
+
 #' @export
 compute_elbo.cbsusie <- function(fit, data) {
   elbo <- sum(purrr::map_dbl(fit$logreg_list, ~tail(.x$elbo, 1)))
@@ -50,7 +69,7 @@ update_model.cbsusie <- function(fit, data,
                                  fit_intercept=T,
                                  fit_prior_variance=T,
                                  track_elbo=T){
-  for (k in seq(fit$K - 1)) {
+  for (k in seq(fit$K)) {
     logreg <- fit$logreg_list[[k]]
 
     # set data for this regression problem
