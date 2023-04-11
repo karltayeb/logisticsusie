@@ -25,6 +25,7 @@ fit_model <- function(x, ...){
 
 #' @export
 fit_model.default <- function(fit, data, ..., max_iter=100, tol=1e-5){
+  tictoc::tic()
   for(i in 1:max_iter){
     fit <- update_model(fit, data, ...)
 
@@ -34,6 +35,8 @@ fit_model.default <- function(fit, data, ..., max_iter=100, tol=1e-5){
       break
     }
   }
+  timer <- tictoc::toc()
+  fit$elapsed_time <- with(timer, toc - tic)
   return(fit)
 }
 
