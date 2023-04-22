@@ -57,5 +57,18 @@ fit_glm_ser <- function(X, y, o = NULL, prior_variance = 1.0, estimate_intercept
   # TODO: get offsets in the null model!
   null_likelihood <- dbinom(y, 1, mean(y), log = T)
   loglik <- lbf_model + null_likelihood
-  return(list(alpha = alpha, mu = post_mean, intercept = intercept, var = post_var, lbf = lbf, lbf_model = lbf_model, prior_variance = prior_variance, loglik = loglik))
+
+  res <- list(
+    alpha = alpha,
+    mu = post_mean,
+    var = post_var,
+    lbf = lbf,
+    lbf_model = lbf_model,
+    prior_variance = prior_variance,
+    loglik = loglik,
+    betahat = betahat,
+    shat2 = shat2,
+    intercept = intercept
+  )
+  return(res)
 }
