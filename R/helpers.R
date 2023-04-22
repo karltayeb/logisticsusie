@@ -36,28 +36,3 @@ is.even <- function(x) {
   x %% 2 == 0
 }
 
-get_cs <- function(alpha, requested_coverage = 0.95) {
-  rho <- order(-alpha)
-  idx <- min(sum(cumsum(alpha[rho]) < requested_coverage) + 1, length(alpha))
-  cs <- rho[1:idx]
-  coverage <- sum(alpha[cs])
-  return(list(cs = cs, prob = alpha[rho[1:idx]], size = idx, requested_coverage = requested_coverage, coverage = coverage))
-}
-
-get_all_cs <- function(alpha, requested_coverage = 0.95) {
-  L <- dim(alpha)[1]
-  sets <- purrr::map(1:L, ~ get_cs(alpha[.x, ], requested_coverage))
-  names(sets) <- paste0("L", 1:L)
-  return(sets)
-}
-
-# convenient table of CSs from get_all_cs2
-cs_tbl2 <- function(alpha) {
-  get_all_cs(alpha) %>%
-    dplyr::tibble() %>%
-    tidyr::unnest_wider(1) %>%
-    dplyr::rowwise() %>%
-    dplyr::mutate(top_feaure = cs[1], top_feature_alpha = prob[1]) # %>% unnest_longer(c(cs, prob))
-}
-
-
