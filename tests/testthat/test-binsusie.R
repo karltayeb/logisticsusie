@@ -9,9 +9,6 @@ test_susie_N <- function(N = 1) {
   fit <- fit_model(fit, data, fit_prior_variance=T, track_elbo=T, max_iter=1000)
 
   fit2 <- with(sim, binsusie(X, y, N, Z, L=5))
-  # .monotone(fit$elbo)
-  # cs <- get_all_cs2(get_alpha(fit))
-  # purrr::map(cs, ~ .x$cs)
 
   return(list(
     fit = fit,
