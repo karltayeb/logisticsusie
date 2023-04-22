@@ -70,12 +70,6 @@ compute_psi2 <- function(x, ...){
   UseMethod("compute_psi2")
 }
 
-
-#' @export
-coef <- function(x, ...){
-  UseMethod("coef")
-}
-
 #' @export
 get_alpha <- function(x, ...){
   UseMethod("get_alpha", x)
