@@ -220,17 +220,25 @@ sim_twococomo_sparse <- function(n = 1000, p = 50, L = 3, N = 1) {
 }
 
 
+#' Simulate from a multinomial logit model.
+#' logits for each category are sparse linear functions of X (L non-zero effects per category)
+#' multinomial sample taken with probability of softmax(logits)
 sim_mn_susie <- function(n = 1000, p = 50, L = 3, N = 1, K = 10) {
   X <- sim_X(n = n, p = p)
   Z <- matrix(rep(1, n), nrow = n)
 
-  Beta <- matrix(rnorm(p * K), nrow = p) / 10
-  logits <- X %*% Beta
+  idx <- purrr::map(1:K, ~sort(sample(p, L, replace = F)))
+  beta <- purrr::map(1:K, ~sort(rnorm(L) * 3))
 
+  logits <- list()
+  for (k in 1:K){
+    logits[[k]] <- (X[, idx[[k]]] %*% beta[[k]])[,1]
+  }
+  logits <- do.call(cbind, logits)
   Y <- t(do.call(cbind, purrr::map(seq(n), ~ rmultinom(1, N, softmax(logits[.x, ])))))
 
   data <- list(
-    X = X, Z = Z, y = Y, N=N, logits = logits, Beta = Beta
+    X = X, Z = Z, Y = Y, N=N, logits = logits, beta = beta, idx=idx
   )
   return(data)
 }
