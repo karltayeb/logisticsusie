@@ -320,6 +320,10 @@ binsusie <- function(X,
   fit <- data_initialize_binsusie(data, L, mu0 = prior_mean, var0 = prior_variance)
   fit <- fit_model(fit, data, max_iter=max_iter, tol=tol)
 
+  fit$alpha <- do.call(rbind, purrr::map(fit$sers, ~.x$alpha))
+  fit$mu <- do.call(rbind, purrr::map(fit$sers, ~.x$mu))
+  fit$var <- do.call(rbind, purrr::map(fit$sers, ~.x$var))
+
   # model pruning-- removes irrelevant components
   # if (prune) {
   #   fit <- prune_model(fit, check_null_threshold, intercept, estimate_prior_variance, tol = tol)
