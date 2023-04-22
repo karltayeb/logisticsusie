@@ -113,6 +113,13 @@ data_initialize_cbsusie <- function(data, L = 5, mu0=0, var0=1) {
   n <- nrow(data$X)
   p2 <- ncol(data$Z)
   fit <- initialize_cbsusie(K, n, p, p2, L, mu0, var0)
+
+  for(k in 1:(K-1)){
+    data$y <- data$Y[, k]
+    data$N <- data$Nk[, 1]
+    fit$logreg_list[[k]] <- data_initialize_binsusie(data, L, mu0, var0)
+  }
+  return(fit)
 }
 
 
