@@ -2,7 +2,7 @@
 # Multinomial susie
 ###
 
-test_mn_susie <- function() {
+test_sbmn_susie <- function() {
   sim <- sim_sbmn_susie()
   data <- with(sim, mnsusie_prep_data(X, Y, Z))
   fit <- data_initialize_sbmn_susie(data, L=5)
@@ -47,10 +47,8 @@ testthat::test_that("Multinomial SuSiE", {
 
 
 test_cb_susie <- function() {
-  sim <- sim_mn_susie()
-  data <- with(sim, mnsusie_prep_data(X, y, Z))
-  data$shift <- 0
-  data$shift_var <- 0
+  sim <- sim_mn_susie(K = 5)
+  data <- with(sim, mnsusie_prep_data(X, Y, Z))
 
   # cb
   fit <- data_initialize_cbsusie(data, L=5)
