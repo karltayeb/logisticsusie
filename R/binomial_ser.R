@@ -284,7 +284,7 @@ binser <- function(X,
                    n_purity = 100) {
 
   # Prepare data
-  data <- binsusie_prep_data(X, y, N, Z, scale = scale, center = center)
+  data <- binsusie_prep_data(X, y, N, Z, shift=o, scale = scale, center = center)
 
   # Initialize model
   fit <- data_initialize_binser(data, prior_mean, prior_variance)
