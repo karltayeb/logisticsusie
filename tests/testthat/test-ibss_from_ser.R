@@ -14,3 +14,12 @@ test_that("Compare ABF vs correct ABF in SER", {
   fit1 <- with(sim, fit_glm_ser(X, y, prior_variance = 1))
   fit2 <- with(sim, fit_glm_ser2(X, y, prior_variance = 1))
 })
+
+
+test_that("Compare ABF vs correct ABF in SER", {
+  sim <- logisticsusie::sim_ser()
+  fit1 <- with(sim, binser(X, y))
+  fit1 <- with(sim, fit_glm_ser(X, y, prior_variance = 1))
+  fit2 <- with(sim, ibss_from_ser(X, y, 5, prior_variance = 1, ser_function = binser))
+  fit3 <- with(sim, ibss_from_ser(X, y, 5, prior_variance = 1, ser_function = uvbser))
+})
