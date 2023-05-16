@@ -34,7 +34,7 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
       ser_l <- ser_function(X, y,
         o = fixed,
         prior_variance = prior_variance,
-        estimate_intercept = estimate_intercept,
+        intercept = estimate_intercept,
         prior_weights = prior_weights
       )
 
