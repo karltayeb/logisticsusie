@@ -114,7 +114,7 @@ uvbser <- function(X,
 
 #' @export
 print.uvbser <- function(fit){
-  cs <- get_cs(fit$alpha)
+  cs <- compute_cs(fit$alpha)
   if(cs$size < 10){
     cs_msg <- paste0('CS = {', paste(cs$cs, collapse=', '), '}')
   } else {

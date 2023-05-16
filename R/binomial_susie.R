@@ -246,7 +246,7 @@ binsusie_wrapup <- function(fit, prior_tol = 0) {
   fit$pip <- susieR::susie_get_pip(fit, prior_tol = prior_tol)
   names(fit$pip) <- colnames(X)
 
-  fit$sets <- susieR::susie_get_cs(fit, X = X)
+  fit$sets <- compute_cs(fit$alpha)
   fit$intercept <- colSums(fit$params$delta)[1]
   return(fit)
 }
