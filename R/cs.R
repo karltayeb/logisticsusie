@@ -58,3 +58,11 @@ cs_tbl2 <- function(alpha) {
     dplyr::mutate(top_feaure = cs[1], top_feature_alpha = prob[1]) # %>% unnest_longer(c(cs, prob))
 }
 
+
+#' @export
+compute_pip <- function(alpha){
+  p <- ncol(alpha)
+  pip <- purrr::map_dbl(1:p, ~1 - prod(1 - alpha[, .x]))
+  return(pip)
+}
+

@@ -9,7 +9,7 @@ fit_glm_ser2(
   y,
   o = NULL,
   prior_variance = 1,
-  estimate_intercept = T,
+  intercept = T,
   prior_weights = NULL,
   family = "binomial"
 )
