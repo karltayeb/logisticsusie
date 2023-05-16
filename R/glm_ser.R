@@ -3,8 +3,9 @@
 # compute SER using GLM
 #' @export
 fit_glm_ser <- function(X, y, o = NULL,
-                        prior_variance = 1.0, estimate_intercept = T,
+                        prior_variance = 1.0, intercept = T,
                         prior_weights = NULL, family = "binomial") {
+  estimate_intercept <- intercept # hack
   p <- ncol(X)
   betahat <- numeric(p)
   shat2 <- numeric(p)
@@ -78,8 +79,10 @@ fit_glm_ser <- function(X, y, o = NULL,
 #' compute SER using GLM, use Laplace approximation to BF rather than ABF
 #' @export
 fit_glm_ser2 <- function(X, y, o = NULL,
-                         prior_variance = 1, estimate_intercept = T,
+                         prior_variance = 1, intercept = T,
                          prior_weights = NULL, family = "binomial") {
+  estimate_intercept <- intercept # hack
+
   p <- ncol(X)
   betahat <- numeric(p)
   shat2 <- numeric(p)
