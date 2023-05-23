@@ -61,8 +61,12 @@ cs_tbl2 <- function(alpha) {
 
 #' @export
 compute_pip <- function(alpha){
-  p <- ncol(alpha)
-  pip <- purrr::map_dbl(1:p, ~1 - prod(1 - alpha[, .x]))
-  return(pip)
+  if(is.null(nrow(alpha))){
+    return(alpha)
+  } else{
+    p <- ncol(alpha)
+    pip <- purrr::map_dbl(1:p, ~1 - prod(1 - alpha[, .x]))
+    return(pip)
+  }
 }
 
