@@ -2,7 +2,7 @@
 update_model.uvbser <- function(fit, data,
                                 fit_intercept=TRUE,
                                 fit_prior_variance=TRUE,
-                                track_elbo = TRUE){
+                                track_elbo = TRUE, ...){
 
   if(fit_prior_variance){
     fit$var0 <- update_var0.binser(fit)
@@ -12,7 +12,7 @@ update_model.uvbser <- function(fit, data,
               o = data$shift, o2 = (data$shift_var + data$shift^2),
               prior_variance = fit$var0,
               estimate_intercept = fit_intercept,
-              prior_weights = fit$pi
+              prior_weights = fit$pi, ...
   )
   class(newfit) <- c('uvbser', 'binser')
   newfit$var0 <- fit$var0
@@ -96,7 +96,7 @@ uvbser <- function(X,
                    max_iter = 100,
                    tol = 0.001,
                    verbose = FALSE,
-                   n_purity = 100) {
+                   n_purity = 100, ...) {
 
   # Prepare data
   data <- binsusie_prep_data(X, y, N, Z, shift=o, scale = scale, center = center)
@@ -108,7 +108,7 @@ uvbser <- function(X,
   fit <- fit_model(fit, data,
                    fit_intercept=intercept,
                    fit_prior_variance = estimate_prior_variance,
-                   track_elbo = TRUE)
+                   track_elbo = TRUE, ...)
   return(fit)
 }
 
