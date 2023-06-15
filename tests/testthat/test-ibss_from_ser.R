@@ -1,7 +1,13 @@
 test_that("Compare ABF vs corrected ABF in SuSiE IBSS", {
   sim <- logisticsusie::sim_susie()
 
-  with(sim, fit_glm_ser2(X, y))
+  ser1 <- with(sim, fit_glm_ser2(X, y, prior_variance = 1, estimate_prior_variance = T))
+  ser2 <- with(sim, fit_glm_ser2(X, y, prior_variance = 1, estimate_prior_variance = F))
+
+  ser3 <- with(sim, fit_glm_ser2(X, y, prior_variance = 1, estimate_prior_variance = T, laplace = F))
+  ser4 <- with(sim, fit_glm_ser2(X, y, prior_variance = 1, estimate_prior_variance = F, laplace = F))
+
+
   fit1 <- with(sim, ibss_from_ser(X, y, 5, prior_variance = 1, ser_function = fit_glm_ser))
   fit2 <- with(sim, ibss_from_ser(X, y, 5, prior_variance = 1, ser_function = fit_glm_ser2))
 

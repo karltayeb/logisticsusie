@@ -1,17 +1,55 @@
 # Adapted from: https://andrewg3311.github.io/susieR_logistic_wflow/susie_logistic_demonstration.html#adjustments_to_susie_code
 
 #' Compute log of the asymptotic Bayes factor (ABF) for the SER vs null model
+#'
+#' @param betahat vector of MLEs for the effect size
+#' @param s2 vector of standard errors
+#' @param prior_variance variance of the effect size b ~ N(0, prior_variance)
+#' @returns log ABF for each variable
+compute_log_abf <- function(betahat, s2, prior_variance){
+  log_abf <- dnorm(betahat, 0, sd = sqrt(s2 + prior_variance), log = T) -
+    dnorm(betahat, 0, sd = sqrt(s2), log = T)
+  return(log_abf)
+}
+
+#' Compute log of the asymptotic Bayes factor (ABF) for the SER vs null model
+#'
 #' @param betahat vector of MLEs for the effect size
 #' @param s2 vector of standard errors
 #' @param prior_variance variance of the effect size b ~ N(0, prior_variance)
 #' @param pi prior over non-zero effects
 #' @returns log of the ABF for the SER log(\sum_j \pi_j ABF_j)
 compute_log_abf_ser <- function(betahat, s2, prior_variance, pi){
-  log_abf <- dnorm(betahat, 0, sd = sqrt(s2 + prior_variance), log = T) -
-    dnorm(betahat, 0, sd = sqrt(s2), log = T)
+  log_abf <- compute_log_abf(betahat, s2, prior_variance)
   return(logSumExp(log_abf + log(pi)))
 }
 
+
+#' Compute log of the CORRECTED asymptotic Bayes factor (ABF)
+#'
+#' @param betahat vector of MLEs for the effect size
+#' @param s2 vector of standard errors
+#' @param prior_variance variance of the effect size b ~ N(0, prior_variance)
+#' @returns log of the LABF for each variable
+compute_log_labf <- function(betahat, s2, lr, prior_variance){
+  log_abf <- compute_log_abf(betahat, s2, prior_variance)
+  alr_mle <- dnorm(betahat, betahat, sqrt(s2), log=T) -
+    dnorm(betahat, 0, sqrt(s2), log=T)
+  log_labf <- log_abf - alr_mle + lr
+  return(logSumExp(log_labf + log(pi)))
+}
+
+#' Compute log of the CORRECTED asymptotic Bayes factor (ABF) for the SER vs null model
+#'
+#' @param betahat vector of MLEs for the effect size
+#' @param s2 vector of standard errors
+#' @param prior_variance variance of the effect size b ~ N(0, prior_variance)
+#' @param pi prior over non-zero effects
+#' @returns log of the ABF for the SER log(\sum_j \pi_j ABF_j)
+compute_log_labf_ser <- function(betahat, s2, lr, prior_variance, pi){
+  log_labf <- compute_log_labf(betahat, s2, lr, prior_variance)
+  return(logSumExp(log_labf + log(pi)))
+}
 
 #' Optimize prior variance
 #'
@@ -20,13 +58,19 @@ compute_log_abf_ser <- function(betahat, s2, prior_variance, pi){
 #' @param s2 vector of standard errors
 #' @param pi prior over non-zero effects
 #' @returns the optimimum prior variance
-optimize_prior_variance <- function(betahat, s2, pi){
-  f_opt <- function(prior_variance){
-    compute_log_abf_ser(betahat, s2, prior_variance, pi)
+optimize_prior_variance <- function(betahat, s2, lr, pi, laplace=T){
+  if(laplace){
+    f_opt <- function(prior_variance){
+      compute_log_labf_ser(betahat, s2, lr, prior_variance, pi)
+    }
+  } else{
+    f_opt <- function(prior_variance){
+      compute_log_abf_ser(betahat, s2, prior_variance, pi)
+    }
   }
 
   # TODO: reasonable upper bound?
-  upper <- max(betahat^2 + 10 * s2)
+  upper <- max(1000 * s2)
   opt <- optimise(f_opt, c(0, upper), maximum = T)$maximum
   return(opt)
 }
@@ -177,7 +221,8 @@ fit_glm_ser2 <- function(X, y, o = NULL,
 
   # estimate prior variance
   if(estimate_prior_variance){
-    prior_variance <- optimize_prior_variance(betahat, shat2, prior_weights)
+    prior_variance <- optimize_prior_variance(
+      betahat, shat2, lr, prior_weights, laplace)
   }
 
   # compute ABF
