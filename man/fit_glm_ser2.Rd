@@ -11,7 +11,9 @@ fit_glm_ser2(
   prior_variance = 1,
   intercept = T,
   prior_weights = NULL,
-  family = "binomial"
+  family = "binomial",
+  laplace = T,
+  estimate_prior_variance = T
 )
 }
 \description{

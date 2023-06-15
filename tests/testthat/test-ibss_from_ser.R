@@ -1,11 +1,19 @@
 test_that("Compare ABF vs corrected ABF in SuSiE IBSS", {
   sim <- logisticsusie::sim_susie()
+
+  with(sim, fit_glm_ser2(X, y))
   fit1 <- with(sim, ibss_from_ser(X, y, 5, prior_variance = 1, ser_function = fit_glm_ser))
   fit2 <- with(sim, ibss_from_ser(X, y, 5, prior_variance = 1, ser_function = fit_glm_ser2))
 
   pip1 <- susieR::susie_get_pip(fit1$alpha)
   pip2 <- susieR::susie_get_pip(fit2$alpha)
   fit1$fits[[1]]$lbf - fit2$fits[[1]]$lbf
+
+  fit1 <- with(sim, ibss_from_ser(X, y, 5, prior_variance = 1, ser_function = fit_uvb_ser))
+
+  fit_uvb_ser2 <- purrr::partial(fit_uvb_ser, mapper=furrr::future_map)
+  fit2 <- with(sim, ibss_from_ser(X, y, 5, prior_variance = 1, ser_function = fit_uvb_ser2))
+
 })
 
 
@@ -23,3 +31,20 @@ test_that("Compare ABF vs correct ABF in SER", {
   fit2 <- with(sim, ibss_from_ser(X, y, 5, prior_variance = 1, ser_function = binser))
   fit3 <- with(sim, ibss_from_ser(X, y, 5, prior_variance = 1, ser_function = uvbser))
 })
+
+
+# parallel is slower than sequential here-- probably copying X to each session
+fit_parallel <- function(){
+  sim <- logisticsusie::sim_susie(p = 5000, n=2000)
+
+  tictoc::tic()
+  fit1 <- with(sim, fit_uvb_ser(X, y))
+  tictoc::toc()
+
+  fit_uvb_ser2 <- purrr::partial(fit_uvb_ser, mapper=furrr::future_map)
+  plan(multisession, workers = 4)
+
+  tictoc::tic()
+  fit1 <- with(sim, fit_uvb_ser2(X, y))
+  tictoc::toc()
+}
