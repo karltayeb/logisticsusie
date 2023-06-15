@@ -25,7 +25,8 @@ uvbser(
   max_iter = 100,
   tol = 0.001,
   verbose = FALSE,
-  n_purity = 100
+  n_purity = 100,
+  ...
 )
 }
 \arguments{
