@@ -130,7 +130,8 @@ fit_uvb_ser <- function(X, y, o = NULL, o2=NULL,
                         prior_variance = 1.0,
                         intercept.init = logodds(mean(y) + 1e-10),
                         estimate_intercept = T,
-                        prior_weights = NULL) {
+                        prior_weights = NULL,
+                        mapper = purrr::map) {
   tau0 <- 1 / prior_variance
   p <- dim(X)[2]
   if (is.null(o)) {
@@ -144,7 +145,7 @@ fit_uvb_ser <- function(X, y, o = NULL, o2=NULL,
   #null_likelihood <- sum(dbinom(y, 1, mean(y), log = T))
   null_likelihood <- tail(fit_univariate_vb(X[, 1], y, o = o, o2=o2, tau0 = 1e10)$elbos, 1)
 
-  res <- purrr::map(1:p, ~ fit_univariate_vb(
+  res <- mapper(1:p, ~ fit_univariate_vb(
     X[, .x], y,
     o = o, o2 = o2,
     tau0 = tau0,
