@@ -4,7 +4,7 @@
 \alias{optimize_prior_variance}
 \title{Optimize prior variance}
 \usage{
-optimize_prior_variance(betahat, s2, pi)
+optimize_prior_variance(betahat, s2, lr, pi, laplace = T)
 }
 \arguments{
 \item{betahat}{vector of MLEs for the effect size}
