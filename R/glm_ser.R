@@ -1,5 +1,40 @@
 # Adapted from: https://andrewg3311.github.io/susieR_logistic_wflow/susie_logistic_demonstration.html#adjustments_to_susie_code
 
+#' Fit fast GLM
+#'
+#' Fit fast GLM, and extract necessary information for SER
+#' @param x the variable of interest
+#' @param y the response vector
+#' @param o fixed offset, length(o) == length(y)
+#' @param family the family of the glm, e.g. "binomial", "poisson"
+fit_fast_glm <- function(x, y, o, family='binomial', augment=F){
+  if(augment){
+    ones <- rep(1, length(y) + 4)
+    X <- cbind(ones, c(x, c(1, 1, 0, 0)))
+    weights <- c(rep(1, length(y)), rep(1e-6, 4))
+    y2 <- c(y, c(1, 0, 1, 0))
+    o2 <- c(o, rep(0, 4))
+    fit <- fastglm::fastglm(y=y2, x = X, offset=o2, family='binomial', weight=weights)
+  } else{
+    ones <- rep(1, length(y))
+    X <- cbind(ones, x)
+    fit <- fastglm::fastglm(y=y, x = X, offset=o, family='binomial')
+  }
+  smry <- summary(fit)
+  intercept <- smry$coefficients[1, 1]
+  betahat <- smry$coefficients[2, 1]
+  shat2 <-   effect <- smry$coefficients[2, 2]^2
+  lr  <- 0.5 * (smry$null.deviance - smry$deviance)
+
+  res <- list(
+    betahat = betahat,
+    shat2 = shat2,
+    intercept = intercept,
+    lr = lr
+  )
+  return(res)
+}
+
 #' Compute log of the asymptotic Bayes factor (ABF) for the SER vs null model
 #'
 #' @param betahat vector of MLEs for the effect size
@@ -198,6 +233,37 @@ map_univariate_regression <- function(X, y, off = NULL, estimate_intercept=T, fa
   return(res)
 }
 
+
+#' Map univariate regression fit with fastglm
+#'
+#' Fit univariate glm for each column of X
+#' @param X n x p design matrix
+#' @param y n vector response
+#' @param o optional offset, vector of length n
+#' @param estimate_intercept boolean to fit intercept (not implemented)
+#' @param family family for glm, e.g. binomial
+#' @returns list containing intercept and effect estimates,
+#'    standard errors, and likelihood ratios
+map_fastglm <- function(X, y, off = NULL, estimate_intercept=T, family='binomial'){
+  if(!estimate_intercept){
+    warning("estimat_intercept = FALSE not implemented")
+  }
+  p <- ncol(X)
+  if (is.null(off)) {
+    off <- rep(0, length(y))
+  }
+  res <- purrr::map_dfr(1:p, ~fit_fast_glm(X[, .x], y, off, family=family))
+
+  res <- list(
+    p = p,
+    betahat = res$betahat,
+    shat2 = res$shat2,
+    intercept = res$intercept,
+    lr = res$lr
+  )
+  return(res)
+}
+
 #' compute SER using GLM, use Laplace approximation to BF rather than ABF
 #' @export
 fit_glm_ser2 <- function(X, y, o = NULL,
@@ -207,7 +273,7 @@ fit_glm_ser2 <- function(X, y, o = NULL,
   estimate_intercept <- intercept # hack
 
   # univariate regressions
-  uni <- map_univariate_regression(X, y, o, intercept, family)
+  uni <- map_fastglm(X, y, o, intercept, family)
   lr <- uni$lr
   betahat <- uni$betahat
   shat2 <- uni$shat2
