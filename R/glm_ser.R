@@ -1,40 +1,5 @@
 # Adapted from: https://andrewg3311.github.io/susieR_logistic_wflow/susie_logistic_demonstration.html#adjustments_to_susie_code
 
-#' Fit fast GLM
-#'
-#' Fit fast GLM, and extract necessary information for SER
-#' @param x the variable of interest
-#' @param y the response vector
-#' @param o fixed offset, length(o) == length(y)
-#' @param family the family of the glm, e.g. "binomial", "poisson"
-fit_fast_glm <- function(x, y, o, family='binomial', augment=F){
-  if(augment){
-    ones <- rep(1, length(y) + 4)
-    X <- cbind(ones, c(x, c(1, 1, 0, 0)))
-    weights <- c(rep(1, length(y)), rep(1e-6, 4))
-    y2 <- c(y, c(1, 0, 1, 0))
-    o2 <- c(o, rep(0, 4))
-    fit <- fastglm::fastglm(y=y2, x = X, offset=o2, family='binomial', weight=weights)
-  } else{
-    ones <- rep(1, length(y))
-    X <- cbind(ones, x)
-    fit <- fastglm::fastglm(y=y, x = X, offset=o, family='binomial')
-  }
-  smry <- summary(fit)
-  intercept <- smry$coefficients[1, 1]
-  betahat <- smry$coefficients[2, 1]
-  shat2 <-   effect <- smry$coefficients[2, 2]^2
-  lr  <- 0.5 * (smry$null.deviance - smry$deviance)
-
-  res <- list(
-    betahat = betahat,
-    shat2 = shat2,
-    intercept = intercept,
-    lr = lr
-  )
-  return(res)
-}
-
 #' Compute log of the asymptotic Bayes factor (ABF) for the SER vs null model
 #'
 #' @param betahat vector of MLEs for the effect size
@@ -234,6 +199,44 @@ map_univariate_regression <- function(X, y, off = NULL, estimate_intercept=T, fa
 }
 
 
+#' Fit fast GLM
+#'
+#' Fit fast GLM, and extract necessary information for SER
+#' @param x the variable of interest
+#' @param y the response vector
+#' @param o fixed offset, length(o) == length(y)
+#' @param family the family of the glm, e.g. "binomial", "poisson"
+fit_fast_glm <- function(x, y, o, family='binomial', augment=F){
+  if(augment){
+    ones <- rep(1, length(y) + 4)
+    X <- cbind(ones, c(x, c(1, 1, 0, 0)))
+    weights <- c(rep(1, length(y)), rep(1e-6, 4))
+    y2 <- c(y, c(1, 0, 1, 0))
+    o2 <- c(o, rep(0, 4))
+    fit <- fastglm::fastglm(y=y2, x = X, offset=o2, family='binomial', weight=weights)
+    fit0 <- fastglm::fastglm(y=y2, x = matrix(ones, nrow = n), offset=o, family='binomial')
+  } else{
+    n <- length(y)
+    ones <- rep(1, n)
+    X <- cbind(ones, x)
+    fit <- fastglm::fastglm(y=y, x = X, offset=o, family=family)
+    fit0 <- fastglm::fastglm(y=y, x = matrix(ones, nrow = n), offset=o, family='binomial')
+  }
+  coef <- unname(fit$coefficients)
+  intercept <- coef[1]
+  betahat <- coef[2]
+  shat2 <-  fit$se[2]^2
+  lr  <- 0.5 * (fit0$deviance - fit$deviance)
+
+  res <- list(
+    betahat = betahat,
+    shat2 = shat2,
+    intercept = intercept,
+    lr = lr
+  )
+  return(res)
+}
+
 #' Map univariate regression fit with fastglm
 #'
 #' Fit univariate glm for each column of X
@@ -246,7 +249,7 @@ map_univariate_regression <- function(X, y, off = NULL, estimate_intercept=T, fa
 #'    standard errors, and likelihood ratios
 map_fastglm <- function(X, y, off = NULL, estimate_intercept=T, family='binomial'){
   if(!estimate_intercept){
-    warning("estimat_intercept = FALSE not implemented")
+    warning("estimate_intercept = FALSE not implemented")
   }
   p <- ncol(X)
   if (is.null(off)) {
@@ -269,11 +272,11 @@ map_fastglm <- function(X, y, off = NULL, estimate_intercept=T, family='binomial
 fit_glm_ser2 <- function(X, y, o = NULL,
                          prior_variance = 1, intercept = T,
                          prior_weights = NULL, family = "binomial",
-                         laplace=T, estimate_prior_variance=T) {
-  estimate_intercept <- intercept # hack
+                         laplace=T, estimate_prior_variance=T,
+                         glm_mapper = map_fastglm) {
 
   # univariate regressions
-  uni <- map_fastglm(X, y, o, intercept, family)
+  uni <- glm_mapper(X, y, o, intercept, family)
   lr <- uni$lr
   betahat <- uni$betahat
   shat2 <- uni$shat2
@@ -292,16 +295,18 @@ fit_glm_ser2 <- function(X, y, o = NULL,
   }
 
   # compute ABF
-  lbf <- dnorm(betahat, 0, sqrt(prior_variance + shat2), log = TRUE) -
+  log_abf <- dnorm(betahat, 0, sqrt(prior_variance + shat2), log = TRUE) -
     dnorm(betahat, 0, sqrt(shat2), log = TRUE)
+
+  # compute liklihood ratio under asymptotic approximation
+  alr_mle <- dnorm(betahat, betahat, sqrt(shat2), log=T) -
+    dnorm(betahat, 0, sqrt(shat2), log=T)
 
   # make corrected ABF
   if(laplace){
-    # compute liklihood ratio under asymptotic approximation
-    alr_mle <- dnorm(betahat, betahat, sqrt(shat2), log=T) -
-      dnorm(betahat, 0, sqrt(shat2), log=T)
-
-    lbf <- lbf - alr_mle + lr
+    lbf <- log_abf - alr_mle + lr
+  } else{
+    lbf <- log_abf
   }
 
   # deal with perfectly enriched/depleted
@@ -326,7 +331,9 @@ fit_glm_ser2 <- function(X, y, o = NULL,
     mu = post_mean,
     var = post_var,
     lbf = lbf,
+    log_abf = log_abf,
     lr = lr,
+    alr_mle = alr_mle,
     null_loglik = null_loglik,
     lbf_model = lbf_model,
     prior_variance = prior_variance,
