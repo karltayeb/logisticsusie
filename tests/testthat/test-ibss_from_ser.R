@@ -7,9 +7,20 @@ test_that("Compare ABF vs corrected ABF in SuSiE IBSS", {
   ser3 <- with(sim, fit_glm_ser2(X, y, prior_variance = 1, estimate_prior_variance = T, laplace = F))
   ser4 <- with(sim, fit_glm_ser2(X, y, prior_variance = 1, estimate_prior_variance = F, laplace = F))
 
+  ser5 <- with(sim, fit_glm_ser(X, y, prior_variance = 1))
 
   fit1 <- with(sim, ibss_from_ser(X, y, 5, prior_variance = 1, ser_function = fit_glm_ser))
-  fit2 <- with(sim, ibss_from_ser(X, y, 5, prior_variance = 1, ser_function = fit_glm_ser2))
+  fit2 <- with(sim, ibss_from_ser(X, y, 5, prior_variance = 1, ser_function = fit_glm_ser2, ))
+
+  fff <- purrr::partial(fit_glm_ser2, estimate_prior_variance = F)
+  fit3 <- with(sim, ibss_from_ser(X, y, 5, prior_variance = 1, ser_function = fff))
+
+  fit_null <- with(sim, ibss_from_ser(X, y[sample(1:length(y), replace = F)], 5, prior_variance = 1, ser_function = fff))
+
+  y_null <- sim$y[sample(1:length(sim$y), replace = F)]
+
+  expect_equal(lr1$betahat, lr2$betahat)
+
 
   pip1 <- susieR::susie_get_pip(fit1$alpha)
   pip2 <- susieR::susie_get_pip(fit2$alpha)
@@ -21,7 +32,6 @@ test_that("Compare ABF vs corrected ABF in SuSiE IBSS", {
   fit2 <- with(sim, ibss_from_ser(X, y, 5, prior_variance = 1, ser_function = fit_uvb_ser2))
 
 })
-
 
 test_that("Compare ABF vs correct ABF in SER", {
   sim <- logisticsusie::sim_ser()
