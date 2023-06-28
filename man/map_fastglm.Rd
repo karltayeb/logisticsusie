@@ -4,7 +4,14 @@
 \alias{map_fastglm}
 \title{Map univariate regression fit with fastglm}
 \usage{
-map_fastglm(X, y, off = NULL, estimate_intercept = T, family = "binomial")
+map_fastglm(
+  X,
+  y,
+  off = NULL,
+  estimate_intercept = T,
+  family = "binomial",
+  augment = T
+)
 }
 \arguments{
 \item{X}{n x p design matrix}

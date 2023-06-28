@@ -4,7 +4,7 @@
 \alias{fit_fast_glm}
 \title{Fit fast GLM}
 \usage{
-fit_fast_glm(x, y, o, family = "binomial", augment = F)
+fit_fast_glm(x, y, o, family = "binomial", augment = F, fit0 = NULL)
 }
 \arguments{
 \item{x}{the variable of interest}
@@ -14,6 +14,8 @@ fit_fast_glm(x, y, o, family = "binomial", augment = F)
 \item{o}{fixed offset, length(o) == length(y)}
 
 \item{family}{the family of the glm, e.g. "binomial", "poisson"}
+
+\item{augment}{boolean to augment data to ensure existence of MLE}
 }
 \description{
 Fit fast GLM, and extract necessary information for SER

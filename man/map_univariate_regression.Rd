@@ -9,7 +9,8 @@ map_univariate_regression(
   y,
   off = NULL,
   estimate_intercept = T,
-  family = "binomial"
+  family = "binomial",
+  augment = F
 )
 }
 \arguments{

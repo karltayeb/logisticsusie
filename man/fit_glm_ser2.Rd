@@ -13,7 +13,9 @@ fit_glm_ser2(
   prior_weights = NULL,
   family = "binomial",
   laplace = T,
-  estimate_prior_variance = T
+  estimate_prior_variance = T,
+  augment = T,
+  glm_mapper = map_fastglm
 )
 }
 \description{
