@@ -33,6 +33,22 @@ test_that("Compare ABF vs corrected ABF in SuSiE IBSS", {
 
 })
 
+test_that("Init works", {
+  sim <- logisticsusie::sim_ser()
+
+  # suppress "maximum iterations reached" warning
+  suppressWarnings({
+    fit1 <- with(sim, ibss_from_ser(X, y, prior_variance = 1, ser_function = fit_glm_ser2, maxit=1))
+    fit_from_init <- with(sim, ibss_from_ser(X, y, prior_variance = 1, ser_function = fit_glm_ser2, init=fit1, maxit=1))
+    fit2 <- with(sim, ibss_from_ser(X, y, prior_variance = 1, ser_function = fit_glm_ser2, maxit=3))
+  })
+
+  expect_equal(fit2$alpha, fit_from_init$alpha)
+  expect_equal(fit2$mu, fit_from_init$mu)
+  expect_equal(fit2$var, fit_from_init$var)
+})
+
+
 test_that("Compare ABF vs correct ABF in SER", {
   sim <- logisticsusie::sim_ser()
   fit1 <- with(sim, fit_glm_ser(X, y, prior_variance = 1))
