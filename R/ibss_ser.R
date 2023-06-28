@@ -117,8 +117,11 @@ compute_sum_ser_kls <- function(q1, q2){
   L <- nrow(q1$alpha)
   kl <- 0
   for(l in 1:L){
-    kl <- kl + compute_ser_kl(
+    kl12 <- compute_ser_kl(
       q1$alpha[l,], q2$alpha[l,], q1$mu[l,], q1$var[l,], q2$mu[l,], q2$var[l,])
+    kl21 <- compute_ser_kl(
+      q2$alpha[l,], q1$alpha[l,], q2$mu[l,], q2$var[l,], q1$mu[l,], q1$var[l,])
+    kl <- kl + 0.5 * (kl12 + kl21)
   }
   return(kl)
 }
