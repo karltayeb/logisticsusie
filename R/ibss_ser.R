@@ -1,8 +1,29 @@
 # Functions for a generic IBSS algorithm
 # allows us to specify an SER function to run IBSS with...
 
+null_initialize_ibss <- function(n, p, L, prior_variance){
+  # place to store posterior info for each l = 1, ..., L
+  alpha <- matrix(1/p, nrow = L, ncol = p)
+  mu <- matrix(0, nrow = L, ncol = p)
+  var <- matrix(prior_variance, nrow = L, ncol = p)
+  init <- list(alpha = alpha, mu = mu, var = var)
+}
+
+#' IBSS from SER
+#'
+#' Fit IBSS for aribtrary SER, using expected predictions as a fixed offset
+#' @param X design matrix
+#' @param y response
+#' @param L number of effects
+#' @param prior_variance variance of each single effect, if `estimate_prior_variance = T` this is an initialization
+#' @param prior_weights the prior probability of selecting each variable (columns of `X`)
+#' @param tol tolerance to declare convergence
+#' @param maxit maximum number of iterations
+#' @param estimate_intercept boolean to estimate intercept
+#' @param ser_fun function for performing SER, must return PIPs, `alpha` and posterior mean `mu`
+#' @param init initialization
 #' @export
-ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol = 1e-3, maxit = 100, estimate_intercept = TRUE, ser_function = NULL) {
+ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol = 1e-3, maxit = 100, estimate_intercept = TRUE, ser_function = NULL, init = NULL) {
   if (is.null(ser_function)) {
     stop("You need to specify a fit function `fit_glm_ser`, `fit_vb_ser`, etc")
   }
@@ -10,20 +31,21 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
   p <- ncol(X)
   n <- nrow(X)
 
-  # place to store posterior info for each l = 1, ..., L
-  alpha <- matrix(NA, nrow = L, ncol = p)
-  mu <- matrix(NA, nrow = L, ncol = p)
-  var <- matrix(NA, nrow = L, ncol = p)
+  if(is.null(init)){
+    init <- null_initialize_ibss(n, p, L, prior_variance)
+  }
 
-  # store posterior effect estimates
-  beta_post <- matrix(0, nrow = L, ncol = p)
+  alpha <- init$alpha
+  mu <- init$mu
+  var <- init$var
 
-  fixed <- rep(0, n) # fixed portion, estimated from l' != l other SER models
-  iter <- 0
+  beta_post <- mu * alpha  # expected posterior effect
+  fixed <- (X %*% colSums(beta_post))[, 1] # expected predictions from SERs
 
   tictoc::tic() # start timer
   fits <- vector(mode = "list", length = L)
   beta_post_history <- vector(mode = "list", length = maxit)
+  iter <- 0
   # repeat until posterior means converge (ELBO not calculated here, so use this convergence criterion instead)
   while (ibss_l2(beta_post_history, iter - 1) > tol) {
     for (l in 1:L) {
@@ -61,7 +83,6 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
     }
   }
   timer <- tictoc::toc()
-
 
   # now, get intercept w/ MLE, holding our final estimate of beta to be fixed
   beta <- colSums(alpha * mu)
