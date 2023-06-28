@@ -23,7 +23,7 @@ null_initialize_ibss <- function(n, p, L, prior_variance){
 #' @param ser_fun function for performing SER, must return PIPs, `alpha` and posterior mean `mu`
 #' @param init initialization
 #' @export
-ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol = 1e-3, maxit = 100, estimate_intercept = TRUE, ser_function = NULL, init = NULL) {
+ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol = 1e-8, maxit = 100, estimate_intercept = TRUE, ser_function = NULL, init = NULL) {
   if (is.null(ser_function)) {
     stop("You need to specify a fit function `fit_glm_ser`, `fit_vb_ser`, etc")
   }
@@ -44,10 +44,13 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
 
   tictoc::tic() # start timer
   fits <- vector(mode = "list", length = L)
-  beta_post_history <- vector(mode = "list", length = maxit)
-  iter <- 0
+  q_history <- vector(mode = "list", length = maxit + 1)
+  q_history[[1]] <- list(alpha = alpha, mu = mu, var = var)
+
+  iter <- 1
+  kl_diff <- Inf
   # repeat until posterior means converge (ELBO not calculated here, so use this convergence criterion instead)
-  while (ibss_l2(beta_post_history, iter - 1) > tol) {
+  while (kl_diff > tol) {
     for (l in 1:L) {
       # remove effect from previous iteration
       fixed <- fixed - (X %*% beta_post[l, ])[, 1]
@@ -74,8 +77,12 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
       # save current ser
       fits[[l]] <- ser_l
     }
+
     iter <- iter + 1
-    beta_post_history[[iter]] <- beta_post
+    q_history[[iter]] <- list(alpha = alpha, mu = mu, var = var)
+
+    # compute kl between q after this iter, and q before this iter
+    kl_diff <- compute_sum_ser_kls(q_history[[iter]], q_history[[iter - 1]])
 
     if (iter > maxit) {
       warning("Maximum number of iterations reached")
@@ -100,11 +107,21 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
     fits = fits,
     iter = iter,
     elapsed_time = unname(timer$toc - timer$tic),
-    beta_post_history = head(beta_post_history, iter)
+    q_history = head(q_history, iter)
   )
   return(res)
 }
 
+
+compute_sum_ser_kls <- function(q1, q2){
+  L <- nrow(q1$alpha)
+  kl <- 0
+  for(l in 1:L){
+    kl <- kl + compute_ser_kl(
+      q1$alpha[l,], q2$alpha[l,], q1$mu[l,], q1$var[l,], q2$mu[l,], q2$var[l,])
+  }
+  return(kl)
+}
 
 ibss_l2 <- function(beta_post_history, iter) {
   if (iter < 2) {
