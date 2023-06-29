@@ -36,3 +36,8 @@ is.even <- function(x) {
   x %% 2 == 0
 }
 
+#' @export
+compute_purity <- function(cs, X){
+min(abs(cor(as.matrix(X[, cs]))))
+}
+

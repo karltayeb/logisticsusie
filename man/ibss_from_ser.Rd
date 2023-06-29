@@ -10,7 +10,7 @@ ibss_from_ser(
   L = 10,
   prior_variance = 1,
   prior_weights = NULL,
-  tol = 0.001,
+  tol = 1e-08,
   maxit = 100,
   estimate_intercept = TRUE,
   ser_function = NULL,
