@@ -142,3 +142,26 @@ ibss_l2 <- function(beta_post_history, iter) {
 ibss_monitor_convergence <- function(fit) {
   purrr::map_dbl(2:(fit$iter), ~ ibss_l2(fit$beta_post_history, .x))
 }
+
+
+#' Generalized IBSS
+#'
+#' approximate GLM SuSiE using generalized IBSS heuristic
+#' by default this is for logistic regression but you can specify
+#' what GLM to use via "family" argument
+#' dots get passed to `ibss_from_ser` see documentation for options
+#' @param X design matrix
+#' @param y response
+#' @param L number of single effects
+#' @param laplace boolean to use Laplace approximation to BF rather than ABF--
+#'  we recommend keeping set to default `TRUE`
+#' @param estimate_prior_variance boolean to estimate prior variance
+#' @param family family for glm
+#' @export
+generalized_ibss <- function(X, y, L=10, laplace=T, estimate_prior_variance=T, family='binomial', ...){
+  ser_fun <- purrr::partial(fit_glm_ser2,
+                            laplace=laplace,
+                            estimate_prior_variance=estimate_prior_variance,
+                            family=family)
+  ibss_from_ser(X, y, L=L, ser_function = ser_fun, ...)
+}

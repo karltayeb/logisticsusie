@@ -7,4 +7,16 @@ test_that('Fast glm looks like glm', {
   expect_equal(lr1$shat2, lr2$shat2)
   expect_equal(lr1$intercept, lr2$intercept)
   expect_equal(lr1$lr, lr2$lr)
+
+
+  # quick check
+  a <- glm(sim$y ~ 1 + sim$X[,20], family='binomial')
+  b <- glm(sim$y ~ 1, family='binomial')
+
+  x2 <- sim$X[,20]+3
+  c <- glm(sim$y ~ 1 + x2, family='binomial')
+
+
 })
+
+
