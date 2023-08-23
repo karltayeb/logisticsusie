@@ -36,7 +36,7 @@ compute_log_labf <- function(betahat, s2, lr, prior_variance){
   alr_mle <- dnorm(betahat, betahat, sqrt(s2), log=T) -
     dnorm(betahat, 0, sqrt(s2), log=T)
   log_labf <- log_abf - alr_mle + lr
-  return(logSumExp(log_labf + log(pi)))
+  return(log_labf)
 }
 
 #' Compute log of the CORRECTED asymptotic Bayes factor (ABF) for the SER vs null model
