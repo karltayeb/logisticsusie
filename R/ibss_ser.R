@@ -48,9 +48,12 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
   q_history[[1]] <- list(alpha = alpha, mu = mu, var = var)
 
   iter <- 1
-  kl_diff <- Inf
+  diff <- Inf
   # repeat until posterior means converge (ELBO not calculated here, so use this convergence criterion instead)
-  while (kl_diff > tol) {
+  while (diff > tol) {
+
+    beta_post_old <- beta_post
+
     for (l in 1:L) {
       # remove effect from previous iteration
       fixed <- fixed - (X %*% beta_post[l, ])[, 1]
@@ -81,8 +84,8 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
     iter <- iter + 1
     q_history[[iter]] <- list(alpha = alpha, mu = mu, var = var)
 
-    # compute kl between q after this iter, and q before this iter
-    kl_diff <- compute_sum_ser_kls(q_history[[iter]], q_history[[iter - 1]])
+    # diff to monitor convergence
+    diff <- mean((beta_post - beta_post_old)**2)
 
     if (iter > maxit) {
       warning("Maximum number of iterations reached")
