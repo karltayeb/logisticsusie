@@ -143,10 +143,13 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
 #' @param estimate_prior_variance boolean to estimate prior variance
 #' @param family family for glm
 #' @export
-generalized_ibss <- function(X, y, L=10, laplace=T, estimate_prior_variance=T, family='binomial', ...){
+generalized_ibss <- function(X, y, L=10, laplace=T, estimate_prior_variance=T, min_prior_variance = 0, family='binomial', ...){
+  # make SER function for GLM, uses asymptotic approximation
   ser_fun <- purrr::partial(fit_glm_ser2,
                             laplace=laplace,
                             estimate_prior_variance=estimate_prior_variance,
+                            min_prior_variance=min_prior_variance,
                             family=family)
+  # fit IBSS using the SER function
   ibss_from_ser(X, y, L=L, ser_function = ser_fun, ...)
 }
