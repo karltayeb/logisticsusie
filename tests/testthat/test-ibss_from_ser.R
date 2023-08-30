@@ -1,7 +1,7 @@
 test_that("Compare ABF vs corrected ABF in SuSiE IBSS", {
   sim <- logisticsusie::sim_susie()
-
   test_gibss <- with(sim, generalized_ibss(X, y, L=5))
+
   ser1 <- with(sim, fit_glm_ser2(X, y, prior_variance = 1, estimate_prior_variance = T))
   ser2 <- with(sim, fit_glm_ser2(X, y, prior_variance = 1, estimate_prior_variance = F))
 
