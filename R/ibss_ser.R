@@ -97,55 +97,37 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
   # now, get intercept w/ MLE, holding our final estimate of beta to be fixed
   beta <- colSums(alpha * mu)
   pred <- (X %*% beta)[, 1]
-  int <- coef(glm(y ~ 1 + offset(pred), family = "binomial"))
+
+  # TODO: get intercept for whole mode
 
   # add the final ser fits
   names(fits) <- paste0("L", 1:L)
+  prior_variance <- purrr::map_dbl(fits, ~purrr::pluck(.x, 'prior_variance'))
+
+  # compute PIP using only effects with prior variance != 0
+  if(sum(prior_variance > 0) == 0){
+    pip <- rep(0, p)
+  } else{
+    pip <- compute_pip(alpha[prior_variance > 0,])
+  }
+
+  # compute cs
+  cs <- compute_cs(alpha)
 
   res <- list(
     alpha = alpha,
     mu = mu,
     var = var,
-    intercept = int,
+    prior_variance = prior_variance,
     fits = fits,
     iter = iter,
     elapsed_time = unname(timer$toc - timer$tic),
-    q_history = head(q_history, iter)
+    q_history = head(q_history, iter),
+    pip = pip,
+    cs = cs
   )
   return(res)
 }
-
-
-compute_sum_ser_kls <- function(q1, q2){
-  L <- nrow(q1$alpha)
-  kl <- 0
-  for(l in 1:L){
-    kl12 <- compute_ser_kl(
-      q1$alpha[l,], q2$alpha[l,], q1$mu[l,], q1$var[l,], q2$mu[l,], q2$var[l,])
-    kl21 <- compute_ser_kl(
-      q2$alpha[l,], q1$alpha[l,], q2$mu[l,], q2$var[l,], q1$mu[l,], q1$var[l,])
-    kl <- kl + 0.5 * (kl12 + kl21)
-  }
-  return(kl)
-}
-
-ibss_l2 <- function(beta_post_history, iter) {
-  if (iter < 2) {
-    res <- Inf
-  } else {
-    res <- norm(
-      beta_post_history[[iter - 1]] - beta_post_history[[iter]],
-      type = "2"
-    )
-  }
-  return(res)
-}
-
-#' @export
-ibss_monitor_convergence <- function(fit) {
-  purrr::map_dbl(2:(fit$iter), ~ ibss_l2(fit$beta_post_history, .x))
-}
-
 
 #' Generalized IBSS
 #'
