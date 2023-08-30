@@ -58,7 +58,7 @@ compute_log_labf_ser <- function(betahat, s2, lr, prior_variance, pi){
 #' @param s2 vector of standard errors
 #' @param pi prior over non-zero effects
 #' @returns the optimimum prior variance
-optimize_prior_variance <- function(betahat, s2, lr, pi, laplace=T){
+optimize_prior_variance <- function(betahat, s2, lr, pi, laplace=T, min_prior_variance=0){
   if(laplace){
     f_opt <- function(prior_variance){
       compute_log_labf_ser(betahat, s2, lr, prior_variance, pi)
@@ -72,6 +72,19 @@ optimize_prior_variance <- function(betahat, s2, lr, pi, laplace=T){
   # TODO: reasonable upper bound?
   upper <- max(1000 * s2)
   opt <- optimise(f_opt, c(0, upper), maximum = T)$maximum
+
+  fopt <- f_opt(opt)
+  f0 <- f_opt(0)
+
+  # set prior variance to 0 if optimized results is not better than null
+  if(f0 >= fopt){
+    opt <- 0
+  }
+
+  # set prior variance to 0 if it is not bigger than min_prior_variance
+  if(opt <= min_prior_variance){
+    opt <- 0
+  }
   return(opt)
 }
 
@@ -325,7 +338,9 @@ map_fastglm <- function(X, y, off = NULL, estimate_intercept=T, family='binomial
 fit_glm_ser2 <- function(X, y, o = NULL,
                          prior_variance = 1, intercept = T,
                          prior_weights = NULL, family = "binomial",
-                         laplace = T, estimate_prior_variance=T,
+                         laplace = T,
+                         estimate_prior_variance=T,
+                         min_prior_variance = 0,
                          augment = T,
                          glm_mapper = map_fastglm) {
 
@@ -348,7 +363,7 @@ fit_glm_ser2 <- function(X, y, o = NULL,
   # estimate prior variance
   if(estimate_prior_variance){
     prior_variance <- optimize_prior_variance(
-      betahat, shat2, lr, prior_weights, laplace)
+      betahat, shat2, lr, prior_weights, laplace, min_prior_variance)
   }
 
   # compute ABF
