@@ -34,6 +34,13 @@ test_that("Compare ABF vs corrected ABF in SuSiE IBSS", {
 
 })
 
+test_that("Generalized IBSS (binomial)  works with probabilities", {
+  sim <- logisticsusie::sim_susie(beta0 = -1)
+  y2 <- pmax(pmin(sim$y, 0.99), 0.01)
+  test_gibss <- with(sim, generalized_ibss(X, y2, L=5))
+  psi <- predict(test_gibss, sim$X)
+})
+
 test_that("Init works", {
   sim <- logisticsusie::sim_ser()
   fit <- with(sim, ibss_from_ser(X, y, prior_variance = 1, ser_function = fit_glm_ser2, maxit=20))
