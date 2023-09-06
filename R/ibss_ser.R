@@ -98,7 +98,8 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
   beta <- colSums(alpha * mu)
   pred <- (X %*% beta)[, 1]
 
-  # TODO: get intercept for whole mode
+  # TODO: properly estimate intercept of whole model
+  intercept <- with(ser_l, sum(intercept * alpha))
 
   # add the final ser fits
   names(fits) <- paste0("L", 1:L)
@@ -118,6 +119,7 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
     alpha = alpha,
     mu = mu,
     var = var,
+    intercept = intercept,
     prior_variance = prior_variance,
     fits = fits,
     iter = iter,
@@ -126,7 +128,15 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
     pip = pip,
     cs = cs
   )
+  class(res) <- 'generalized_ibss'
   return(res)
+}
+
+
+#' @export
+predict.generalized_ibss <- function(fit, X){
+  psi <- with(fit, intercept + drop(X %*% colSums(alpha * mu)))
+  return(psi)
 }
 
 #' Generalized IBSS

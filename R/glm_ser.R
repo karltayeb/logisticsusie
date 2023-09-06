@@ -203,5 +203,6 @@ fit_glm_ser2 <- function(X, y, o = NULL,
   }
 
   res <- asymptotic_ser(betahat, shat2, intercept, lr, prior_weights, estimate_prior_variance=T, laplace=T, min_prior_variance=min_prior_variance)
+  class(res) <- 'asymptotic_ser'
   return(res)
 }
