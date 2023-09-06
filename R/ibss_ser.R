@@ -135,7 +135,7 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
 
 #' @export
 predict.generalized_ibss <- function(fit, X){
-  psi <- with(fit, intercept + drop(X %*% colSums(alpha * mu)))
+  psi <- with(fit, intercept + drop(X %*% colSums(alpha * mu)))[, 1]
   return(psi)
 }
 
