@@ -116,6 +116,7 @@ compute_log_marginal_adaptive <- function(x, y, b0, mu, var, prior_variance, n_i
 fit_quad_ser <- function(X, y, o = NULL, prior_variance = 1, intercept = T, prior_weights=NULL, glm_ser=NULL, n=16, verbose=F, ...) {
   p <- dim(X)[2]
   if(is.null(glm_ser)){
+    if(verbose){message('fitting univariate MLEs...')}
     glm_ser_args = c(list(
       X=X, y=y, o=o,
       prior_variance = prior_variance,
@@ -126,6 +127,7 @@ fit_quad_ser <- function(X, y, o = NULL, prior_variance = 1, intercept = T, prio
 
   prior_variance = glm_ser$prior_variance
   null_loglik <- sum(dbinom(y, 1, mean(y), log = T))
+  if(verbose){message('Computing BFs... ')}
   lbf <- purrr::map_dbl(1:p, ~ compute_log_marginal(
     x = X[, .x],
     y = y,
