@@ -113,10 +113,14 @@ compute_log_marginal_adaptive <- function(x, y, b0, mu, var, prior_variance, n_i
 #' @param n number of quadrature points
 #' @param verbose print messages during fitting
 #' @export
-fit_quad_ser <- function(X, y, o = NULL, glm_ser_args = list(), glm_ser=NULL, n=16, verbose=F) {
+fit_quad_ser <- function(X, y, o = NULL, prior_variance = 1, intercept = T, prior_weights=NULL, glm_ser=NULL, n=16, verbose=F, ...) {
   p <- dim(X)[2]
   if(is.null(glm_ser)){
-    glm_ser_args = c(list(X=X, y=y, o=o), glm_ser_args)
+    glm_ser_args = c(list(
+      X=X, y=y, o=o,
+      prior_variance = prior_variance,
+      intercept=intercept,
+      prior_weights=prior_weights), list(...))
     glm_ser <- rlang::exec(fit_glm_ser2, !!!glm_ser_args)
   }
 
