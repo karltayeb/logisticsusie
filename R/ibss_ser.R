@@ -104,6 +104,7 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
   # add the final ser fits
   names(fits) <- paste0("L", 1:L)
   prior_variance <- purrr::map_dbl(fits, ~purrr::pluck(.x, 'prior_variance'))
+  lbf_ser <- purrr::map_dbl(fits, ~purrr::pluck(.x, 'lbf_model'))
 
   # compute PIP using only effects with prior variance != 0
   if(sum(prior_variance > 0) == 0){
@@ -126,6 +127,7 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
     elapsed_time = unname(timer$toc - timer$tic),
     q_history = head(q_history, iter),
     pip = pip,
+    lbf_ser = lbf_ser,
     cs = cs
   )
   class(res) <- 'generalized_ibss'
