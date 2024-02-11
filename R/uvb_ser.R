@@ -3,33 +3,28 @@ update_model.uvbser <- function(fit, data,
                                 fit_intercept=TRUE,
                                 fit_prior_variance=TRUE,
                                 track_elbo = TRUE, ...){
-
   if(fit_prior_variance){
-    fit$var0 <- update_var0.binser(fit)
+    fit$prior_variance <- update_var0.binser(fit) + 1e-10
   }
 
   newfit <- fit_uvb_ser(data$X, data$y,
               o = data$shift, o2 = (data$shift_var + data$shift^2),
-              prior_variance = fit$var0,
+              prior_variance = fit$prior_variance,
               estimate_intercept = fit_intercept,
               prior_weights = fit$pi, ...
   )
+
   class(newfit) <- c('uvbser', 'binser')
-  newfit$var0 <- fit$var0
+  newfit$prior_variance <- fit$prior_variance
   newfit$mu0 <- fit$mu0
   newfit$pi <- fit$pi
   newfit$elbo <- c(fit$elbo, newfit$loglik)
+  if(!fit_prior_variance){
+    # force convergence on 1 iter
+    newfit$elbo <- c(newfit$elbo, newfit$loglik)
+  }
   newfit$delta <- sum(fit$alpha * fit$intercept)
   return(newfit)
-}
-
-#' @export
-fit_model.uvbser <- function(fit, data, ...){
-  tictoc::tic()
-  fit <- update_model(fit, data, ...)
-  timer <- tictoc::toc()
-  fit$elapsed_time <- with(timer, toc - tic)
-  return(fit)
 }
 
 # Initialize -------
@@ -56,6 +51,7 @@ data_initialize_uvbser <- function(data, mu0=0, var0=1){
   p <- ncol(data$X)
   p2 <- ncol(data$Z)
   ser <- initialize_uvbser(n, p, p2, mu0, var0)
+  ser$prior_variance <- ser$var0
   return(ser)
 }
 

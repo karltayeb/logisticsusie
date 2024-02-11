@@ -2,13 +2,16 @@ test_uvbser_N <- function(N = 1) {
   data <- sim_ser(N = N)
   data <- with(data, binsusie_prep_data(X, y, N, Z))
   fit <- data_initialize_uvbser(data)
-  fit <- update_model(fit, data)
-  fit <- fit_model(fit, data)
+  fit <- update_model(fit, data, fit_prior_variance=T)
+  fit <- fit_model(fit, data, fit_prior_variance=T)
+  fit2 <- with(data, uvbser(X, y, estimate_prior_variance = F))
+
   .monotone(fit$elbo)
   return(list(
     fit = fit,
     monotone = .monotone(fit$elbo)
   ))
+
 }
 
 # NOTE: this test doesnt actually do anything
