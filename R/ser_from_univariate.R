@@ -133,7 +133,7 @@ optimize_prior_variance <- function(betahat, s2, lr, pi, laplace=T, min_prior_va
   return(opt)
 }
 
-asymptotic_ser <- function(betahat, shat2, intercept, lr, prior_weights, estimate_prior_variance=T, laplace=T, min_prior_variance=0){
+asymptotic_ser <- function(betahat, shat2, intercept, lr, prior_weights, prior_variance = 1, estimate_prior_variance=T, laplace=T, min_prior_variance=0){
   p <- length(betahat)
 
   # estimate prior variance
