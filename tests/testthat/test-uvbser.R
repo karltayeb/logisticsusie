@@ -5,6 +5,7 @@ test_uvbser_N <- function(N = 1) {
   fit <- update_model(fit, data, fit_prior_variance=T)
   fit <- fit_model(fit, data, fit_prior_variance=T)
   fit2 <- with(data, uvbser(X, y, estimate_prior_variance = F))
+  fit2 <- with(data, uvbser(X, y, estimate_prior_variance = T))
 
   .monotone(fit$elbo)
   return(list(
