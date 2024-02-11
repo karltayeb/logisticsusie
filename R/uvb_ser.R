@@ -104,6 +104,7 @@ uvbser <- function(X,
   fit <- fit_model(fit, data,
                    fit_intercept=intercept,
                    fit_prior_variance = estimate_prior_variance,
+                   max_iter = max_iter,
                    track_elbo = TRUE, ...)
   return(fit)
 }
