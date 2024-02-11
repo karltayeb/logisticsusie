@@ -157,7 +157,7 @@ predict.generalized_ibss <- function(fit, X){
 #' @export
 generalized_ibss <- function(X, y, L=10, laplace=T, estimate_prior_variance=T, min_prior_variance = 0, family='binomial', ...){
   # make SER function for GLM, uses asymptotic approximation
-  ser_fun <- purrr::partial(fit_glm_ser2,
+  ser_fun <- purrr::partial(fit_glm_ser,
                             laplace=laplace,
                             estimate_prior_variance=estimate_prior_variance,
                             min_prior_variance=min_prior_variance,

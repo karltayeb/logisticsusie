@@ -42,9 +42,10 @@ quad1d_fixed_intercept2 <- function(x, y, b0, b_mu, b_sigma, n = 128, q = NULL) 
 #'
 #' approximate log(\int f(x)dx) by quadrature on \int f(x)/p(x) p(x)
 #' where p(x) is a normal density, we approximate this integral
-#' with a gaussian quadrature rule via `statmod::gauss.quad.prob`
+#' with a Gauss-Hermite quadrature rule via `statmod::gauss.quad.prob`
 #' done on a log scale for numerical stability (f is positive)
 #' the goal is to choose p(x) such that f(x)/p(x) is not too variable near the mode
+#' in practice we use the Laplace approximation of the posterior for p(x)
 #' @param mu mean of gaussian quadrature
 #' @param sd sd of gaussian quadrature
 gauss_quad2 <- function(log_f, mu, sd, n=32){
@@ -77,7 +78,6 @@ compute_log_marginal <- function(x, y, b0, mu, var, prior_variance, n = 32, verb
   return(res)
 }
 
-
 #' Adaptive quadrature
 #' Double the number of quadrature points until change is small
 compute_log_marginal_adaptive <- function(x, y, b0, mu, var, prior_variance, n_init = 8, tol=1e-3, verbose=T) {
@@ -102,13 +102,13 @@ compute_log_marginal_adaptive <- function(x, y, b0, mu, var, prior_variance, n_i
 #' Fit quad SER
 #'
 #' posterior mean and variance are approximated using an asymptotic normal approximation
-#'  the same as in `fit_glm_ser2`
+#'  the same as in `fit_glm_ser`
 #' the BFs are computed via quadrature, with a quadrature rule
 #'  centered on the approximate MAP
 #' @param X n x p matrix of covariates
 #' @param y n vector of responses
 #' @param o n vector of fixed offsets
-#' @param glm_ser_args arguments to be passed to `fit_glm_ser2`
+#' @param glm_ser_args arguments to be passed to `fit_glm_ser`
 #' @param glm_ser provide a fit glm_ser object to avoid refitting
 #' @param n number of quadrature points
 #' @param verbose print messages during fitting
@@ -122,7 +122,7 @@ fit_quad_ser <- function(X, y, o = NULL, prior_variance = 1, intercept = T, prio
       prior_variance = prior_variance,
       intercept=intercept,
       prior_weights=prior_weights), list(...))
-    glm_ser <- rlang::exec(fit_glm_ser2, !!!glm_ser_args)
+    glm_ser <- rlang::exec(fit_glm_ser, !!!glm_ser_args)
   }
 
   prior_variance = glm_ser$prior_variance

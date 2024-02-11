@@ -1,9 +1,9 @@
-test_that("fit_glm_ser2 matches reference implementation", {
+test_that("fit_glm_ser matches reference implementation", {
   sim <- logisticsusie::sim_susie()
 
   ser1 <- with(sim, fit_glm_ser(X, y))
-  ser2 <- with(sim, fit_glm_ser2(X, y, laplace = F, estimate_prior_variance = F, augment = F))
-  ser3 <- with(sim, fit_glm_ser2(X, y, laplace = T, estimate_prior_variance = F, augment = F))
+  ser2 <- with(sim, fit_glm_ser(X, y, laplace = F, estimate_prior_variance = F, augment = F))
+  ser3 <- with(sim, fit_glm_ser(X, y, laplace = T, estimate_prior_variance = F, augment = F))
 
   expect_equal(ser1$alpha, ser2$alpha)
   expect_equal(ser1$mu, ser2$mu)
@@ -17,11 +17,11 @@ test_that("fit_glm_ser2 matches reference implementation", {
 })
 
 
-test_that("fit_glm_ser2 returns sensible log Laplace ABFs", {
+test_that("fit_glm_ser returns sensible log Laplace ABFs", {
   set.seed(1)
   sim <- logisticsusie::sim_ser()
 
-  laplace <- purrr::partial(fit_glm_ser2, laplace=T, estimate_prior_variance=F)
+  laplace <- purrr::partial(fit_glm_ser, laplace=T, estimate_prior_variance=F)
 
   # when we fit the SER there is strong evidence for an effect
   ser_laplace <- with(sim, laplace(X, y))
@@ -43,8 +43,8 @@ test_that("fastglm is fast?", {
   set.seed(1)
   sim <- logisticsusie::sim_ser()
 
-  slow <- purrr::partial(fit_glm_ser2, laplace=T, estimate_prior_variance=F, glm_mapper=map_univariate_regression, augment=F)
-  fast <- purrr::partial(fit_glm_ser2, laplace=T, estimate_prior_variance=F, glm_mapper=map_fastglm)
+  slow <- purrr::partial(fit_glm_ser, laplace=T, estimate_prior_variance=F, glm_mapper=map_univariate_regression, augment=F)
+  fast <- purrr::partial(fit_glm_ser, laplace=T, estimate_prior_variance=F, glm_mapper=map_fastglm)
 
   expect_true(T)
   # slow_fit <- with(sim, slow(X, y))

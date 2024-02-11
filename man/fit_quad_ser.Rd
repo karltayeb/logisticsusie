@@ -30,11 +30,11 @@ fit_quad_ser(
 
 \item{verbose}{print messages during fitting}
 
-\item{glm_ser_args}{arguments to be passed to \code{fit_glm_ser2}}
+\item{glm_ser_args}{arguments to be passed to \code{fit_glm_ser}}
 }
 \description{
 posterior mean and variance are approximated using an asymptotic normal approximation
-the same as in \code{fit_glm_ser2}
+the same as in \code{fit_glm_ser}
 the BFs are computed via quadrature, with a quadrature rule
 centered on the approximate MAP
 }

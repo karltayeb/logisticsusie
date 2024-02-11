@@ -171,7 +171,7 @@ map_fastglm <- function(X, y, off = NULL, estimate_intercept=T, family='binomial
 
 #' compute SER using GLM, use Laplace approximation to BF rather than ABF
 #' @export
-fit_glm_ser2 <- function(X, y, o = NULL,
+fit_glm_ser <- function(X, y, o = NULL,
                          prior_variance = 1, intercept = T,
                          prior_weights = NULL, family = "binomial",
                          laplace = T,
