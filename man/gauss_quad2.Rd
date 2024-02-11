@@ -14,7 +14,8 @@ gauss_quad2(log_f, mu, sd, n = 32)
 \description{
 approximate log(\int f(x)dx) by quadrature on \int f(x)/p(x) p(x)
 where p(x) is a normal density, we approximate this integral
-with a gaussian quadrature rule via \code{statmod::gauss.quad.prob}
+with a Gauss-Hermite quadrature rule via \code{statmod::gauss.quad.prob}
 done on a log scale for numerical stability (f is positive)
 the goal is to choose p(x) such that f(x)/p(x) is not too variable near the mode
+in practice we use the Laplace approximation of the posterior for p(x)
 }
