@@ -85,7 +85,7 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
     q_history[[iter]] <- list(alpha = alpha, mu = mu, var = var)
 
     # diff to monitor convergence
-    diff <- mean((beta_post - beta_post_old)**2)
+    diff <- max((beta_post - beta_post_old)**2)
 
     if (iter > maxit) {
       warning("Maximum number of iterations reached")
