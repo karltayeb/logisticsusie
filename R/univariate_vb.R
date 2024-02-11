@@ -81,17 +81,22 @@ update_tau0_vb <- function(x, y, o, o2, mu, tau, xi, delta, tau0) {
 #' Normal prior on the effect N(0, 1/tau0)
 #' @export
 fit_univariate_vb <- function(x, y, o = 0, o2 = 0,
+                              mu.init = 0,
+                              tau.init = 1,
+                              xi.init = NULL,
                               delta.init = logodds(mean(y) + 1e-10),
                               tau0 = 1,
                               estimate_intercept = T,
                               maxit = 50,
                               tol = 1e-3) {
   # init
-  mu <- 0
-  tau <- 1
+  mu <- mu.init
+  tau <- tau.init
   delta <- delta.init
-  xi <- update_xi_vb(x, y, o, o2, mu, tau, 1, delta, tau0)
-  xi <- pmax(xi, 1e-3)
+  if(is.null(xi.init)){
+    xi <- update_xi_vb(x, y, o, o2, mu, tau, 1, delta, tau0)
+    xi <- pmax(xi, 1e-3)
+  }
 
   elbos <- compute_elbo_vb(x, y, o, o2, mu, tau, xi, delta, tau0)
   for (i in seq(maxit)) {
