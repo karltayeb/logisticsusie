@@ -146,7 +146,7 @@ fit_quad_ser <- function(X, y, o = NULL, prior_variance = 1, intercept = T, prio
   quad_ser <- glm_ser
   quad_ser$alpha <- alpha
   quad_ser$lbf <- lbf
-  quad_ser$lbf_model <- lbf_model
+  quad_ser$lbf_ser <- lbf_model
   class(quad_ser) <- c('quad_ser', 'asymptotic_ser')
   return(quad_ser)
 }
