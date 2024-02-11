@@ -196,13 +196,7 @@ fit_glm_ser <- function(X, y, o = NULL,
     prior_weights <- rep(1/p, p)
   }
 
-  # estimate prior variance
-  if(estimate_prior_variance){
-    prior_variance <- optimize_prior_variance(
-      betahat, shat2, lr, prior_weights, laplace, min_prior_variance)
-  }
-
-  res <- asymptotic_ser(betahat, shat2, intercept, lr, prior_weights, estimate_prior_variance=T, laplace=T, min_prior_variance=min_prior_variance)
+  res <- asymptotic_ser(betahat, shat2, intercept, lr, prior_weights, estimate_prior_variance=estimate_prior_variance, laplace=T, min_prior_variance=min_prior_variance)
   class(res) <- 'asymptotic_ser'
   return(res)
 }
