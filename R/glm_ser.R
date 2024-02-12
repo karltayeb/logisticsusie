@@ -91,38 +91,26 @@ prep_data_for_fastglm <- function(x, y, o, intercept=T, augment=F){
 #' @param family the family of the glm, e.g. "binomial", "poisson"
 #' @param augment boolean to augment data to ensure existence of MLE
 #' @param fit0
-fit_fast_glm <- function(x, y, o, family='binomial', augment=F, fit0=NULL){
-  # 1. data setup
-  regression_data <- prep_data_for_fastglm(x, y, o, intercept=T, augment=augment)
+fit_fast_glm <- function(x, y, o, family='binomial'){
+  # 1. fit model
+  fit <- fastglm::fastglm(y = y,
+                          x = as.matrix(cbind(rep(1, length(y)), x)),
+                          offset = o,
+                          family = family)
 
-  # 2. fit model
-  fit <- fastglm::fastglm(y = regression_data$y,
-                          x = regression_data$X,
-                          offset = regression_data$o,
-                          family = family,
-                          weights = regression_data$wei)
-
-  # 3. fit null model if not provided
-  if(is.null(fit0)){
-    n <- length(regression_data$y)
-    ones <- rep(1, n)
-    fit0 <- fastglm::fastglm(y = regression_data$y,
-                             x = matrix(ones, nrow = n),
-                             offset = regression_data$o,
-                             family = family)
-  }
-
-  # 3. processing
+  # 2. processing
   coef <- unname(fit$coefficients)
   intercept <- coef[1]
   betahat <- coef[2]
   shat2 <-  fit$se[2]^2
-  lr  <- 0.5 * (fit0$deviance - fit$deviance)
+  lr  <- -0.5 * (fit$deviance - fit$null.deviance)
   res <- list(
     betahat = betahat,
     shat2 = shat2,
     intercept = intercept,
-    lr = lr
+    lr = lr,
+    ll0 = fit$null.deviance/2,
+    ll = fit$deviance/2
   )
   return(res)
 }
@@ -137,35 +125,15 @@ fit_fast_glm <- function(x, y, o, family='binomial', augment=F, fit0=NULL){
 #' @param family family for glm, e.g. binomial
 #' @returns list containing intercept and effect estimates,
 #'    standard errors, and likelihood ratios
-map_fastglm <- function(X, y, off = NULL, estimate_intercept=T, family='binomial', augment=T){
+map_fastglm <- function(X, y, off = rep(0, length(y)), estimate_intercept=T, family='binomial'){
   if(!estimate_intercept){
     warning("estimate_intercept = FALSE not implemented")
   }
   p <- ncol(X)
-  if (is.null(off)) {
-    off <- rep(0, length(y))
-  }
 
-  # 1. fit null model once
-  null_data <- prep_data_for_fastglm(x = rep(1, length(y)), y = y, o = off,
-                                     intercept = F, augment = augment)
-  fit0 <- fastglm::fastglm(y = null_data$y,
-                           x = null_data$X,
-                           offset = null_data$o,
-                           family = family,
-                           weights = null_data$weights)
-
-  # 2. fit each variable
-  res <- purrr::map_dfr(1:p, ~fit_fast_glm(X[, .x], y, off, family=family, augment = augment, fit0 = fit0))
-
-  # 3. process results
-  res <- list(
-    p = p,
-    betahat = res$betahat,
-    shat2 = res$shat2,
-    intercept = res$intercept,
-    lr = res$lr
-  )
+  # 1. fit each variable
+  res <- purrr::map_dfr(1:p, ~fit_fast_glm(X[, .x], y, off, family=family))
+  res$p <- p
   return(res)
 }
 
@@ -177,14 +145,12 @@ fit_glm_ser <- function(X, y, o = NULL,
                          laplace = T,
                          estimate_prior_variance=T,
                          min_prior_variance = 0,
-                         augment = T,
                          glm_mapper = map_fastglm) {
 
   # univariate regressions
   uni <- glm_mapper(X, y, o,
                     estimate_intercept=intercept,
-                    family=family,
-                    augment=augment)
+                    family=family)
   lr <- uni$lr
   betahat <- uni$betahat
   shat2 <- uni$shat2
