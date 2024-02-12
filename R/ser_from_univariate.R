@@ -115,7 +115,7 @@ optimize_prior_variance <- function(betahat, s2, lr, pi, laplace=T, min_prior_va
   }
 
   # TODO: reasonable upper bound?
-  upper <- max(1000 * s2)
+  upper <- max(4 * betahat^2)
   opt <- optimise(f_opt, c(0, upper), maximum = T)$maximum
 
   fopt <- f_opt(opt)
