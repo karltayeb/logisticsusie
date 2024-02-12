@@ -42,10 +42,10 @@ min(abs(cor(as.matrix(X[, cs]))))
 }
 
 #' @export
-augment_binary_data <- function(X, y, xval=1){
+augment_binary_data <- function(X, y, a=1){
   p <- ncol(X)
 
-  Xaug <- rbind(X, matrix(rep(c(xval, xval, 0, 0), p), nrow=4))
+  Xaug <- rbind(X, matrix(rep(c(a, a, 0, 0), p), nrow=4))
   yaug <- c(y, c(1, 0, 1, 0))
   return(list(X=Xaug, y = yaug))
 }
