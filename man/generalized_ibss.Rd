@@ -4,16 +4,7 @@
 \alias{generalized_ibss}
 \title{Generalized IBSS}
 \usage{
-generalized_ibss(
-  X,
-  y,
-  L = 10,
-  laplace = T,
-  estimate_prior_variance = T,
-  min_prior_variance = 0,
-  family = "binomial",
-  ...
-)
+generalized_ibss(X, y, L = 10, tol = 1e-08, maxit = 100, init = NULL, ...)
 }
 \arguments{
 \item{X}{design matrix}

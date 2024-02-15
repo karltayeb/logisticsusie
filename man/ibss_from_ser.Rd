@@ -8,11 +8,8 @@ ibss_from_ser(
   X,
   y,
   L = 10,
-  prior_variance = 1,
-  prior_weights = NULL,
   tol = 1e-08,
   maxit = 100,
-  estimate_intercept = TRUE,
   ser_function = NULL,
   init = NULL
 )
@@ -24,17 +21,17 @@ ibss_from_ser(
 
 \item{L}{number of effects}
 
-\item{prior_variance}{variance of each single effect, if \code{estimate_prior_variance = T} this is an initialization}
-
-\item{prior_weights}{the prior probability of selecting each variable (columns of \code{X})}
-
 \item{tol}{tolerance to declare convergence}
 
 \item{maxit}{maximum number of iterations}
 
-\item{estimate_intercept}{boolean to estimate intercept}
-
 \item{init}{initialization}
+
+\item{prior_variance}{variance of each single effect, if \code{estimate_prior_variance = T} this is an initialization}
+
+\item{prior_weights}{the prior probability of selecting each variable (columns of \code{X})}
+
+\item{estimate_intercept}{boolean to estimate intercept}
 
 \item{ser_fun}{function for performing SER, must return PIPs, \code{alpha} and posterior mean \code{mu}}
 }

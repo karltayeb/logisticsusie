@@ -4,17 +4,7 @@
 \alias{generalized_ibss_quad}
 \title{Generalized IBSS Quadrature}
 \usage{
-generalized_ibss_quad(
-  X,
-  y,
-  L = 10,
-  n = 32,
-  verbose = F,
-  estimate_prior_variance = T,
-  min_prior_variance = 0,
-  family = "binomial",
-  ...
-)
+generalized_ibss_quad(X, y, L = 10, tol = 1e-08, maxit = 100, init = NULL, ...)
 }
 \arguments{
 \item{X}{design matrix}
@@ -23,12 +13,12 @@ generalized_ibss_quad(
 
 \item{L}{number of single effects}
 
+\item{laplace}{boolean to use Laplace approximation to BF rather than ABF--
+we recommend keeping set to default \code{TRUE}}
+
 \item{estimate_prior_variance}{boolean to estimate prior variance}
 
 \item{family}{family for glm}
-
-\item{laplace}{boolean to use Laplace approximation to BF rather than ABF--
-we recommend keeping set to default \code{TRUE}}
 }
 \description{
 approximate GLM SuSiE using generalized IBSS heuristic

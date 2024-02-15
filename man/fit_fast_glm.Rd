@@ -4,7 +4,7 @@
 \alias{fit_fast_glm}
 \title{Fit fast GLM}
 \usage{
-fit_fast_glm(x, y, o, family = "binomial", augment = F, fit0 = NULL)
+fit_fast_glm(x, y, o, ll0, family = "binomial")
 }
 \arguments{
 \item{x}{the variable of interest}

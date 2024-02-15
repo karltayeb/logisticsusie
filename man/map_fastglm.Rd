@@ -7,10 +7,9 @@
 map_fastglm(
   X,
   y,
-  off = NULL,
+  o = rep(0, length(y)),
   estimate_intercept = T,
-  family = "binomial",
-  augment = T
+  family = "binomial"
 )
 }
 \arguments{
@@ -18,11 +17,11 @@ map_fastglm(
 
 \item{y}{n vector response}
 
+\item{o}{optional offset, vector of length n}
+
 \item{estimate_intercept}{boolean to fit intercept (not implemented)}
 
 \item{family}{family for glm, e.g. binomial}
-
-\item{o}{optional offset, vector of length n}
 }
 \value{
 list containing intercept and effect estimates,

@@ -14,8 +14,7 @@ fit_glm_ser(
   family = "binomial",
   laplace = T,
   estimate_prior_variance = T,
-  min_prior_variance = 0,
-  augment = T,
+  min_prior_variance = 0.001,
   glm_mapper = map_fastglm
 )
 }
