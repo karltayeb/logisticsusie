@@ -27,7 +27,7 @@ ridge <- function(x, y, o=NULL, prior_variance = 1.){
 }
 
 #' make log likelihood function (as a function of b)
-make_log_joint <- function(x, y, o, ridgefit){
+make_log_joint_ridge <- function(x, y, o, ridgefit){
   f <- function(b){
     with(ridgefit, {
       psi <- intercept  + x * b
@@ -64,7 +64,7 @@ logistic_bayes <- function(x, y, o=NULL, prior_variance=1., eps=0, width=5){
   ridgefit <- ridge(x, y, o, prior_variance)
 
   # f = log p(y, b) -- assuming intercept is fixed at MAP
-  f <- make_log_joint(x, y, o, ridgefit)
+  f <- make_log_joint_ridge(x, y, o, ridgefit)
 
   # integrate on b_map +/- width * sqrt(prior_variance)
   # prior_variance > posterior variance
