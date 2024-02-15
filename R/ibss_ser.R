@@ -23,7 +23,7 @@ null_initialize_ibss <- function(n, p, L, prior_variance){
 #' @param ser_fun function for performing SER, must return PIPs, `alpha` and posterior mean `mu`
 #' @param init initialization
 #' @export
-ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NULL, tol = 1e-8, maxit = 100, estimate_intercept = TRUE, ser_function = NULL, init = NULL) {
+ibss_from_ser <- function(X, y, L = 10, tol = 1e-8, maxit = 100, ser_function = NULL, init = NULL) {
   if (is.null(ser_function)) {
     stop("You need to specify a fit function `fit_glm_ser`, `fit_vb_ser`, etc")
   }
@@ -32,7 +32,7 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
   n <- nrow(X)
 
   if(is.null(init)){
-    init <- null_initialize_ibss(n, p, L, prior_variance)
+    init <- null_initialize_ibss(n, p, L, 1.)
   }
 
   alpha <- init$alpha
@@ -51,6 +51,10 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
   diff <- Inf
   # repeat until posterior means converge (ELBO not calculated here, so use this convergence criterion instead)
   while (diff > tol) {
+    if (iter > maxit) {
+      warning("Maximum number of iterations reached")
+      break
+    }
 
     beta_post_old <- beta_post
 
@@ -59,12 +63,7 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
       fixed <- fixed - (X %*% beta_post[l, ])[, 1]
 
       # fit SER
-      ser_l <- ser_function(X, y,
-        o = fixed,
-        prior_variance = prior_variance,
-        intercept = estimate_intercept,
-        prior_weights = prior_weights
-      )
+      ser_l <- ser_function(X, y, o = fixed)
 
       # store
       alpha[l, ] <- ser_l$alpha
@@ -86,11 +85,6 @@ ibss_from_ser <- function(X, y, L = 10, prior_variance = 1., prior_weights = NUL
 
     # diff to monitor convergence
     diff <- max((beta_post - beta_post_old)**2)
-
-    if (iter > maxit) {
-      warning("Maximum number of iterations reached")
-      break
-    }
   }
   timer <- tictoc::toc()
 
@@ -155,15 +149,12 @@ predict.generalized_ibss <- function(fit, X){
 #' @param estimate_prior_variance boolean to estimate prior variance
 #' @param family family for glm
 #' @export
-generalized_ibss <- function(X, y, L=10, laplace=T, estimate_prior_variance=T, min_prior_variance = 0, family='binomial', ...){
+generalized_ibss <- function(X, y, L=10, tol=1e-8, maxit=100, init=NULL, ...){
   # make SER function for GLM, uses asymptotic approximation
-  ser_fun <- purrr::partial(fit_glm_ser,
-                            laplace=laplace,
-                            estimate_prior_variance=estimate_prior_variance,
-                            min_prior_variance=min_prior_variance,
-                            family=family)
+  ser_fun <- purrr::partial(fit_glm_ser, ...)
+
   # fit IBSS using the SER function
-  ibss_from_ser(X, y, L=L, ser_function = ser_fun, ...)
+  ibss_from_ser(X, y, L=L, ser_function = ser_fun, tol = tol, maxit = maxit, init=init)
 }
 
 
@@ -181,15 +172,10 @@ generalized_ibss <- function(X, y, L=10, laplace=T, estimate_prior_variance=T, m
 #' @param estimate_prior_variance boolean to estimate prior variance
 #' @param family family for glm
 #' @export
-generalized_ibss_quad <- function(X, y, L=10, n=32, verbose=F, estimate_prior_variance=T, min_prior_variance = 0, family='binomial', ...){
+generalized_ibss_quad <- function(X, y, L=10, tol=1e-8, maxit=100, init=NULL, ...){
   # make SER function for GLM, uses asymptotic approximation
-  ser_fun <- purrr::partial(fit_quad_ser,
-                            estimate_prior_variance=estimate_prior_variance,
-                            min_prior_variance=min_prior_variance,
-                            family=family,
-                            n=n,
-                            verbose=verbose)
+  ser_fun <- purrr::partial(fit_quad_ser, ...)
 
   # fit IBSS using the SER function
-  ibss_from_ser(X, y, L=L, ser_function = ser_fun, ...)
+  ibss_from_ser(X, y, L=L, ser_function = ser_fun, tol = tol, maxit = maxit, init=init)
 }
