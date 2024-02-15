@@ -89,7 +89,7 @@ logistic_bayes <- function(x, y, o=NULL, prior_variance=1., eps=0, width=5){
   mu2 <- integrate(function(b){b^2 * f2(b)}, lower, upper)$value * D
   var <- mu2 - mu^2
 
-  return(list(mu = mu, var=var, logZ = logZ))
+  return(list(mu = mu, var=var, intercept=ridgefit$intercept, logZ = logZ))
 }
 
 
@@ -109,13 +109,14 @@ logistic_ser <- function(X, y, o=NULL, prior_variance=1.){
     X[,.x], y, o, prior_variance = prior_variance))
 
   mu <- purrr::map_dbl(res, ~.x$mu)
+  intercept <- purrr::map_dbl(res, ~.x$intercept)
   var <- purrr::map_dbl(res, ~.x$var)
   lbf <- purrr::map_dbl(res, ~.x$logZ) - ll0
-  alpha <- exp(lbf - logsumexp(lbf))
-  lbf_ser <- logsumexp(lbf) - log(p) # assuming 1/p
+  alpha <- exp(lbf - logSumExp(lbf))
+  lbf_ser <- logSumExp(lbf) - log(p) # assuming 1/p
 
   psi <- (X %*% (alpha * mu))[,1]
 
-  return(list(mu=mu, var=var, lbf=lbf, alpha=alpha, psi=psi))
+  return(list(mu=mu, var=var, intercept=intercept, prior_variance=prior_variance, lbf=lbf, lbf_model = lbf_ser, alpha=alpha, psi=psi))
 }
 
