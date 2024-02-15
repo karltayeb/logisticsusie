@@ -91,26 +91,26 @@ prep_data_for_fastglm <- function(x, y, o, intercept=T, augment=F){
 #' @param family the family of the glm, e.g. "binomial", "poisson"
 #' @param augment boolean to augment data to ensure existence of MLE
 #' @param fit0
-fit_fast_glm <- function(x, y, o, family='binomial'){
+fit_fast_glm <- function(x, y, o, ll0, family='binomial'){
   # 1. fit model
   fit <- fastglm::fastglm(y = y,
                           x = as.matrix(cbind(rep(1, length(y)), x)),
                           offset = o,
                           family = family)
-
   # 2. processing
   coef <- unname(fit$coefficients)
   intercept <- coef[1]
   betahat <- coef[2]
   shat2 <-  fit$se[2]^2
-  lr  <- -0.5 * (fit$deviance - fit$null.deviance)
+  ll <- -0.5 * fit$deviance
+  lr  <- ll - ll0
   res <- list(
     betahat = betahat,
     shat2 = shat2,
     intercept = intercept,
     lr = lr,
-    ll0 = fit$null.deviance/2,
-    ll = fit$deviance/2
+    ll0 = ll0,
+    ll = ll
   )
   return(res)
 }
@@ -125,14 +125,20 @@ fit_fast_glm <- function(x, y, o, family='binomial'){
 #' @param family family for glm, e.g. binomial
 #' @returns list containing intercept and effect estimates,
 #'    standard errors, and likelihood ratios
-map_fastglm <- function(X, y, off = rep(0, length(y)), estimate_intercept=T, family='binomial'){
+map_fastglm <- function(X, y, o = rep(0, length(y)), estimate_intercept=T, family='binomial'){
   if(!estimate_intercept){
     warning("estimate_intercept = FALSE not implemented")
   }
   p <- ncol(X)
 
+  fit0 <- fastglm::fastglm(y = y,
+                          x = matrix(rep(1, length(y)), ncol=1),
+                          offset = o,
+                          family = family)
+  ll0 <- -0.5 * fit0$deviance
+
   # 1. fit each variable
-  res <- purrr::map_dfr(1:p, ~fit_fast_glm(X[, .x], y, off, family=family))
+  res <- purrr::map_dfr(1:p, ~fit_fast_glm(X[, .x], y, o, ll0, family=family))
   res$p <- p
   return(res)
 }
@@ -144,7 +150,7 @@ fit_glm_ser <- function(X, y, o = NULL,
                          prior_weights = NULL, family = "binomial",
                          laplace = T,
                          estimate_prior_variance=T,
-                         min_prior_variance = 0,
+                         min_prior_variance = 1e-3,
                          glm_mapper = map_fastglm) {
 
   # univariate regressions
