@@ -4,3 +4,5 @@
 .httr-oauth
 .DS_Store
 cache/
+
+c1_sim_gibssfit.rds

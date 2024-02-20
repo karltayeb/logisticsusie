@@ -18,12 +18,21 @@ ridge <- function(x, y, o=NULL, prior_variance = 1.){
     intercept=T, alpha=0, standardize = F, penalty.factor = c(0, 1),
     lambda = lambda, family='binomial')
 
+
   # summarize MAP
   intercept <- coef(fit, s=lambda[100])[1, 1]
   mu <- coef(fit, s=lambda[100])[3, 1]
   psi <- predict(fit, X0, newoffset=o, s=lambda[100])[,1]
   tau <- sum(sigmoid(psi) * sigmoid(-psi) * x^2) + tau0
-  return(list(mu = mu, tau=tau, intercept=intercept, prior_variance=prior_variance, tau0 = 1/prior_variance))
+
+  ll <- sum(y * psi - log(1 + exp(psi))) + dnorm(mu, 0, sd=sqrt(1/tau0), log=T)
+  ll0 <- -0.5 * fit$nulldev
+  #ll <- -0.5 * (fit$nulldev - fit$dev.ratio[100] * fit$nulldev)
+  logZ <- ll + 0.5 * log(2 * pi / tau)
+  return(list(
+    mu = mu, tau=tau, intercept=intercept, prior_variance=prior_variance,
+    tau0 = 1/prior_variance,
+    ll = ll, ll0=ll0, lr = ll - ll0, logZ = logZ))
 }
 
 #' make log likelihood function (as a function of b)
@@ -39,6 +48,26 @@ make_log_joint_ridge <- function(x, y, o, ridgefit){
     })
   }
   return(Vectorize(f))
+}
+
+#' make log likelihood function (as a function of b0, b1)
+make_log_joint2d <- function(x, y, o, prior_variance){
+  f <- function(b){
+    b0 <- b[1]
+    b <- b[2]
+    psi <- b0  + x * b
+    if(!is.null(o)){
+      psi <- psi + o
+    }
+    sum((y * psi) - log(1 + exp(psi))) +
+      dnorm(b0, 0, sd = 1000, log=T) +
+      dnorm(b, 0, sd = sqrt(prior_variance), log=T)
+  }
+
+  f.v <- function(b){
+    matrix(apply(b, 2, f), ncol=ncol(b))
+  }
+  return(f.v)
 }
 
 #' make quadratic approx fun (as a function of b)
