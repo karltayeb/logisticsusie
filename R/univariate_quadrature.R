@@ -125,19 +125,24 @@ fit_quad_ser <- function(X, y, o = NULL, prior_variance = 1, intercept = T, prio
     glm_ser <- rlang::exec(fit_glm_ser, !!!glm_ser_args)
   }
 
-  prior_variance = glm_ser$prior_variance
+  prior_variance <- glm_ser$prior_variance
   null_loglik <- sum(dbinom(y, 1, mean(y), log = T))
   if(verbose){message('Computing BFs... ')}
-  lbf <- purrr::map_dbl(1:p, ~ compute_log_marginal(
-    x = X[, .x],
-    y = y,
-    b0 = glm_ser$intercept[.x],
-    mu = glm_ser$mu[.x],
-    var = glm_ser$var[.x],
-    prior_variance = prior_variance,
-    n = n,
-    verbose = verbose
-  )) - null_loglik
+  if(prior_variance > 0){
+    lbf <- purrr::map_dbl(1:p, ~ compute_log_marginal(
+      x = X[, .x],
+      y = y,
+      b0 = glm_ser$intercept[.x],
+      mu = glm_ser$mu[.x],
+      var = glm_ser$var[.x],
+      prior_variance = prior_variance,
+      n = n,
+      verbose = verbose
+    )) - null_loglik
+  } else{
+    lbf <- rep(0, p)
+  }
+
 
   alpha <- exp(lbf - logSumExp(lbf))
   lbf_model <- sum(alpha * lbf) - categorical_kl(alpha, rep(1 / p, p))
