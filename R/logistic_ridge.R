@@ -88,7 +88,7 @@ Exp <- function(f){Vectorize(function(x){exp(f(x))})}
 
 #' fit ridge regression and then numerically compute: mean, variance, normalizing constant
 #' @export
-logistic_bayes <- function(x, y, o=NULL, prior_variance=1., eps=0, width=5){
+logistic_bayes <- function(x, y, o=NULL, prior_variance=1., eps=0, width=Inf){
   # fit ridge regression
   ridgefit <- ridge(x, y, o, prior_variance)
 
