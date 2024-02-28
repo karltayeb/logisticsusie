@@ -4,7 +4,7 @@
 \alias{logistic_bayes}
 \title{fit ridge regression and then numerically compute: mean, variance, normalizing constant}
 \usage{
-logistic_bayes(x, y, o = NULL, prior_variance = 1, eps = 0, width = 5)
+logistic_bayes(x, y, o = NULL, prior_variance = 1, eps = 0, width = Inf)
 }
 \description{
 fit ridge regression and then numerically compute: mean, variance, normalizing constant
