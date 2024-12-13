@@ -73,6 +73,25 @@ test_that("Compare ABF vs correct ABF in SER", {
   fit3 <- with(sim, ibss_from_ser(X, y, 5, prior_variance = 1, ser_function = uvbser))
 })
 
+test_that("ibss_from_ser gives same result with num_cores > 1",{
+  library(survival)
+  data(survival_demo)
+  X <- survival_demo$geno
+  pheno <- with(survival_demo,Surv(time,status))
+  set.seed(1)
+  fit1 <- with(survival_demo,
+               ibss_from_ser(X,pheno,L = 3,
+                             ser_function = ser_from_univariate(surv_uni_fun),
+                             num_cores = 1))
+  set.seed(1)
+  fit2 <- with(survival_demo,
+               ibss_from_ser(X,pheno,L = 3,
+                             ser_function = ser_from_univariate(surv_uni_fun),
+                             num_cores = 4))
+  fit1$elapsed_time <- 0
+  fit2$elapsed_time <- 0
+  expect_equal(fit1,fit2)
+})
 
 # parallel is slower than sequential here-- probably copying X to each session
 fit_parallel <- function(){
