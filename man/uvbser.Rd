@@ -26,7 +26,6 @@ uvbser(
   tol = 0.001,
   verbose = FALSE,
   n_purity = 100,
-  q = NULL,
   ...
 )
 }

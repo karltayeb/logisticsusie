@@ -9,10 +9,17 @@
 #'    additional arguments passed via ...
 #'  must return: a list with items lbf = log bayes factor, mu = posterior mean, var = posterior variance, intercept=intercept
 #'    note that posterior variance doesn't figure in computations so you can set it to a dummy value (e.g. 0)
+#'
+#' @importFrom parallel mclapply 
+#' 
 #' @export
 ser_from_univariate <- function(uni_fun) {
   # a function for fitting SER
-  ser_fun <- function(X, y, o = NULL, prior_variance = 1, estimate_prior_variance=T, estimate_intercept = T, prior_weights = NULL, ...) {
+  ser_fun <- function(X, y, o = NULL, prior_variance = 1,
+                      estimate_prior_variance = TRUE,
+                      estimate_intercept = TRUE, prior_weights = NULL,
+                      num_cores = 1, ...) {
+
     # set=up
     p <- dim(X)[2]
 
@@ -22,8 +29,20 @@ ser_from_univariate <- function(uni_fun) {
     }
 
     # use uvb intercepts as fixed intercept
-    fits <- dplyr::bind_rows(purrr::map(1:p, ~ uni_fun(X[, .x], y, o, prior_variance = prior_variance, estimate_intercept = estimate_intercept, ...)))
-
+    if (num_cores == 1)
+      fits <- dplyr::bind_rows(purrr::map(1:p,
+                ~uni_fun(X[, .x],y,o,prior_variance = prior_variance,
+                         estimate_intercept = estimate_intercept,...)))
+    else {
+      fits <- mclapply(1:p,
+                function(i) uni_fun(X[, i], y, o,
+                                    prior_variance = prior_variance,
+                                    estimate_intercept = estimate_intercept,
+                                    ...),
+                       mc.cores = num_cores)
+      fits <- dplyr::bind_rows(fits)
+    }
+          
     # compute summaries
     alpha <- exp(fits$lbf - matrixStats::logSumExp(fits$lbf))
     lbf_model <- sum(alpha * fits$lbf) - categorical_kl(alpha, rep(1 / p, p))
