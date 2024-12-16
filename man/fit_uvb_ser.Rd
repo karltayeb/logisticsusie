@@ -10,10 +10,8 @@ fit_uvb_ser(
   o = NULL,
   o2 = NULL,
   prior_variance = 1,
-  q = NULL,
   intercept.init = logodds(mean(y) + 1e-10),
   estimate_intercept = T,
-  estimate_prior_variance = T,
   prior_weights = NULL,
   mapper = purrr::map
 )

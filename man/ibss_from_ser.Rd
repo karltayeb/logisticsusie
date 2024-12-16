@@ -11,7 +11,8 @@ ibss_from_ser(
   tol = 1e-08,
   maxit = 100,
   ser_function = NULL,
-  init = NULL
+  init = NULL,
+  num_cores = 1
 )
 }
 \arguments{
@@ -26,6 +27,9 @@ ibss_from_ser(
 \item{maxit}{maximum number of iterations}
 
 \item{init}{initialization}
+
+\item{num_cores}{Number of cores to used in multithreaded
+implementation of \code{ser_function} (if applicable).}
 
 \item{prior_variance}{variance of each single effect, if \code{estimate_prior_variance = T} this is an initialization}
 

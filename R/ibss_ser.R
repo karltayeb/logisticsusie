@@ -22,8 +22,12 @@ null_initialize_ibss <- function(n, p, L, prior_variance){
 #' @param estimate_intercept boolean to estimate intercept
 #' @param ser_fun function for performing SER, must return PIPs, `alpha` and posterior mean `mu`
 #' @param init initialization
+#' 
+#' @param num_cores Number of cores to used in multithreaded
+#' implementation of \code{ser_function} (if applicable).
+#' 
 #' @export
-ibss_from_ser <- function(X, y, L = 10, tol = 1e-8, maxit = 100, ser_function = NULL, init = NULL) {
+ibss_from_ser <- function(X, y, L = 10, tol = 1e-8, maxit = 100, ser_function = NULL, init = NULL, num_cores = 1) {
   if (is.null(ser_function)) {
     stop("You need to specify a fit function `fit_glm_ser`, `fit_vb_ser`, etc")
   }
@@ -63,7 +67,7 @@ ibss_from_ser <- function(X, y, L = 10, tol = 1e-8, maxit = 100, ser_function = 
       fixed <- fixed - (X %*% beta_post[l, ])[, 1]
 
       # fit SER
-      ser_l <- ser_function(X, y, o = fixed)
+      ser_l <- ser_function(X, y, o = fixed, num_cores = num_cores)
 
       # store
       alpha[l, ] <- ser_l$alpha

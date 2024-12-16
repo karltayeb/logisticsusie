@@ -10,7 +10,7 @@ logistic_ser_hermite2d(
   y,
   o = NULL,
   prior_variance = 1,
-  prior_variance_b0 = 1e+05,
+  prior_variance_b0 = 100000,
   m1 = 5,
   m2 = 5,
   type = "svd"

@@ -1,17 +1,18 @@
-surv_uni_fun <- function(x, y, o, prior_variance, estimate_intercept = 0, ...){
-  fit <- survival::coxph(y ~ x + offset(o))
-  smry <- summary(fit)
-  intercept <- 0
-  bhat <- smry$coefficients[1, 1] # bhat = -alphahat
-  sd <- smry$coefficients[1, 3]
-  lr <- smry$logtest[1]/2
-
-  res <- list(betahat = bhat, shat2 = sd**2, intercept = 0, lr = lr)
-  return(res)
+surv_uni_fun <- function (x, y, e, prior_variance,
+                          estimate_intercept = 0, ...) {
+  v0   <- prior_variance						 
+  fit  <- coxph(y ~ x + offset(e))
+  out  <- summary(fit)$coefficients
+  bhat <- out[1,"coef"]
+  s    <- out[1,"se(coef)"]
+  z    <- bhat/s
+  lbf  <- log(s^2/(v0 + s^2))/2 + z^2/2*v0/(v0 + s^2)
+  lbf  <- lbf - z^2/2 + summary(fit)$logtest["test"]/2
+  v1   <- 1/(1/v0 + 1/s^2)
+  mu1  <- v1*bhat/s^2
+  return(list(mu = mu1,var = v1,lbf = lbf,intercept = 0))
 }
 
-survival_ser <- asymptotic_ser_from_univariate(surv_uni_fun)
-
 survival_ibss <- function(X, y, L, ...){
-  res <- ibss_from_ser(X, y, L, ser_fun = survival_ser, ...)
+  res <- ibss_from_ser(X, y, L, ser_fun = surv_uni_fun, ...)
 }
