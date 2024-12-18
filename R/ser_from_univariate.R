@@ -10,6 +10,7 @@
 #'  must return: a list with items lbf = log bayes factor, mu = posterior mean, var = posterior variance, intercept=intercept
 #'    note that posterior variance doesn't figure in computations so you can set it to a dummy value (e.g. 0)
 #'
+#' @importFrom matrixStats logSumExp
 #' @importFrom parallel mclapply 
 #' 
 #' @export
