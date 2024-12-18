@@ -50,7 +50,8 @@ ser_from_univariate <- function(uni_fun) {
 
     # Each variable "votes" on the prior variance; the final prior
     # variance estimate is the weighted sum of the prior variances.
-    prior_variance <- sum(alpha * fits$prior_variance)
+    if (is.element("prior_variance",colnames(fits)))
+      prior_variance <- sum(alpha * fits$prior_variance)
     
     # return standard ouput: mu var alpha intercept, lbf
     res <- list(
