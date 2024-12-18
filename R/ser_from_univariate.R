@@ -48,6 +48,10 @@ ser_from_univariate <- function(uni_fun) {
     alpha <- exp(fits$lbf - matrixStats::logSumExp(fits$lbf))
     lbf_model <- sum(alpha * fits$lbf) - categorical_kl(alpha, rep(1 / p, p))
 
+    # Each variable "votes" on the prior variance; the final prior
+    # variance estimate is the weighted sum of the prior variances.
+    prior_variance <- sum(alpha * fits$prior_variance)
+    
     # return standard ouput: mu var alpha intercept, lbf
     res <- list(
       mu = fits$mu,
