@@ -1,6 +1,6 @@
 Package: logisticsusie
 Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9006
+Version: 0.0.0.9007
 Date: 2024-12-18
 Authors@R: 
     person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
